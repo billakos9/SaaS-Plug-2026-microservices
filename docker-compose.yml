@@ -1,0 +1,253 @@
+name: SaasPlug
+services:
+  # # ---------- API Gateway ----------
+  # api-gateway:
+  #   build: ./apps/api-gateway
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   environment:
+  #     - PORT=80
+  #   depends_on:
+  #     - user-service
+  #     - auth-service
+  #     - reservation-service
+  #     - charger-service
+  #   networks:
+  #     - backend
+  #
+  # # ---------- Business Services ----------
+  # user-service:
+  #   build: ./services/user-service
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - MONGO_URL=mongodb://user-db:27017/user
+  #   depends_on:
+  #     - user-db
+  #   networks:
+  #     - backend
+
+  # auth-service:
+  #   build: ./services/auth-service
+  #   ports:
+  #     - "3002:3000"
+  #   environment:
+  #     - MONGO_URL=mongodb://auth-db:27017/auth
+  #   depends_on:
+  #     - auth-db
+  #   networks:
+  #     - backend
+
+  # reservation-service:
+  #   build: ./services/reservation-service
+  #   ports:
+  #     - "3003:3000"
+  #   environment:
+  #     - MONGO_URL=mongodb://reservation-db:27017/reservation
+  #     - RABBITMQ_URL=amqp://rabbitmq:5672
+  #   depends_on:
+  #     - reservation-db
+  #     - rabbitmq
+  #   networks:
+  #     - backend
+
+  charger-service:
+    build: ./services/charger-service
+    container_name: charger_service
+    ports:
+      - "3004:3000"
+    environment:
+      - MONGO_URL=mongodb://charger-db:27017/charger
+      # - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - charger-db
+      # - rabbitmq
+    networks:
+      - backend
+
+  #   analytics-service:
+  #     build: ./services/analytics-service
+  #     ports:
+  #       - "3005:3000"
+  #     environment:
+  #       - MONGO_URL=mongodb://analytics-db:27017/analytics
+  #     depends_on:
+  #       - analytics-db
+  #     networks:
+  #       - backend
+
+  #   provider-service:
+  #     build: ./services/provider-service
+  #     ports:
+  #       - "3006:3000"
+  #     environment:
+  #       - MONGO_URL=mongodb://provider-db:27017/provider
+  #     depends_on:
+  #       - provider-db
+  #     networks:
+  #       - backend
+
+  #   admin-service:
+  #     build: ./services/admin-service
+  #     ports:
+  #       - "3007:3000"
+  #     environment:
+  #       - MONGO_URL=mongodb://admin-db:27017/admin
+  #     depends_on:
+  #       - admin-db
+  #     networks:
+  #       - backend
+
+  #   # ---------- Plug / Adapter Aggregator ----------
+  #   plug-service:
+  #     build: ./services/plug-service
+  #     ports:
+  #       - "3008:3000"
+  #     environment:
+  #       - RABBITMQ_URL=amqp://rabbitmq:5672
+  #     depends_on:
+  #       - rabbitmq
+  #     networks:
+  #       - backend
+
+  #   # ---------- Provider Adapters ----------
+  #   blueplug-adapter:
+  #     build: ./adapters/blueplug
+  #     ports:
+  #       - "3009:3000"
+  #     networks:
+  #       - backend
+
+  #   redplug-adapter:
+  #     build: ./adapters/redplug
+  #     ports:
+  #       - "3010:3000"
+  #     networks:
+  #       - backend
+
+  #   greenplug-adapter:
+  #     build: ./adapters/greenplug
+  #     ports:
+  #       - "3011:3000"
+  #     networks:
+  #       - backend
+
+  #   # ---------- RabbitMQ ----------
+  #   rabbitmq:
+  #     image: rabbitmq:3-management
+  #     ports:
+  #       - "5672:5672"
+  #       - "15672:15672"
+  #     networks:
+  #       - backend
+
+  # ---------- Mongo Databases ----------
+  #   user-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27011:27017"
+  #     volumes:
+  #       - user_data:/data/db
+  #     networks:
+  #       - backend
+
+  #   auth-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27012:27017"
+  #     volumes:
+  #       - auth_data:/data/db
+  #     networks:
+  #       - backend
+
+  #   reservation-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27013:27017"
+  #     volumes:
+  #       - reservation_data:/data/db
+  #     networks:
+  #       - backend
+
+  charger-db:
+    image: mongo:8
+    container_name: charger_db
+    ports:
+      - "27014:27017"
+    volumes:
+      - charger_data:/data/db
+    networks:
+      - backend
+
+#   analytics-db:
+#     image: mongo:8
+#     ports:
+#       - "27015:27017"
+#     volumes:
+#       - analytics_data:/data/db
+#     networks:
+#       - backend
+
+#   provider-db:
+#     image: mongo:8
+#     ports:
+#       - "27016:27017"
+#     volumes:
+#       - provider_data:/data/db
+#     networks:
+#       - backend
+
+#   admin-db:
+#     image: mongo:8
+#     ports:
+#       - "27017:27017"
+#     volumes:
+#       - admin_data:/data/db
+#     networks:
+#       - backend
+
+#   # Optional: provider-specific DBs (as in your diagram)
+#   blueplug-db:
+#     image: mongo:8
+#     ports:
+#       - "27018:27017"
+#     volumes:
+#       - blueplug_data:/data/db
+#     networks:
+#       - backend
+
+#   redplug-db:
+#     image: mongo:8
+#     ports:
+#       - "27019:27017"
+#     volumes:
+#       - redplug_data:/data/db
+#     networks:
+#       - backend
+
+#   greenplug-db:
+#     image: mongo:8
+#     ports:
+#       - "27020:27017"
+#     volumes:
+#       - greenplug_data:/data/db
+#     networks:
+#       - backend
+
+# ---------- Volumes ----------
+volumes:
+  #   user_data:
+  #   auth_data:
+  #   reservation_data:
+  charger_data:
+#   analytics_data:
+#   provider_data:
+#   admin_data:
+#   blueplug_data:
+#   redplug_data:
+#   greenplug_data:
+
+# ---------- Network ----------
+networks:
+  backend:
