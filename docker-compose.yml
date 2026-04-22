@@ -62,85 +62,86 @@ services:
       # - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       - charger-db
-      # - rabbitmq
+      - rabbitmq
     networks:
       - backend
 
-  #   analytics-service:
-  #     build: ./services/analytics-service
-  #     ports:
-  #       - "3005:3000"
-  #     environment:
-  #       - MONGO_URL=mongodb://analytics-db:27017/analytics
-  #     depends_on:
-  #       - analytics-db
-  #     networks:
-  #       - backend
+    #   analytics-service:
+    #     build: ./services/analytics-service
+    #     ports:
+    #       - "3005:3000"
+    #     environment:
+    #       - MONGO_URL=mongodb://analytics-db:27017/analytics
+    #     depends_on:
+    #       - analytics-db
+    #     networks:
+    #       - backend
 
-  #   provider-service:
-  #     build: ./services/provider-service
-  #     ports:
-  #       - "3006:3000"
-  #     environment:
-  #       - MONGO_URL=mongodb://provider-db:27017/provider
-  #     depends_on:
-  #       - provider-db
-  #     networks:
-  #       - backend
+    #   provider-service:
+    #     build: ./services/provider-service
+    #     ports:
+    #       - "3006:3000"
+    #     environment:
+    #       - MONGO_URL=mongodb://provider-db:27017/provider
+    #     depends_on:
+    #       - provider-db
+    #     networks:
+    #       - backend
 
-  #   admin-service:
-  #     build: ./services/admin-service
-  #     ports:
-  #       - "3007:3000"
-  #     environment:
-  #       - MONGO_URL=mongodb://admin-db:27017/admin
-  #     depends_on:
-  #       - admin-db
-  #     networks:
-  #       - backend
+    #   admin-service:
+    #     build: ./services/admin-service
+    #     ports:
+    #       - "3007:3000"
+    #     environment:
+    #       - MONGO_URL=mongodb://admin-db:27017/admin
+    #     depends_on:
+    #       - admin-db
+    #     networks:
+    #       - backend
 
-  #   # ---------- Plug / Adapter Aggregator ----------
-  #   plug-service:
-  #     build: ./services/plug-service
-  #     ports:
-  #       - "3008:3000"
-  #     environment:
-  #       - RABBITMQ_URL=amqp://rabbitmq:5672
-  #     depends_on:
-  #       - rabbitmq
-  #     networks:
-  #       - backend
+    #   # ---------- Plug / Adapter Aggregator ----------
+    #   plug-service:
+    #     build: ./services/plug-service
+    #     ports:
+    #       - "3008:3000"
+    #     environment:
+    #       - RABBITMQ_URL=amqp://rabbitmq:5672
+    #     depends_on:
+    #       - rabbitmq
+    #     networks:
+    #       - backend
 
-  #   # ---------- Provider Adapters ----------
-  #   blueplug-adapter:
-  #     build: ./adapters/blueplug
-  #     ports:
-  #       - "3009:3000"
-  #     networks:
-  #       - backend
+    #   # ---------- Provider Adapters ----------
+    #   blueplug-adapter:
+    #     build: ./adapters/blueplug
+    #     ports:
+    #       - "3009:3000"
+    #     networks:
+    #       - backend
 
-  #   redplug-adapter:
-  #     build: ./adapters/redplug
-  #     ports:
-  #       - "3010:3000"
-  #     networks:
-  #       - backend
+    #   redplug-adapter:
+    #     build: ./adapters/redplug
+    #     ports:
+    #       - "3010:3000"
+    #     networks:
+    #       - backend
 
-  #   greenplug-adapter:
-  #     build: ./adapters/greenplug
-  #     ports:
-  #       - "3011:3000"
-  #     networks:
-  #       - backend
+    #   greenplug-adapter:
+    #     build: ./adapters/greenplug
+    #     ports:
+    #       - "3011:3000"
+    #     networks:
+    #       - backend
 
-  #   # ---------- RabbitMQ ----------
-  #   rabbitmq:
-  #     image: rabbitmq:3-management
-  #     ports:
-  #       - "5672:5672"
-  #       - "15672:15672"
-  #     networks:
-  #       - backend
+  # ---------- RabbitMQ ----------
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
 
   # ---------- Mongo Databases ----------
   #   user-db:
