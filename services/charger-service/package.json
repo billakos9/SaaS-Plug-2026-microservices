@@ -1,0 +1,17 @@
+{
+  "name": "charger-service",
+  "version": "1.0.0",
+  "description": "Microservice responsible for storing and recovering available chargers.",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "SaaS26-9",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.5.0"
+  }
+}
