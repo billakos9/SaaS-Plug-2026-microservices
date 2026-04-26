@@ -1,20 +1,24 @@
 name: SaasPlug
 services:
   # # ---------- API Gateway ----------
-  # api-gateway:
-  #   build: ./apps/api-gateway
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   environment:
-  #     - PORT=80
-  #   depends_on:
-  #     - user-service
-  #     - auth-service
-  #     - reservation-service
-  #     - charger-service
-  #   networks:
-  #     - backend
+  api-gateway:
+    build: 
+      context: ./apps/api-gateway
+      dockerfile: docker/Dockerfile
+    container_name: api_gateway
+    ports:
+       - "80:80"
+  #   - "443:443"
+    depends_on:
+  #    - user-service
+  #    - auth-service
+  #    - reservation-service
+       - charger-service
+  #   - analytics-service
+  #    - provider-service
+  #    - admin-service
+    networks:
+       - backend
   #
   # # ---------- Business Services ----------
   # user-service:
