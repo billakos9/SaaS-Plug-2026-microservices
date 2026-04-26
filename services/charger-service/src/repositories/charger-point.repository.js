@@ -41,11 +41,37 @@ class ChargerPointRepository {
 
   /**
    * Creates a new charger point
-   * @param {Object} data
+   * @param {Object} chargerData
    * @returns {Promise<Object>} Created charger point
    */
-  static async create(data) {
-    return ChargerPoint.create(data);
+  static async create(chargerData) {
+    return ChargerPoint.create(chargerData);
+  }
+
+  /**
+   * Updates a charger point if it exists
+   *
+   * @param {Object} updatedChargerData - Data containing id and fields to update
+   * @returns {Promise<Object|null>} Updated document or null if not found
+   */
+  static async update(updatedChargerData) {
+    const { id, ...updateData } = updatedChargerData;
+
+    return ChargerPoint.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { new: true },
+    );
+  }
+
+  /**
+   * Deletes a charger point by id
+   *
+   * @param {number} chargerId - Charger point ID
+   * @returns {Promise<{ deletedCount: number }>} Result of delete operation
+   */
+  static async delete(chargerId) {
+    return ChargerPoint.deleteOne({ id: chargerId });
   }
 }
 

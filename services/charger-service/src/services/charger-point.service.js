@@ -1,4 +1,6 @@
 import { validChargerPointStatus } from "../constants/charger-status.js";
+import { HttpCode } from "../constants/http-codes.js";
+import AppError from "../errors/app-error.js";
 import ChargerPointRepository from "../repositories/charger-point.repository.js";
 
 class ChargerPointService {
@@ -41,11 +43,40 @@ class ChargerPointService {
 
   /**
    * Creates a new charger point
-   * @param {Object} data
+   * @param {Object} chargerData
    * @returns {Promise<Object>} Created charger point
    */
-  static async create(data) {
-    return ChargerPointRepository.create(data);
+  static async create(chargerData) {
+    validChargerPointStatus(chargerData.status);
+    return ChargerPointRepository.create(chargerData);
+  }
+
+  /**
+   * Updates a charger point only if it exists
+   *
+   * @param {Object} chargerPointData - ChargerPoint DTO
+   * @returns {Promise<Object>} Updated charger point
+   * @throws {AppError} If charger point does not exist
+   */
+  static async update(chargerPointData) {
+    validChargerPointStatus(chargerPointData.status);
+
+    const updated = await ChargerPointRepository.update(chargerPointData);
+
+    if (!updated) {
+      throw new AppError("Charger point not found", HttpCode.NOT_FOUND);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Creates a update charger point
+   * @param {Object} chargerId Updated charger point
+   * @returns {Promise<Void>}
+   */
+  static async delete(chargerId) {
+    ChargerPointRepository.delete(chargerId);
   }
 }
 
