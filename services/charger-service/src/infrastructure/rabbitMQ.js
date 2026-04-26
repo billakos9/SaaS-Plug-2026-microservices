@@ -1,5 +1,11 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
+import {
+  Exchanges,
+  MessageQueues,
+  RoutingKeys,
+} from "../constants/messaging.js";
+import ChargerPointService from "../services/charger-point.service.js";
 
 let connection = null;
 let channel = null;
@@ -22,41 +28,117 @@ export async function getChannel() {
 }
 
 /**
- * Sends a message to the "task_queue".
+ * A function responsible for setting up RabbitMQ message MessageQueues.
  *
- * Ensures queue exists before publishing.
- *
- * @param {string} message - Message to send to RabbitMQ queue
- * @returns {Promise<void>}
  */
-export async function sendMessage(message) {
+export async function setupMessaging() {
   const ch = await getChannel();
-  const queue = "task_queue";
 
-  await ch.assertQueue(queue, { durable: false });
-  ch.sendToQueue(queue, Buffer.from(message));
+  await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
+  await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
+
+  await ch.assertQueue(MessageQueues.CHARGER, {
+    durable: true,
+  });
+
+  await ch.bindQueue(
+    MessageQueues.CHARGER,
+    Exchanges.RESERVATION,
+    "reservation.*",
+  );
+  await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
+}
+/**
+ * Publishes an event to a RabbitMQ exchange using a routing key.
+ *
+ * This function is used for emitting domain events (e.g. "reservation.created",
+ * "charger.status.updated") to other services via a topic exchange.
+ *
+ * Messages are sent as JSON and marked as persistent to survive broker restarts.
+ *
+ * @param {string} exchange - The name of the exchange (e.g. "charger", "reservation")
+ * @param {string} routingKey - The routing key describing the event (e.g. "charger.status.updated")
+ * @param {Object} payload - The event payload to be sent (will be JSON-stringified)
+ *
+ * @returns {Promise<void>} Resolves when the message is successfully published
+ *
+ * @throws {Error} If the channel is not available or publish fails
+ *
+ * @example
+ * await publishEvent(
+ *   "charger",
+ *   "charger.status.updated",
+ *   { chargerId: "123", status: "busy" }
+ * );
+ */
+export async function publishEvent(exchange, routingKey, payload) {
+  const ch = await getChannel();
+
+  ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
+    persistent: true,
+  });
 }
 
 /**
- * Starts a long-running consumer for "task_queue".
+ * Starts a RabbitMQ consumer for the Charger Service.
  *
- * This function is meant to run once in a dedicated worker process.
- * It listens continuously for incoming messages.
+ * This function listens to a predefined queue and processes incoming events
+ * based on their routing keys. It is designed to run continuously as part of
+ * the service lifecycle.
  *
- * @returns {Promise<void>}
+ * The consumer:
+ * - Parses incoming messages as JSON
+ * - Routes them based on the routing key
+ * - Acknowledges messages after successful processing
+ *
+ * @returns {Promise<void>} Resolves once the consumer is successfully started
+ *
+ * @throws {Error} If connection or queue consumption fails
+ *
+ * @remarks
+ * - This function should be called once during service startup
+ * - Ensure `setupMessaging()` has been executed before calling this
+ * - Messages are acknowledged manually to ensure reliability
  */
-export async function startConsumer() {
-  const ch = await getChannel();
-  const queue = "task_queue";
+export async function startChargerQueueConsumer() {
+  try {
+    const channel = await getChannel();
 
-  await ch.assertQueue(queue, { durable: false });
+    await channel.assertQueue(MessageQueues.CHARGER, {
+      durable: true,
+    });
 
-  ch.consume(
-    queue,
-    (msg) => {
-      if (!msg) return;
-      console.log(msg.content.toString());
-    },
-    { noAck: true },
-  );
+    await channel.consume(MessageQueues.CHARGER, (message) => {
+      if (!message) return;
+
+      const routingKey = message.fields.routingKey;
+      const chargerData = JSON.parse(message.content.toString());
+
+      switch (routingKey) {
+        case RoutingKeys.CHARGER_ADD:
+          ChargerPointService.create(chargerData);
+          break;
+        case RoutingKeys.CHARGER_DELETE:
+          ChargerPointService.delete(chargerData.id);
+          break;
+        case RoutingKeys.CHARGER_UPDATE:
+          ChargerPointService.update(chargerData);
+          break;
+
+        case RoutingKeys.RESERVATION_CREATED:
+          ChargerPointService.update(chargerData);
+          break;
+        case RoutingKeys.RESERVATION_CANCELLED:
+          ChargerPointService.update(chargerData);
+          break;
+
+        default:
+          console.log("Unhandled event:", routingKey);
+      }
+
+      channel.ack(message);
+    });
+  } catch (error) {
+    console.log("Charger Service Message Consumer Error:", error);
+  }
 }
