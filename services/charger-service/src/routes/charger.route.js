@@ -14,7 +14,7 @@ const chargerPointRouter = Router();
 chargerPointRouter.get("/", getAllChargerPoints);
 chargerPointRouter.get("/status/:status", getAllChargerPointsByStatus);
 chargerPointRouter.get("/id/:id", getChargerPointById);
-chargerPointRouter.get("/location/:lat/:lon", getChargerPointByLocation);
+chargerPointRouter.get("/location/:lat/:lon/:radius?", getChargerPointByLocation);
 
 chargerPointRouter.post("/", authorize, addChargerPoint);
 

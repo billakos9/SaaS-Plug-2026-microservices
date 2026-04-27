@@ -32,13 +32,14 @@ class ChargerPointService {
   }
 
   /**
-   * Retrieves charger points by exact coordinate match
-   * @param {string} latitude
-   * @param {string} longitude
-   * @returns {Promise<Array<Object>>} Matching charger points
+   * Retrieves charger points near given coordinates
+   * @param {number} latitude
+   * @param {number} longitude
+   * @param {number} radiusKm - search radius in kilometres (default: 5)
+   * @returns {Promise<Array<Object>>} Matching charger points sorted by distance
    */
-  static async getByLocation(latitude, longitude) {
-    return ChargerPointRepository.getByLocation(latitude, longitude);
+  static async getByLocation(latitude, longitude, radiusKm) {
+    return ChargerPointRepository.getByLocation(latitude, longitude, radiusKm);
   }
 
   /**

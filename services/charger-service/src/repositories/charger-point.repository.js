@@ -27,15 +27,21 @@ class ChargerPointRepository {
   }
 
   /**
-   * Finds charger points near coordinates (exact match or simple proximity filter)
-   * @param {string} latitude
-   * @param {string} longitude
-   * @returns {Promise<Array<Object>>} Matching charger points
+   * Finds charger points near coordinates
+   * @param {number} latitude
+   * @param {number} longitude
+   * @param {number} radiusKm - Search radius in kilometres (deafult: 5)
+   * @returns {Promise<Array<Object>>} Matching charger points sorted by distance
    */
-  static async getByLocation(latitude, longitude) {
+
+  static async getByLocation(latitude, longitude, radiusKm = 5) {
     return ChargerPoint.find({
-      latitude,
-      longitude,
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [longitude, latitude] },
+          $maxDistance: radiusKm * 1000,
+        },
+      },
     }).lean();
   }
 

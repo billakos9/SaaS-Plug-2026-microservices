@@ -57,8 +57,9 @@ export const getAllChargerPointsByStatus = async (req, res) => {
  * @returns {Promise<void>} Sends JSON array of matching charger points
  */
 export const getChargerPointByLocation = async (req, res) => {
-  const { lat, lon } = req.params;
-  const chargerPointList = await ChargerPointService.getByLocation(lat, lon);
+  const { lat, lon, radius } = req.params;
+  const radiusKm = radius ? Number(radius) : undefined;
+  const chargerPointList = await ChargerPointService.getByLocation(lat, lon, radiusKm);
 
   res.json(toChargerPointDTOList(chargerPointList));
 };
