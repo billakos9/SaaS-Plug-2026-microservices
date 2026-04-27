@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary: #00a7b5;
+  --primary-strong: #008ea1;
+  --secondary: #0f1f2f;
+  --muted: #4b5c70;
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --panel: #eef3fb;
+  --outline: rgba(15, 31, 47, 0.08);
+  --soft: rgba(0, 167, 181, 0.12);
+  --font-sans: 'Space Grotesk', 'Inter', 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  background-image: url('../assets/bg-whole-app.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--secondary);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
