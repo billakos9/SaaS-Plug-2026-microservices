@@ -23,7 +23,7 @@ function verifyToken(req) {
 
   try {
     return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
+  } catch {
     throw new AppError(HttpCode.BAD_REQUEST, "Invalid or expired token.");
   }
 }
