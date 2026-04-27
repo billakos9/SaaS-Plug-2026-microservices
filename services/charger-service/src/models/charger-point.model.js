@@ -23,7 +23,7 @@ const ChargerPointSchema = new mongoose.Schema({
   address: String,
   locationName: String,
   connectionType: String,
-});
+}, { timestamps: true });
 
 /**
  * Mongoose Model for ChargerPoint collection
