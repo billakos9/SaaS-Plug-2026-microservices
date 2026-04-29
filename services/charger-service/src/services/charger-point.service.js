@@ -35,7 +35,7 @@ class ChargerPointService {
    * Retrieves charger points near given coordinates
    * @param {number} latitude
    * @param {number} longitude
-   * @param {number} radiusKm - search radius in kilometres (default: 5)
+   * @param {number} radiusKm - search radius in kilometers (default: 5)
    * @returns {Promise<Array<Object>>} Matching charger points sorted by distance
    */
   static async getByLocation(latitude, longitude, radiusKm) {
