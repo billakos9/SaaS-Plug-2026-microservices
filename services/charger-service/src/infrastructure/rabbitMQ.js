@@ -28,11 +28,31 @@ export async function getChannel() {
 }
 
 /**
+ *  A function that attempts to establish a RabbitMQ channel connection with retries.
+ * @param {Number} retries - The number of retry attempts before giving up (default: 5)
+ * 
+ * @returns {Promise<import("amqplib").Channel>} RabbitMQ channel instance
+ */
+export async function getChannelWithRetry(retries = 5) {
+  while (retries) {
+    try {
+      return await getChannel();
+    } catch (err) {
+      console.log("RabbitMQ not ready, retrying...", err.message);
+      retries--;
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+
+  throw new Error("RabbitMQ connection failed");
+}
+
+/**
  * A function responsible for setting up RabbitMQ message MessageQueues.
  *
  */
 export async function setupMessaging() {
-  const ch = await getChannel();
+  const ch = await getChannelWithRetry();
 
   await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
   await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
@@ -72,7 +92,7 @@ export async function setupMessaging() {
  * );
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const ch = await getChannel();
+  const ch = await getChannelWithRetry();
 
   ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
@@ -102,7 +122,7 @@ export async function publishEvent(exchange, routingKey, payload) {
  */
 export async function startChargerQueueConsumer() {
   try {
-    const channel = await getChannel();
+    const channel = await getChannelWithRetry();
 
     await channel.assertQueue(MessageQueues.CHARGER, {
       durable: true,
