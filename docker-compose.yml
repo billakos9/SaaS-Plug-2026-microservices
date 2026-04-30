@@ -2,23 +2,23 @@ name: SaasPlug
 services:
   # # ---------- API Gateway ----------
   api-gateway:
-    build: 
+    build:
       context: ./apps/api-gateway
       dockerfile: docker/Dockerfile
     container_name: api_gateway
     ports:
-       - "80:80"
-  #   - "443:443"
+      - "80:80"
+    #   - "443:443"
     depends_on:
-  #    - user-service
-  #    - auth-service
-  #    - reservation-service
-       - charger-service
-  #   - analytics-service
-  #    - provider-service
-  #    - admin-service
+      #    - user-service
+      #    - auth-service
+      #    - reservation-service
+      - charger-service
+    #   - analytics-service
+    #    - provider-service
+    #    - admin-service
     networks:
-       - backend
+      - backend
   #
   # # ---------- Business Services ----------
   # user-service:
@@ -118,13 +118,16 @@ services:
     networks:
       - backend
 
-    #   # ---------- Provider Adapters ----------
-    #   blueplug-adapter:
-    #     build: ./adapters/blueplug
-    #     ports:
-    #       - "3009:3000"
-    #     networks:
-    #       - backend
+  # ---------- Provider Adapters ----------
+  blueplug-adapter:
+    container_name: Blue-Plug-Adapter
+    build: ./services/plug-adapters/blue-plug-adapter
+    ports:
+      - "3009:3000"
+    depends_on:
+      - blueplug-db
+    networks:
+      - backend
 
     #   redplug-adapter:
     #     build: ./adapters/redplug
@@ -188,42 +191,43 @@ services:
     networks:
       - backend
 
-#   analytics-db:
-#     image: mongo:8
-#     ports:
-#       - "27015:27017"
-#     volumes:
-#       - analytics_data:/data/db
-#     networks:
-#       - backend
+  #   analytics-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27015:27017"
+  #     volumes:
+  #       - analytics_data:/data/db
+  #     networks:
+  #       - backend
 
-#   provider-db:
-#     image: mongo:8
-#     ports:
-#       - "27016:27017"
-#     volumes:
-#       - provider_data:/data/db
-#     networks:
-#       - backend
+  #   provider-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27016:27017"
+  #     volumes:
+  #       - provider_data:/data/db
+  #     networks:
+  #       - backend
 
-#   admin-db:
-#     image: mongo:8
-#     ports:
-#       - "27017:27017"
-#     volumes:
-#       - admin_data:/data/db
-#     networks:
-#       - backend
+  #   admin-db:
+  #     image: mongo:8
+  #     ports:
+  #       - "27017:27017"
+  #     volumes:
+  #       - admin_data:/data/db
+  #     networks:
+  #       - backend
 
-#   # Optional: provider-specific DBs (as in your diagram)
-#   blueplug-db:
-#     image: mongo:8
-#     ports:
-#       - "27018:27017"
-#     volumes:
-#       - blueplug_data:/data/db
-#     networks:
-#       - backend
+  #   # Optional: provider-specific DBs (as in your diagram)
+  blueplug-db:
+    container_name: blueplug_db
+    image: mongo:8
+    ports:
+      - "27018:27017"
+    volumes:
+      - blueplug_data:/data/db
+    networks:
+      - backend
 
 #   redplug-db:
 #     image: mongo:8
@@ -249,10 +253,10 @@ volumes:
   #   auth_data:
   #   reservation_data:
   charger_data:
-#   analytics_data:
-#   provider_data:
-#   admin_data:
-#   blueplug_data:
+  #   analytics_data:
+  #   provider_data:
+  #   admin_data:
+  blueplug_data:
 #   redplug_data:
 #   greenplug_data:
 
