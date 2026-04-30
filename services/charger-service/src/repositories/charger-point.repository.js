@@ -63,11 +63,8 @@ class ChargerPointRepository {
   static async update(updatedChargerData) {
     const { id, ...updateData } = updatedChargerData;
 
-    return ChargerPoint.findOneAndUpdate(
-      { id },
-      { $set: updateData },
-      { new: true },
-    );
+    await ChargerPoint.updateOne({ id }, { $set: updateData });
+    return ChargerPoint.findOne({ id });
   }
 
   /**

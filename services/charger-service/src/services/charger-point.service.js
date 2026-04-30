@@ -43,12 +43,19 @@ class ChargerPointService {
   }
 
   /**
-   * Creates a new charger point
+   * Creates a new charger point or updates if it already exists
    * @param {Object} chargerData
    * @returns {Promise<Object>} Created charger point
    */
   static async create(chargerData) {
     validChargerPointStatus(chargerData.status);
+    if (chargerData.id) {
+      const existing = await ChargerPointRepository.getById(chargerData.id);
+      if (existing) {
+        console.log(`Charger point with id ${chargerData.id} already exists, updating instead`);
+        return ChargerPointRepository.update(chargerData);
+      }
+    }
     return ChargerPointRepository.create(chargerData);
   }
 
