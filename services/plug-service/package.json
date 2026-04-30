@@ -1,0 +1,17 @@
+{
+  "name": "plug-service",
+  "version": "1.0.0",
+  "description": "Microservice responsible for communicating with charger provider adapters.",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "keywords": [],
+  "author": "SaaS26-9",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^1.0.3",
+    "dotenv": "^17.2.3"
+  }
+}
