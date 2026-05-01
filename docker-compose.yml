@@ -61,9 +61,6 @@ services:
     container_name: charger_service
     ports:
       - "3004:3000"
-    environment:
-      - MONGO_URL=mongodb://charger-db:27017/charger
-      - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       - charger-db
       - rabbitmq
@@ -109,18 +106,14 @@ services:
     build: ./services/plug-service
     ports:
       - "3008:3000"
-    environment:
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000/bluePlugAdapter
     depends_on:
       - rabbitmq
-      #- blueplug-adapter
     networks:
       - backend
 
   # ---------- Provider Adapters ----------
   blueplug-adapter:
-    container_name: Blue-Plug-Adapter
+    container_name: BluePlug-Adapter
     build: ./services/plug-adapters/blue-plug-adapter
     ports:
       - "3009:3000"
@@ -129,19 +122,21 @@ services:
     networks:
       - backend
 
-    #   redplug-adapter:
-    #     build: ./adapters/redplug
-    #     ports:
-    #       - "3010:3000"
-    #     networks:
-    #       - backend
+  redplug-adapter:
+    container_name: RedPlug-Adapter
+    build: ./services/plug-adapters/red-plug-adapter
+    ports:
+      - "3010:3000"
+    networks:
+      - backend
 
-    #   greenplug-adapter:
-    #     build: ./adapters/greenplug
-    #     ports:
-    #       - "3011:3000"
-    #     networks:
-    #       - backend
+  greenplug-adapter:
+    container_name: GreenPlug-Adapter
+    build: ./services/plug-adapters/green-plug-adapter
+    ports:
+      - "3011:3000"
+    networks:
+      - backend
 
   # ---------- RabbitMQ ----------
   rabbitmq:
@@ -220,7 +215,7 @@ services:
 
   #   # Optional: provider-specific DBs (as in your diagram)
   blueplug-db:
-    container_name: blueplug_db
+    container_name: bluePlug_db
     image: mongo:8
     ports:
       - "27018:27017"
@@ -229,23 +224,25 @@ services:
     networks:
       - backend
 
-#   redplug-db:
-#     image: mongo:8
-#     ports:
-#       - "27019:27017"
-#     volumes:
-#       - redplug_data:/data/db
-#     networks:
-#       - backend
+  redplug-db:
+    container_name: redPlug_db
+    image: mongo:8
+    ports:
+      - "27019:27017"
+    volumes:
+      - redplug_data:/data/db
+    networks:
+      - backend
 
-#   greenplug-db:
-#     image: mongo:8
-#     ports:
-#       - "27020:27017"
-#     volumes:
-#       - greenplug_data:/data/db
-#     networks:
-#       - backend
+  greenplug-db:
+    container_name: greenPlug_db
+    image: mongo:8
+    ports:
+      - "27020:27017"
+    volumes:
+      - greenplug_data:/data/db
+    networks:
+      - backend
 
 # ---------- Volumes ----------
 volumes:
@@ -257,8 +254,8 @@ volumes:
   #   provider_data:
   #   admin_data:
   blueplug_data:
-#   redplug_data:
-#   greenplug_data:
+  redplug_data:
+  greenplug_data:
 
 # ---------- Network ----------
 networks:

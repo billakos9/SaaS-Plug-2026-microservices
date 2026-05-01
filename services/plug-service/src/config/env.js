@@ -28,4 +28,4 @@ if (result.error) {
 
 console.log(".env file loaded successfully. PORT is:", process.env.PORT);
 
-export const { PORT, RABBITMQ_URL, BLUE_PLUG_ADAPTER_URL } = process.env;
+export const { PORT, RABBITMQ_URL, BLUE_PLUG_ADAPTER_URL, RED_PLUG_ADAPTER_URL, GREEN_PLUG_ADAPTER_URL } = process.env;
