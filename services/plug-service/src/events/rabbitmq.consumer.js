@@ -26,7 +26,7 @@ import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
  */
 export async function startChargerQueueConsumer() {
   try {
-    const channel = await getChannelWithRetry();
+    const channel = await getChannelWithRetry(10);
 
     await channel.assertQueue(MessageQueues.RESERVATION, {
       durable: true,
