@@ -52,7 +52,6 @@ class ChargerPointService {
     if (chargerData.id) {
       const existing = await ChargerPointRepository.getById(chargerData.id);
       if (existing) {
-        console.log(`Charger point with id ${chargerData.id} already exists, updating instead`);
         return ChargerPointRepository.update(chargerData);
       }
     }

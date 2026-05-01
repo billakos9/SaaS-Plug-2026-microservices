@@ -1,8 +1,6 @@
 import { PROVIDER_BASE_URLS } from "./constants/provider-base-url.js";
-import {
-  setupMessaging,
-  startChargerQueueConsumer
-} from "./infrastructure/rabbitMQ.js";
+import { startChargerQueueConsumer } from "./events/rabbitmq.consumer.js";
+import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import { startProviderPolling } from "./jobs/provider-polling.job.js";
 
 setupMessaging();
