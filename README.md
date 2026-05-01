@@ -18,12 +18,11 @@ saasplug/
 │ ├── provider-service/
 │ ├── analytics-service/
 │ ├── admin-service/
-│ ├── plug-service/ # your aggregator
-│
-├── adapters/ # external provider integrations
-│ ├── blueplug/
-│ ├── redplug/
-│ ├── greenplug/
+│ ├── plug-service/ 
+│ ├── adapters/ 
+│   ├── blueplug/
+│   ├── redplug/
+│   ├── greenplug/
 │
 ├── shared/ # shared logic
 │ ├── types/ # DTOs, interfaces
@@ -31,11 +30,6 @@ saasplug/
 │ ├── config/
 │ ├── logger/
 │ ├── errors/
-│
-├── infrastructure/
-│ ├── message-broker/ # RabbitMQ config
-│ ├── docker/
-│ ├── database/
 │
 ├── scripts/ # dev scripts
 │
