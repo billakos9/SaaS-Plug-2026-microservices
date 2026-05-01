@@ -63,7 +63,7 @@ services:
       - "3004:3000"
     environment:
       - MONGO_URL=mongodb://charger-db:27017/charger
-      # - RABBITMQ_URL=amqp://rabbitmq:5672
+      - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       - charger-db
       - rabbitmq
@@ -104,16 +104,19 @@ services:
     #       - backend
 
     #   # ---------- Plug / Adapter Aggregator ----------
-    #   plug-service:
-    #     build: ./services/plug-service
-    #     ports:
-    #       - "3008:3000"
-    #     environment:
-    #       - RABBITMQ_URL=amqp://rabbitmq:5672
-    #     depends_on:
-    #       - rabbitmq
-    #     networks:
-    #       - backend
+  plug-service:
+    container_name: Plug-Service
+    build: ./services/plug-service
+    ports:
+      - "3008:3000"
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000/bluePlugAdapter
+    depends_on:
+      - rabbitmq
+      #- blueplug-adapter
+    networks:
+      - backend
 
     #   # ---------- Provider Adapters ----------
     #   blueplug-adapter:

@@ -1,5 +1,5 @@
 # MICROSERVICE
 
-## (name)
+## Plug Service
 
-(description)
+Central service responsible for listening to the providers API and updating the charger database.
