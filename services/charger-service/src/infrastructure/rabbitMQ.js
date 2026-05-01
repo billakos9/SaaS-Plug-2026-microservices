@@ -1,11 +1,6 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import {
-  Exchanges,
-  MessageQueues,
-  RoutingKeys,
-} from "../constants/messaging.js";
-import ChargerPointService from "../services/charger-point.service.js";
+import { Exchanges, MessageQueues } from "../constants/messaging.js";
 
 let connection = null;
 let channel = null;
@@ -28,25 +23,54 @@ export async function getChannel() {
 }
 
 /**
+ *  A function that attempts to establish a RabbitMQ channel connection with retries.
+ * @param {Number} retries - The number of retry attempts before giving up (default: 5)
+ *
+ * @returns {Promise<import("amqplib").Channel>} RabbitMQ channel instance
+ */
+export async function getChannelWithRetry(retries = 5) {
+  while (retries) {
+    try {
+      return await getChannel();
+    } catch (err) {
+      console.log("RabbitMQ not ready, retrying...", err.message);
+      retries--;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
+
+  throw new Error("RabbitMQ connection failed");
+}
+
+/**
  * A function responsible for setting up RabbitMQ message MessageQueues.
  *
  */
 export async function setupMessaging() {
-  const ch = await getChannel();
+  const channel = await getChannelWithRetry();
 
-  await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
-  await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
-
-  await ch.assertQueue(MessageQueues.CHARGER, {
+  await channel.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.RESERVATION, "topic", {
     durable: true,
   });
 
-  await ch.bindQueue(
+  await channel.assertQueue(MessageQueues.CHARGER, {
+    durable: true,
+  });
+  await channel.bindQueue(
     MessageQueues.CHARGER,
     Exchanges.RESERVATION,
     "reservation.*",
   );
-  await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
+
+  await channel.assertQueue(MessageQueues.RESERVATION, {
+    durable: true,
+  });
+  await channel.bindQueue(
+    MessageQueues.RESERVATION,
+    Exchanges.RESERVATION,
+    "reservation.*",
+  );
 }
 /**
  * Publishes an event to a RabbitMQ exchange using a routing key.
@@ -72,73 +96,9 @@ export async function setupMessaging() {
  * );
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const ch = await getChannel();
+  const ch = await getChannelWithRetry();
 
   ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
   });
-}
-
-/**
- * Starts a RabbitMQ consumer for the Charger Service.
- *
- * This function listens to a predefined queue and processes incoming events
- * based on their routing keys. It is designed to run continuously as part of
- * the service lifecycle.
- *
- * The consumer:
- * - Parses incoming messages as JSON
- * - Routes them based on the routing key
- * - Acknowledges messages after successful processing
- *
- * @returns {Promise<void>} Resolves once the consumer is successfully started
- *
- * @throws {Error} If connection or queue consumption fails
- *
- * @remarks
- * - This function should be called once during service startup
- * - Ensure `setupMessaging()` has been executed before calling this
- * - Messages are acknowledged manually to ensure reliability
- */
-export async function startChargerQueueConsumer() {
-  try {
-    const channel = await getChannel();
-
-    await channel.assertQueue(MessageQueues.CHARGER, {
-      durable: true,
-    });
-
-    await channel.consume(MessageQueues.CHARGER, (message) => {
-      if (!message) return;
-
-      const routingKey = message.fields.routingKey;
-      const chargerData = JSON.parse(message.content.toString());
-
-      switch (routingKey) {
-        case RoutingKeys.CHARGER_ADD:
-          ChargerPointService.create(chargerData);
-          break;
-        case RoutingKeys.CHARGER_DELETE:
-          ChargerPointService.delete(chargerData.id);
-          break;
-        case RoutingKeys.CHARGER_UPDATE:
-          ChargerPointService.update(chargerData);
-          break;
-
-        case RoutingKeys.RESERVATION_CREATED:
-          ChargerPointService.update(chargerData);
-          break;
-        case RoutingKeys.RESERVATION_CANCELLED:
-          ChargerPointService.update(chargerData);
-          break;
-
-        default:
-          console.log("Unhandled event:", routingKey);
-      }
-
-      channel.ack(message);
-    });
-  } catch (error) {
-    console.log("Charger Service Message Consumer Error:", error);
-  }
 }

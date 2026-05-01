@@ -3,6 +3,7 @@
  */
 export const MessageQueues = Object.freeze({
   CHARGER: "charger.management.queue",
+  RESERVATION: "reservation.management.queue",
 });
 
 /**

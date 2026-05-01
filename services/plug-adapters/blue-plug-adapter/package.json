@@ -1,0 +1,19 @@
+{
+  "name": "blue-plug-service",
+  "version": "1.0.0",
+  "description": "Microservice responsible for communicating with Blue Plug charger provider adapter.",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "keywords": [],
+  "author": "SaaS26-9",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^1.0.3",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.5.0"
+  }
+}
