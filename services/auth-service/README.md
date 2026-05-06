@@ -158,7 +158,7 @@ JWT_SECRET=saasplug-dev-secret-change-me
 
 - **Algorithm:** HS256
 - **Payload:** `{ userId, role, iat, exp }`
-- **Expiry:** 24 hours (`expiresIn: "24h"`)
+- **Expiry:** 2 hours (`expiresIn: "2h"`)
 - **Secret:** loaded from `JWT_SECRET` env var
 
 ---
@@ -184,41 +184,6 @@ JWT_SECRET=saasplug-dev-secret-change-me
 - [ ] `src/dto/auth.dto.js` — `toAuthResponse(token, role)`, `toValidateResponse(valid, userId, role)`
 - [ ] `src/routes/auth.route.js` — mount `POST /login`, `GET /validate`
 - [ ] `src/app.js` — wire Express, MongoDB, RabbitMQ, routes, middleware
-
----
-
-## Docker Compose Updates Needed
-
-Uncomment or add the following blocks in `docker-compose.yml`:
-
-```yaml
-  auth-service:
-    build: ./services/auth-service
-    container_name: auth_service
-    ports:
-      - "3002:3000"
-    environment:
-      - MONGO_URL=mongodb://auth-db:27017/auth
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - JWT_SECRET=${JWT_SECRET}
-    depends_on:
-      - auth-db
-      - rabbitmq
-    networks:
-      - backend
-
-  auth-db:
-    image: mongo:8
-    container_name: auth_db
-    ports:
-      - "27012:27017"
-    volumes:
-      - auth_data:/data/db
-    networks:
-      - backend
-```
-
-Also add `auth_data` to the `volumes:` section and include `auth-service` in `api-gateway` `depends_on`.
 
 ---
 
