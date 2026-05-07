@@ -2,7 +2,7 @@
   "name": "charger-service",
   "version": "1.0.0",
   "description": "Microservice responsible for storing and recovering available chargers.",
-  "main": "app.js",
+  "main": "src/app.js",
   "type": "module",
   "scripts": {
     "start": "node src/app.js"
