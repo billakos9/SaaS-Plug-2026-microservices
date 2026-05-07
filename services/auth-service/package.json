@@ -1,0 +1,21 @@
+{
+  "name": "auth-service",
+  "version": "1.0.0",
+  "description": "Authentication & JWT issuance microservice",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js"
+  },
+  "keywords": [],
+  "author": "SaaS26-9",
+  "license": "ISC",
+  "dependencies": {
+        "amqplib": "^1.0.3",
+        "bcrypt": "^5.1.1",
+        "dotenv": "^17.2.3",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^9.5.0"
+    }
+}
