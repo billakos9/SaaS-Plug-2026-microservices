@@ -1,1 +1,9 @@
-// Vite config — react plugin + dev server proxy (/api → api-gateway)
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+  },
+});

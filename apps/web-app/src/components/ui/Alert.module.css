@@ -1,1 +1,24 @@
-/* Alert styles */
+.alert {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--outline);
+  margin-top: 0.5rem;
+}
+
+.success {
+  background: rgba(0, 167, 181, 0.12);
+  border-color: rgba(0, 167, 181, 0.35);
+  color: var(--secondary);
+}
+
+.error {
+  background: #fef2f2;
+  border-color: #fecdd3;
+  color: #991b1b;
+}
+
+.info {
+  background: rgba(15, 31, 47, 0.05);
+  border-color: rgba(15, 31, 47, 0.12);
+  color: var(--secondary);
+}

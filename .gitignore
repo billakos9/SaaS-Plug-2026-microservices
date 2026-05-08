@@ -7,6 +7,7 @@ apps/front-end
 # Ignores the folder where npm stores all the downloaded packages
 node_modules/
 /dist
+**/dist/
 /build
 
 # Testing/Debugging

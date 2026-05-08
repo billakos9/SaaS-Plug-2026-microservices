@@ -1,1 +1,49 @@
-/* ProviderDashboardPage styles */
+.card {
+  background: var(--card);
+  border: 1px solid var(--outline);
+  border-radius: 18px;
+  padding: 1.8rem;
+  box-shadow: 0 20px 40px rgba(15, 31, 47, 0.1);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--primary);
+  margin: 0 0 0.35rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.panel {
+  border: 1px solid var(--outline);
+  border-radius: 14px;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 0.25rem;
+}
+
+.alertError {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecdd3;
+  color: #991b1b;
+  margin-top: 1rem;
+}
