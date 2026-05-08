@@ -2,8 +2,8 @@
  * A class containing all the available rabbitMQ message queues.
  */
 export const MessageQueues = Object.freeze({
-  CHARGER: "charger.management.queue",
-  RESERVATION: "reservation.management.queue",
+  CHARGER:     "charger.management.queue",
+  RESERVATION: "plug.reservation.queue",
 });
 
 /**

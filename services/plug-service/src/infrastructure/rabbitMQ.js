@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import { Exchanges, MessageQueues } from "../constants/messaging.js";
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
 let connection = null;
 let channel = null;
@@ -55,11 +55,7 @@ export async function setupMessaging() {
   });
 
   await channel.assertQueue(MessageQueues.RESERVATION, { durable: true });
-  await channel.bindQueue(
-    MessageQueues.RESERVATION,
-    Exchanges.RESERVATION,
-    "reservation.*",
-  );
+  await channel.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED);
 
   await channel.assertQueue(MessageQueues.CHARGER, { durable: true });
   await channel.bindQueue(

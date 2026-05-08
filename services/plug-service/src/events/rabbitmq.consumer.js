@@ -32,7 +32,7 @@ export async function startChargerQueueConsumer() {
       durable: true,
     });
 
-    await channel.consume(MessageQueues.RESERVATION, (message) => {
+    await channel.consume(MessageQueues.RESERVATION, async (message) => {
       if (!message) return;
 
       const plugClient = new PlugAdapterHttpClient();
@@ -41,7 +41,7 @@ export async function startChargerQueueConsumer() {
 
       switch (routingKey) {
         case RoutingKeys.RESERVATION_CREATED:
-          plugClient.reservePoint(
+          await plugClient.reservePoint(
             PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName],
             saasPlugReservationRequest.pointId,
             saasPlugReservationRequest.duration,

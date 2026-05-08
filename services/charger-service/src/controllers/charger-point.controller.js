@@ -17,6 +17,8 @@ export const getChargerPointById = async (req, res) => {
 
   const chargerPoint = await ChargerPointService.getById(id);
 
+  if (!chargerPoint) return res.status(404).json({ message: "Charger not found" });
+
   res.json(toChargerPointDTO(chargerPoint));
 };
 

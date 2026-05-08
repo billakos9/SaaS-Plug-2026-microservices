@@ -1,5 +1,6 @@
 import { validChargerPointStatus } from "../constants/charger-status.js";
 import AppError from "../errors/app-error.js";
+import { HttpCode } from "../constants/http-codes.js";
 
 /**
  * Normalizes and validates a ChargerPoint payload into a DTO
@@ -20,23 +21,29 @@ import AppError from "../errors/app-error.js";
  * @throws {AppError} If required fields are missing or invalid
  */
 export function toChargerPointDTO(input) {
-  if (!input) throw new AppError("Input is required");
+  if (!input) throw new AppError(HttpCode.BAD_REQUEST, "Input is required");
+
   const dto = {
     id: Number(input.id),
-    ProviderName: String(input.ProviderName),
-    longitude: String(input.longitude),
-    latitude: String(input.latitude),
+    ProviderName: String(input.ProviderName ?? input.providerName ?? ""),
     status: String(input.status),
-    cap: Number(input.cap),
-    kwhPrice: Number(input.kwhPrice),
-    address: String(input.address),
-    locationName: String(input.locationName),
-    connectionType: String(input.connectionType),
   };
 
-  if (Number.isNaN(dto.id)) throw new AppError("Invalid id");
-  if (Number.isNaN(dto.cap)) throw new AppError("Invalid cap");
-  if (Number.isNaN(dto.kwhPrice)) throw new AppError("Invalid kwhPrice");
+  if (input.longitude      !== undefined) dto.longitude      = String(input.longitude);
+  if (input.latitude       !== undefined) dto.latitude       = String(input.latitude);
+  if (input.cap            !== undefined) dto.cap            = Number(input.cap);
+  if (input.kwhPrice       !== undefined) dto.kwhPrice       = Number(input.kwhPrice);
+  if (input.address        !== undefined) dto.address        = String(input.address);
+  if (input.locationName   !== undefined) dto.locationName   = String(input.locationName);
+  if (input.connectionType !== undefined) dto.connectionType = String(input.connectionType);
+
+  if (Number.isNaN(dto.id) || dto.id <= 0)
+    throw new AppError(HttpCode.BAD_REQUEST, "Invalid id");
+  if (dto.cap !== undefined && Number.isNaN(dto.cap))
+    throw new AppError(HttpCode.BAD_REQUEST, "Invalid cap");
+  if (dto.kwhPrice !== undefined && Number.isNaN(dto.kwhPrice))
+    throw new AppError(HttpCode.BAD_REQUEST, "Invalid kwhPrice");
+
   validChargerPointStatus(dto.status);
 
   return dto;

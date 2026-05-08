@@ -31,7 +31,7 @@ export async function startChargerQueueConsumer() {
       durable: true,
     });
 
-    await channel.consume(MessageQueues.CHARGER, (message) => {
+    await channel.consume(MessageQueues.CHARGER, async (message) => {
       if (!message) return;
 
       const routingKey = message.fields.routingKey;
@@ -39,13 +39,13 @@ export async function startChargerQueueConsumer() {
 
       switch (routingKey) {
         case RoutingKeys.CHARGER_ADD:
-          ChargerPointService.create(chargerData);
+          await ChargerPointService.create(chargerData);
           break;
         case RoutingKeys.CHARGER_DELETE:
-          ChargerPointService.delete(chargerData.id);
+          await ChargerPointService.delete(chargerData.id);
           break;
         case RoutingKeys.CHARGER_UPDATE:
-          ChargerPointService.update(chargerData);
+          await ChargerPointService.update(chargerData);
           break;
         default:
           console.log("Unhandled event:", routingKey);
@@ -87,7 +87,7 @@ export async function startReservationQueueConsumer() {
       durable: true,
     });
 
-    await channel.consume(MessageQueues.RESERVATION, (message) => {
+    await channel.consume(MessageQueues.RESERVATION, async (message) => {
       if (!message) return;
 
       const routingKey = message.fields.routingKey;
@@ -95,11 +95,11 @@ export async function startReservationQueueConsumer() {
 
       switch (routingKey) {
         case RoutingKeys.RESERVATION_CREATED:
-          ChargerPointService.update(reservationData);
-          break;
         case RoutingKeys.RESERVATION_CANCELLED:
-          ChargerPointService.update(reservationData);
+          await ChargerPointService.update(reservationData);
           break;
+        default:
+          console.log("Unhandled reservation event:", routingKey);
       }
 
       channel.ack(message);
