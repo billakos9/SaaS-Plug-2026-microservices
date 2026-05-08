@@ -71,19 +71,20 @@ class ChargerPointService {
     const updated = await ChargerPointRepository.update(chargerPointData);
 
     if (!updated) {
-      throw new AppError("Charger point not found", HttpCode.NOT_FOUND);
+      throw new AppError(HttpCode.NOT_FOUND, "Charger point not found");
     }
 
     return updated;
   }
 
   /**
-   * Creates a update charger point
-   * @param {Object} chargerId Updated charger point
-   * @returns {Promise<Void>}
+   * Deletes a charger point by id
+   *
+   * @param {number} chargerId - ID of the charger point to remove
+   * @returns {Promise<{ deletedCount: number }>} Result of the delete operation
    */
   static async delete(chargerId) {
-    ChargerPointRepository.delete(chargerId);
+    return ChargerPointRepository.delete(chargerId);
   }
 }
 

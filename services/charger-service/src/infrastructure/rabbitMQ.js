@@ -43,34 +43,27 @@ export async function getChannelWithRetry(retries = 5) {
 }
 
 /**
- * A function responsible for setting up RabbitMQ message MessageQueues.
+ * Declares both exchanges and both queues used by charger-service, then binds them.
  *
+ * Two separate queues ensure no round-robin sharing with other consumers:
+ * - charger.management.queue  ← charger exchange  (charger.*)   — receives plug-service sync events
+ * - charger.reservation.queue ← reservation exchange (reservation.*) — receives reservation lifecycle events
+ *
+ * Must be called once at startup before any consumers are started.
+ *
+ * @returns {Promise<void>}
  */
 export async function setupMessaging() {
   const channel = await getChannelWithRetry();
 
   await channel.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
-  await channel.assertExchange(Exchanges.RESERVATION, "topic", {
-    durable: true,
-  });
+  await channel.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
 
-  await channel.assertQueue(MessageQueues.CHARGER, {
-    durable: true,
-  });
-  await channel.bindQueue(
-    MessageQueues.CHARGER,
-    Exchanges.RESERVATION,
-    "reservation.*",
-  );
+  await channel.assertQueue(MessageQueues.CHARGER, { durable: true });
+  await channel.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
 
-  await channel.assertQueue(MessageQueues.RESERVATION, {
-    durable: true,
-  });
-  await channel.bindQueue(
-    MessageQueues.RESERVATION,
-    Exchanges.RESERVATION,
-    "reservation.*",
-  );
+  await channel.assertQueue(MessageQueues.RESERVATION, { durable: true });
+  await channel.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, "reservation.*");
 }
 /**
  * Publishes an event to a RabbitMQ exchange using a routing key.

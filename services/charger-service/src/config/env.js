@@ -21,11 +21,12 @@ if (
 }
 
 if (result.error) {
-  console.error("Error loading .env file:", result.error);
-  console.error("Details:", result.error);
-  process.exit(1);
+  if (result.error.code === "ENOENT") {
+    console.log("No .env file found — using environment variables from the container.");
+  } else {
+    console.error("Error loading .env file:", result.error);
+    process.exit(1);
+  }
 }
-
-console.log(".env file loaded successfully. PORT is:", process.env.PORT);
 
 export const { PORT, MONGOOSE_URL, RABBITMQ_URL } = process.env;

@@ -15,7 +15,7 @@ const ChargerPointSchema = new mongoose.Schema(
     longitude: String,
     latitude: String,
     location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
+      type: { type: String, enum: ["Point"] },
       coordinates: [Number],
     },
     status: {
@@ -32,7 +32,7 @@ const ChargerPointSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-ChargerPointSchema.index({ location: "2dsphere" });
+ChargerPointSchema.index({ location: "2dsphere" }, { sparse: true });
 
 /**
  * Mongoose Model for ChargerPoint collection
