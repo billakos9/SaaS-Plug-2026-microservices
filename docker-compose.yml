@@ -10,13 +10,13 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-    #    - user-service
+      #    - user-service
       - auth-service
-    #    - reservation-service
+      - reservation-service
       - charger-service
+      - provider-service
+      - admin-service
     #   - analytics-service
-    #    - provider-service
-    #    - admin-service
     networks:
       - backend
   #
@@ -47,24 +47,32 @@ services:
     networks:
       - backend
 
-  # reservation-service:
-  #   build: ./services/reservation-service
-  #   ports:
-  #     - "3003:3000"
-  #   environment:
-  #     - MONGO_URL=mongodb://reservation-db:27017/reservation
-  #     - RABBITMQ_URL=amqp://rabbitmq:5672
-  #   depends_on:
-  #     - reservation-db
-  #     - rabbitmq
-  #   networks:
-  #     - backend
+  reservation-service:
+    build: ./services/reservation-service
+    container_name: reservation_service
+    ports:
+      - "3003:3000"
+    env_file:
+      - ./services/reservation-service/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://reservation-db:27017/reservation
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - reservation-db
+      - rabbitmq
+    networks:
+      - backend
 
   charger-service:
     build: ./services/charger-service
     container_name: charger_service
     ports:
       - "3004:3000"
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://charger-db:27017/charger
+      - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       - charger-db
       - rabbitmq
@@ -82,27 +90,40 @@ services:
     #     networks:
     #       - backend
 
-    #   provider-service:
-    #     build: ./services/provider-service
-    #     ports:
-    #       - "3006:3000"
-    #     environment:
-    #       - MONGO_URL=mongodb://provider-db:27017/provider
-    #     depends_on:
-    #       - provider-db
-    #     networks:
-    #       - backend
+  provider-service:
+    build: ./services/provider-service
+    container_name: provider_service
+    ports:
+      - "3006:3000"
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://provider-db:27017/provider
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - provider-db
+      - rabbitmq
+    networks:
+      - backend
 
-    #   admin-service:
-    #     build: ./services/admin-service
-    #     ports:
-    #       - "3007:3000"
-    #     environment:
-    #       - MONGO_URL=mongodb://admin-db:27017/admin
-    #     depends_on:
-    #       - admin-db
-    #     networks:
-    #       - backend
+  admin-service:
+    build: ./services/admin-service
+    container_name: admin_service
+    ports:
+      - "3007:3000"
+    env_file:
+      - ./services/admin-service/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://admin-db:27017/admin
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - PROVIDER_SERVICE_URL=http://provider-service:3000
+      - USER_SERVICE_URL=http://user-service:3000
+      - CHARGER_SERVICE_URL=http://charger-service:3000
+    depends_on:
+      - admin-db
+      - rabbitmq
+    networks:
+      - backend
 
     #   # ---------- Plug / Adapter Aggregator ----------
   plug-service:
@@ -110,6 +131,12 @@ services:
     build: ./services/plug-service
     ports:
       - "3008:3000"
+    environment:
+      - PORT=3000
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000/bluePlugAdapter
+      - RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000/redPlugAdapter
+      - GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000/greenPlugAdapter
     depends_on:
       - rabbitmq
     networks:
@@ -121,6 +148,12 @@ services:
     build: ./services/plug-adapters/blue-plug-adapter
     ports:
       - "3009:3000"
+    env_file:
+      - ./services/plug-adapters/blue-plug-adapter/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
+      - BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
     depends_on:
       - blueplug-db
     networks:
@@ -131,6 +164,14 @@ services:
     build: ./services/plug-adapters/red-plug-adapter
     ports:
       - "3010:3000"
+    env_file:
+      - ./services/plug-adapters/red-plug-adapter/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://redplug-db:27017/redplug
+      - RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
+    depends_on:
+      - redplug-db
     networks:
       - backend
 
@@ -139,6 +180,14 @@ services:
     build: ./services/plug-adapters/green-plug-adapter
     ports:
       - "3011:3000"
+    env_file:
+      - ./services/plug-adapters/green-plug-adapter/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
+      - GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
+    depends_on:
+      - greenplug-db
     networks:
       - backend
 
@@ -172,14 +221,15 @@ services:
     networks:
       - backend
 
-  #   reservation-db:
-  #     image: mongo:8
-  #     ports:
-  #       - "27013:27017"
-  #     volumes:
-  #       - reservation_data:/data/db
-  #     networks:
-  #       - backend
+  reservation-db:
+    image: mongo:8
+    container_name: reservation_db
+    ports:
+      - "27013:27017"
+    volumes:
+      - reservation_data:/data/db
+    networks:
+      - backend
 
   charger-db:
     image: mongo:8
@@ -200,23 +250,25 @@ services:
   #     networks:
   #       - backend
 
-  #   provider-db:
-  #     image: mongo:8
-  #     ports:
-  #       - "27016:27017"
-  #     volumes:
-  #       - provider_data:/data/db
-  #     networks:
-  #       - backend
+  provider-db:
+    image: mongo:8
+    container_name: provider_db
+    ports:
+      - "27016:27017"
+    volumes:
+      - provider_data:/data/db
+    networks:
+      - backend
 
-  #   admin-db:
-  #     image: mongo:8
-  #     ports:
-  #       - "27017:27017"
-  #     volumes:
-  #       - admin_data:/data/db
-  #     networks:
-  #       - backend
+  admin-db:
+    image: mongo:8
+    container_name: admin_db
+    ports:
+      - "27021:27017"
+    volumes:
+      - admin_data:/data/db
+    networks:
+      - backend
 
   #   # Optional: provider-specific DBs (as in your diagram)
   blueplug-db:
@@ -253,11 +305,11 @@ services:
 volumes:
   #   user_data:
   auth_data:
-  #   reservation_data:
+  reservation_data:
   charger_data:
   #   analytics_data:
-  #   provider_data:
-  #   admin_data:
+  provider_data:
+  admin_data:
   blueplug_data:
   redplug_data:
   greenplug_data:
