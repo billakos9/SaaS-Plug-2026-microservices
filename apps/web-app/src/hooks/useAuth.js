@@ -1,1 +1,12 @@
-// Reads AuthContext — shorthand hook used by any component that needs the current user
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error('useAuth must be used inside AuthProvider');
+  }
+
+  return context;
+};

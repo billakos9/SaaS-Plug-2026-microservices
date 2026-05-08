@@ -8,11 +8,11 @@ services:
     container_name: api_gateway
     ports:
       - "80:80"
-    #   - "443:443"
+      - "443:443"
     depends_on:
-      #    - user-service
+    #    - user-service
       - auth-service
-      #    - reservation-service
+    #    - reservation-service
       - charger-service
     #   - analytics-service
     #    - provider-service

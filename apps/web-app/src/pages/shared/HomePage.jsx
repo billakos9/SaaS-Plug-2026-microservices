@@ -1,7 +1,7 @@
 // Landing page — hero section with video background, how it works, quick action links
 import { Link } from 'react-router-dom';
 import heroVideo from '../../assets/vid-homepage.mp4';
-import HowItWorksSection from '../../components/ui/HowItWorksSection'
+import HowItWorksSection from '../../components/ui/HowItWorks'
 import styles from './HomePage.module.css'
 
 

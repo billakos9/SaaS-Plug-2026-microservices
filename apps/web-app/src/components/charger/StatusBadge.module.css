@@ -1,1 +1,27 @@
-/* StatusBadge styles */
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.7rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.available {
+  background: rgba(16, 185, 129, 0.15);
+  color: #15803d;
+}
+
+.occupied {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.reserved {
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
+}
+
+.outOfOrder {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
