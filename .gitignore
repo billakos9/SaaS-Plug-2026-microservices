@@ -1,6 +1,7 @@
 .DS_Store
 *.lck
 *.bak_*
+apps/front-end
 
 # Dependencies
 # Ignores the folder where npm stores all the downloaded packages

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getChargers } from '../../services/chargers';
-import { reserveCharger } from '../../services/reservations';
+import { createReservation } from '../../services/reservations';
 import './ReservePage.module.css';
 
 const mergeSelectedCharger = (list, selected) => {
@@ -159,7 +159,7 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
     setMessage(null);
     setError(null);
     try {
-      const result = await reserveCharger({
+      const result = await createReservation({
         chargerId,
         userId: user?.id || 'guest',
         minutes,
