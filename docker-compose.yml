@@ -43,8 +43,9 @@ services:
     ports:
       - "3002:3000"
     environment:
+      - PORT=3000
       - MONGOOSE_URL=mongodb://auth-db:27017/auth
-      - RABBITMQ_URL= amqp://rabbitmq:5672
+      - RABBITMQ_URL=amqp://rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - auth-db
@@ -58,7 +59,8 @@ services:
     ports:
       - "3003:3000"
     env_file:
-      - ./services/reservation-service/.env.development.local
+      - path: ./services/reservation-service/.env.development.local
+        required: false
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://reservation-db:27017/reservation
@@ -116,7 +118,8 @@ services:
     ports:
       - "3007:3000"
     env_file:
-      - ./services/admin-service/.env.development.local
+      - path: ./services/admin-service/.env.development.local
+        required: false
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://admin-db:27017/admin
@@ -155,7 +158,8 @@ services:
     ports:
       - "3009:3000"
     env_file:
-      - ./services/plug-adapters/blue-plug-adapter/.env.development.local
+      - path: ./services/plug-adapters/blue-plug-adapter/.env.development.local
+        required: false
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
@@ -171,7 +175,8 @@ services:
     ports:
       - "3010:3000"
     env_file:
-      - ./services/plug-adapters/red-plug-adapter/.env.development.local
+      - path: ./services/plug-adapters/red-plug-adapter/.env.development.local
+        required: false
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://redplug-db:27017/redplug
@@ -187,7 +192,8 @@ services:
     ports:
       - "3011:3000"
     env_file:
-      - ./services/plug-adapters/green-plug-adapter/.env.development.local
+      - path: ./services/plug-adapters/green-plug-adapter/.env.development.local
+        required: false
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
