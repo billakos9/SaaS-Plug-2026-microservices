@@ -1,0 +1,13 @@
+{
+  "name": "dev-seeder",
+  "version": "1.0.0",
+  "description": "Development database seeder",
+  "type": "module",
+  "scripts": {
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "mongoose": "^9.5.0"
+  }
+}
