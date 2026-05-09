@@ -203,6 +203,25 @@ services:
     networks:
       - backend
 
+  # ---------- Development Seeder ----------
+  dev-seeder:
+    profiles: ["seed"]
+    build: ./services/dev-seeder
+    container_name: dev_seeder
+    environment:
+      - NODE_ENV=development
+      - AUTH_MONGOOSE_URL=mongodb://auth-db:27017/auth
+      - USER_MONGOOSE_URL=mongodb://user-db:27017/user
+      - SEED_COUNT=100
+      - SEED_START_ID=1
+      - SEED_PASSWORD=123456
+      - SEED_EMAIL_DOMAIN=ionos.app
+    depends_on:
+      - auth-db
+      - user-db
+    networks:
+      - backend
+
   # ---------- RabbitMQ ----------
   rabbitmq:
     image: rabbitmq:4-management
