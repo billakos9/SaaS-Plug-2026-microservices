@@ -10,7 +10,7 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      #    - user-service
+      - user-service
       - auth-service
       - reservation-service
       - charger-service
@@ -21,16 +21,17 @@ services:
       - backend
   #
   # # ---------- Business Services ----------
-  # user-service:
-  #   build: ./services/user-service
-  #   ports:
-  #     - "3001:3000"
-  #   environment:
-  #     - MONGO_URL=mongodb://user-db:27017/user
-  #   depends_on:
-  #     - user-db
-  #   networks:
-  #     - backend
+  user-service:
+    build: ./services/user-service
+    container_name: user_service
+    ports:
+      - "3001:3000"
+    environment:
+      - MONGO_URL=mongodb://user-db:27017/user
+    depends_on:
+      - user-db
+    networks:
+      - backend
 
   auth-service:
     build: ./services/auth-service
@@ -122,6 +123,7 @@ services:
     depends_on:
       - admin-db
       - rabbitmq
+      - user-service
     networks:
       - backend
 
@@ -202,14 +204,15 @@ services:
       - backend
 
   # ---------- Mongo Databases ----------
-  #   user-db:
-  #     image: mongo:8
-  #     ports:
-  #       - "27011:27017"
-  #     volumes:
-  #       - user_data:/data/db
-  #     networks:
-  #       - backend
+  user-db:
+    image: mongo:8
+    container_name: user_db
+    ports:
+      - "27011:27017"
+    volumes:
+      - user_data:/data/db
+    networks:
+      - backend
 
   auth-db:
     image: mongo:8
@@ -303,7 +306,7 @@ services:
 
 # ---------- Volumes ----------
 volumes:
-  #   user_data:
+  user_data:
   auth_data:
   reservation_data:
   charger_data:
