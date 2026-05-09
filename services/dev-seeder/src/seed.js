@@ -1,5 +1,6 @@
-// seed data to auth + user db for development purposes
+// Seed data to auth + user DBs for development purposes.
 
+import { readFile } from "node:fs/promises";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 
@@ -7,21 +8,12 @@ const AUTH_MONGOOSE_URL =
   process.env.AUTH_MONGOOSE_URL ?? "mongodb://auth-db:27017/auth";
 const USER_MONGOOSE_URL =
   process.env.USER_MONGOOSE_URL ?? "mongodb://user-db:27017/user";
-const SEED_COUNT = Number(process.env.SEED_COUNT ?? 100);
-const SEED_START_ID = Number(process.env.SEED_START_ID ?? 1);
-const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "123456";
-const SEED_EMAIL_DOMAIN = process.env.SEED_EMAIL_DOMAIN ?? "ionos.app";
+const MOCK_USERS_FILE =
+  process.env.MOCK_USERS_FILE ?? new URL("../mock_data/users.json", import.meta.url);
+const allowedRoles = new Set(["user", "provider", "admin"]);
 
 if (process.env.NODE_ENV === "production") {
   throw new Error("Dev seeder cannot run in production");
-}
-
-if (!Number.isInteger(SEED_COUNT) || SEED_COUNT <= 0) {
-  throw new Error("SEED_COUNT must be a positive integer");
-}
-
-if (!Number.isInteger(SEED_START_ID) || SEED_START_ID <= 0) {
-  throw new Error("SEED_START_ID must be a positive integer");
 }
 
 const authConnection = mongoose.createConnection(AUTH_MONGOOSE_URL);
@@ -115,26 +107,97 @@ const UserCounter = userConnection.model(
   }),
 );
 
-function createSeedUser(index) {
-  const padded = String(index).padStart(3, "0");
+function requireText(value, fieldName, position) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`mock user #${position} needs a non-empty ${fieldName}`);
+  }
+
+  return value.trim();
+}
+
+function normalizeSeedUser(rawUser, position) {
+  const userId = Number(rawUser.userId);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error(`mock user #${position} has invalid userId`);
+  }
+
+  const email = requireText(rawUser.email, "email", position).toLowerCase();
+  const password = requireText(rawUser.password, "password", position);
+  const name = requireText(rawUser.name, "name", position);
+  const phoneNumber =
+    rawUser.phoneNumber === null || rawUser.phoneNumber === undefined
+      ? null
+      : requireText(rawUser.phoneNumber, "phoneNumber", position);
+  const role = rawUser.role ?? "user";
+
+  if (!allowedRoles.has(role)) {
+    throw new Error(`mock user #${position} has invalid role`);
+  }
 
   return {
-    userId: index,
-    email: `seed${padded}@${SEED_EMAIL_DOMAIN}`,
-    name: `Seed User ${padded}`,
-    phoneNumber: `6900000${padded}`,
-    role: "user",
+    userId,
+    email,
+    password,
+    name,
+    phoneNumber,
+    role,
   };
+}
+
+function assertNoDuplicates(users, fieldName) {
+  const seen = new Set();
+
+  for (const user of users) {
+    const value = user[fieldName];
+
+    if (seen.has(value)) {
+      throw new Error(`Duplicate ${fieldName} in mock users: ${value}`);
+    }
+
+    seen.add(value);
+  }
+}
+
+async function loadMockUsers() {
+  const fileContents = await readFile(MOCK_USERS_FILE, "utf8");
+  const parsedUsers = JSON.parse(fileContents);
+
+  if (!Array.isArray(parsedUsers) || parsedUsers.length === 0) {
+    throw new Error("mock_data/users.json must contain a non-empty array");
+  }
+
+  const users = parsedUsers.map((user, index) =>
+    normalizeSeedUser(user, index + 1),
+  );
+
+  assertNoDuplicates(users, "userId");
+  assertNoDuplicates(users, "email");
+
+  return users;
+}
+
+async function createPasswordHashes(users) {
+  const passwordHashByPlainPassword = new Map();
+
+  for (const user of users) {
+    if (!passwordHashByPlainPassword.has(user.password)) {
+      passwordHashByPlainPassword.set(
+        user.password,
+        await bcrypt.hash(user.password, 10),
+      );
+    }
+  }
+
+  return passwordHashByPlainPassword;
 }
 
 async function seed() {
   await Promise.all([authConnection.asPromise(), userConnection.asPromise()]);
 
-  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
-  const users = Array.from({ length: SEED_COUNT }, (unusedValue, index) =>
-    createSeedUser(SEED_START_ID + index),
-  );
-  const maxSeedUserId = SEED_START_ID + SEED_COUNT - 1;
+  const users = await loadMockUsers();
+  const passwordHashByPlainPassword = await createPasswordHashes(users);
+  const maxSeedUserId = Math.max(...users.map((user) => user.userId));
 
   await AuthUser.bulkWrite(
     users.map((user) => ({
@@ -143,7 +206,7 @@ async function seed() {
         update: {
           $set: {
             email: user.email,
-            passwordHash,
+            passwordHash: passwordHashByPlainPassword.get(user.password),
             role: user.role,
           },
         },
@@ -182,9 +245,7 @@ async function seed() {
     ),
   ]);
 
-  console.log(
-    `Seeded ${SEED_COUNT} users in auth-db and user-db. Password: ${SEED_PASSWORD}`,
-  );
+  console.log(`Seeded ${users.length} users in auth-db and user-db.`);
 }
 
 try {

@@ -206,16 +206,15 @@ services:
   # ---------- Development Seeder ----------
   dev-seeder:
     profiles: ["seed"]
-    build: ./services/dev-seeder
+    build:
+      context: .
+      dockerfile: services/dev-seeder/Dockerfile
     container_name: dev_seeder
     environment:
       - NODE_ENV=development
       - AUTH_MONGOOSE_URL=mongodb://auth-db:27017/auth
       - USER_MONGOOSE_URL=mongodb://user-db:27017/user
-      - SEED_COUNT=100
-      - SEED_START_ID=1
-      - SEED_PASSWORD=123456
-      - SEED_EMAIL_DOMAIN=ionos.app
+      - MOCK_USERS_FILE=/app/mock_data/users.json
     depends_on:
       - auth-db
       - user-db

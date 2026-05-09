@@ -2,9 +2,10 @@ FROM node:22
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY services/dev-seeder/package*.json ./
 RUN npm install
 
-COPY src ./src
+COPY services/dev-seeder/src ./src
+COPY mock_data ./mock_data
 
 CMD ["npm", "run", "seed"]
