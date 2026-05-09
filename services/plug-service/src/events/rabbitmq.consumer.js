@@ -39,18 +39,30 @@ export async function startChargerQueueConsumer() {
       const routingKey = message.fields.routingKey;
       const saasPlugReservationRequest = JSON.parse(message.content.toString());
 
-      switch (routingKey) {
-        case RoutingKeys.RESERVATION_CREATED:
-          await plugClient.reservePoint(
-            PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName],
-            saasPlugReservationRequest.pointId,
-            saasPlugReservationRequest.duration,
-          );
-          channel.ack(message);
-          break;
-        default:
-          channel.nack(message, false, true);
-          console.log("Unhandled event:", routingKey);
+      try {
+        switch (routingKey) {
+          case RoutingKeys.RESERVATION_CREATED: {
+            const adapterUrl = PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName];
+            if (!adapterUrl) {
+              console.warn(`No adapter URL for provider: ${saasPlugReservationRequest.providerName}`);
+              channel.nack(message, false, false);
+              break;
+            }
+            await plugClient.reservePoint(
+              adapterUrl,
+              saasPlugReservationRequest.pointId,
+              saasPlugReservationRequest.duration,
+            );
+            channel.ack(message);
+            break;
+          }
+          default:
+            channel.nack(message, false, false);
+            console.log("Unhandled event:", routingKey);
+        }
+      } catch (error) {
+        console.error("Failed to process reservation event:", error.message);
+        channel.nack(message, false, false);
       }
     });
   } catch (error) {

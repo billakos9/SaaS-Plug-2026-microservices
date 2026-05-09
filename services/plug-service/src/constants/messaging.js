@@ -22,5 +22,4 @@ export const RoutingKeys = Object.freeze({
   CHARGER_DELETE: "charger.delete",
   CHARGER_ADD: "charger.add",
   RESERVATION_CREATED: "reservation.created",
-  RESERVATION_CANCELLED: "reservation.cancelled",
 });

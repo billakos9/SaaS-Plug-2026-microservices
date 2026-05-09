@@ -48,43 +48,6 @@ class ReservationService {
   }
 
   /**
-   * Cancels an active reservation and publishes a reservation.cancelled event.
-   *
-   * Enforces ownership: only the user who created the reservation may cancel it.
-   * Also rejects requests for reservations that are already cancelled.
-   *
-   * @param {number} reservationId - The numeric ID of the reservation to cancel
-   * @param {number} userId - The authenticated user's ID (from JWT), used to verify ownership
-   * @returns {Promise<Object>} The updated lean reservation document with status "cancelled"
-   * @throws {AppError} 404 if the reservation does not exist
-   * @throws {AppError} 403 if the requesting user does not own the reservation
-   * @throws {AppError} 400 if the reservation is already cancelled
-   */
-  static async cancel(reservationId, userId) {
-    const reservation = await ReservationRepository.getById(reservationId);
-
-    if (!reservation) {
-      throw new AppError(HttpCode.NOT_FOUND, "Reservation not found");
-    }
-    if (reservation.userId !== userId) {
-      throw new AppError(HttpCode.FORBIDDEN, "You can only cancel your own reservations");
-    }
-    if (reservation.status === "cancelled") {
-      throw new AppError(HttpCode.BAD_REQUEST, "Reservation is already cancelled");
-    }
-
-    const updated = await ReservationRepository.updateStatus(reservationId, "cancelled");
-
-    await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
-      reservationId: updated.reservationId,
-      id:            updated.chargerId,
-      status:        "available",
-    });
-
-    return updated;
-  }
-
-  /**
    * Returns a single reservation by its numeric ID.
    *
    * @param {number} reservationId - The unique numeric reservation identifier

@@ -20,20 +20,6 @@ export const createReservation = async (req, res) => {
 };
 
 /**
- * Handles DELETE /reservation/cancel/:id
- * Cancels an active reservation. Only the owner of the reservation can cancel it.
- *
- * @param {import("express").Request} req - Express request; params.id is the numeric reservation ID; req.user must contain userId
- * @param {import("express").Response} res - Express response; returns 200 with the updated reservation DTO
- * @returns {Promise<void>} Responds with the cancelled reservation or delegates errors to the error middleware
- */
-export const cancelReservation = async (req, res) => {
-  const reservationId = Number(req.params.id);
-  const updated = await ReservationService.cancel(reservationId, req.user.userId);
-  res.json(toReservationResponseDTO(updated));
-};
-
-/**
  * Handles GET /reservation/:id
  * Returns a single reservation by its numeric id.
  *
