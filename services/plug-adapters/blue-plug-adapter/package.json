@@ -2,7 +2,7 @@
   "name": "blue-plug-service",
   "version": "1.0.0",
   "description": "Microservice responsible for communicating with Blue Plug charger provider adapter.",
-  "main": "app.js",
+  "main": "src/app.js",
   "type": "module",
   "scripts": {
     "start": "node src/app.js"
