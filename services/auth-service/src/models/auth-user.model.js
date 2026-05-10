@@ -20,6 +20,9 @@ const AuthUserSchema = new mongoose.Schema({
         enum: ["user", "provider", "admin"],
         default: "user",
     },
+    providerName: {
+        type: String,
+    },
 });
 
 export default mongoose.model(

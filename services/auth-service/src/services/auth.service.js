@@ -31,7 +31,8 @@ class AuthService {
         // Sign JWT
         const payload = {
             userId: user.userId,
-            role: user.role
+            role: user.role,
+            ...(user.providerName ? { providerName: user.providerName } : {}),
         };
         // 2 hours in seconds
         const expiresIn = 2 * 60 * 60;
