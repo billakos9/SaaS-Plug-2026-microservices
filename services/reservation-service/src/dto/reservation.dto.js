@@ -50,6 +50,7 @@ export function toReservationResponseDTO(data) {
     chargerId:     data.chargerId,
     providerName:  data.providerName,
     duration:      data.duration,
+    kwhPrice:      data.kwhPrice,
     status:        data.status,
     createdAt:     data.createdAt,
     updatedAt:     data.updatedAt,

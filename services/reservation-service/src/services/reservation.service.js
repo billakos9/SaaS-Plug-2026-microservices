@@ -1,5 +1,6 @@
 import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
+import { CHARGER_SERVICE_URL } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import ReservationRepository from "../repositories/reservation.repository.js";
@@ -23,6 +24,17 @@ class ReservationService {
    * @throws {AppError} If the repository or broker call fails unexpectedly
    */
   static async create(data) {
+    let kwhPrice = 0;
+    try {
+      const res = await fetch(`${CHARGER_SERVICE_URL}/charger/id/${data.chargerId}`);
+      if (res.ok) {
+        const charger = await res.json();
+        kwhPrice = charger.kwhPrice ?? 0;
+      }
+    } catch {
+      // non-fatal — reservation proceeds with kwhPrice=0
+    }
+
     const reservationId = await ReservationRepository.getNextId();
 
     const reservation = await ReservationRepository.create({
@@ -31,6 +43,7 @@ class ReservationService {
       chargerId:    data.chargerId,
       providerName: data.providerName,
       duration:     data.duration,
+      kwhPrice,
       status:       "active",
     });
 
@@ -41,6 +54,7 @@ class ReservationService {
       pointId:          reservation.chargerId,   // plug-service key
       providerName:     reservation.providerName,
       duration:         reservation.duration,
+      kwhPrice:         reservation.kwhPrice,
       status:           "reserved",
     });
 
