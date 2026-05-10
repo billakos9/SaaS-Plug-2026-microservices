@@ -16,7 +16,7 @@ services:
       - charger-service
       - provider-service
       - admin-service
-    #   - analytics-service
+      - analytics-service
     networks:
       - backend
   #
@@ -65,9 +65,11 @@ services:
       - PORT=3000
       - MONGOOSE_URL=mongodb://reservation-db:27017/reservation
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - CHARGER_SERVICE_URL=http://charger-service:3000
     depends_on:
       - reservation-db
       - rabbitmq
+      - charger-service
     networks:
       - backend
 
@@ -86,16 +88,25 @@ services:
     networks:
       - backend
 
-    #   analytics-service:
-    #     build: ./services/analytics-service
-    #     ports:
-    #       - "3005:3000"
-    #     environment:
-    #       - MONGO_URL=mongodb://analytics-db:27017/analytics
-    #     depends_on:
-    #       - analytics-db
-    #     networks:
-    #       - backend
+  analytics-service:
+    build: ./services/analytics-service
+    container_name: analytics_service
+    ports:
+      - "3005:3000"
+    env_file:
+      - ./services/analytics-service/.env.development.local
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://analytics-db:27017/analytics
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - CHARGER_SERVICE_URL=http://charger-service:3000
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - analytics-db
+      - rabbitmq
+      - charger-service
+    networks:
+      - backend
 
   provider-service:
     build: ./services/provider-service
@@ -278,14 +289,15 @@ services:
     networks:
       - backend
 
-  #   analytics-db:
-  #     image: mongo:8
-  #     ports:
-  #       - "27015:27017"
-  #     volumes:
-  #       - analytics_data:/data/db
-  #     networks:
-  #       - backend
+  analytics-db:
+    image: mongo:8
+    container_name: analytics_db
+    ports:
+      - "27015:27017"
+    volumes:
+      - analytics_data:/data/db
+    networks:
+      - backend
 
   provider-db:
     image: mongo:8
@@ -344,7 +356,7 @@ volumes:
   auth_data:
   reservation_data:
   charger_data:
-  #   analytics_data:
+  analytics_data:
   provider_data:
   admin_data:
   blueplug_data:
