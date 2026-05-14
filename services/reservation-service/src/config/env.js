@@ -27,4 +27,4 @@ if (result.error) {
   }
 }
 
-export const { PORT, MONGOOSE_URL, RABBITMQ_URL, JWT_SECRET, JWT_EXPIRY } = process.env;
+export const { PORT, MONGOOSE_URL, RABBITMQ_URL, JWT_SECRET, JWT_EXPIRY, CHARGER_SERVICE_URL } = process.env;

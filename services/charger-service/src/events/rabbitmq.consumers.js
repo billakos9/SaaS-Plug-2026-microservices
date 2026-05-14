@@ -95,7 +95,6 @@ export async function startReservationQueueConsumer() {
 
       switch (routingKey) {
         case RoutingKeys.RESERVATION_CREATED:
-        case RoutingKeys.RESERVATION_CANCELLED:
           await ChargerPointService.update(reservationData);
           break;
         default:

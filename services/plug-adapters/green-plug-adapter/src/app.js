@@ -2,6 +2,7 @@ import express from "express";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
+import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import greenPlugRouter from "./routes/green-plug.router.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -23,6 +24,7 @@ app.listen(PORT, () => {
 });
 
 connectMongoDB();
+setupMessaging().catch(err => console.error("RabbitMQ setup failed:", err.message));
 
 GreenPlugAdapterService.syncWithProvider(1);
 

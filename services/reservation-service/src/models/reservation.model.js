@@ -23,6 +23,10 @@ const ReservationSchema = new mongoose.Schema(
       type:    Number,
       default: 60,
     },
+    kwhPrice: {
+      type:    Number,
+      default: 0,
+    },
     status: {
       type:    String,
       enum:    ["active", "cancelled"],

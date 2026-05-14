@@ -35,6 +35,7 @@ if (result.error) {
 export const {
   PORT,
   MONGOOSE_URL,
+  RABBITMQ_URL,
   GREEN_PLUG_BASE_URL,
   GREEN_PLUG_AUTH_TOKEN,
   JWT_SECRET,

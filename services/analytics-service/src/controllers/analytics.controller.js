@@ -1,0 +1,27 @@
+import AnalyticsService from "../services/analytics.service.js";
+import { toAnalyticsReportDTO } from "../dto/analytics.dto.js";
+
+export async function getProviderReport(req, res, next) {
+  try {
+    const { providerName } = req.params;
+    const period = req.query.period ?? new Date().toISOString().slice(0, 7);
+    const report = await AnalyticsService.getProviderReport(providerName, period);
+    res.json(toAnalyticsReportDTO(report));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAllProvidersReport(req, res, next) {
+  try {
+    const period = req.query.period ?? new Date().toISOString().slice(0, 7);
+    const result = await AnalyticsService.getAllProvidersReport(period);
+    res.json({
+      period:      result.period,
+      generatedAt: result.generatedAt,
+      providers:   result.providers.map(toAnalyticsReportDTO),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
