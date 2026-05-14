@@ -35,5 +35,3 @@ desktop.ini
 .env.local
 .env.*.local
 .env.db
-
-tests/
