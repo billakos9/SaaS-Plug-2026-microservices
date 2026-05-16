@@ -2,7 +2,7 @@
 *.lck
 *.bak_*
 apps/front-end
-postman 
+postman
 .postman
 
 # Dependencies
