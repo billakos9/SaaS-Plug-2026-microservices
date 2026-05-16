@@ -38,5 +38,4 @@ export const {
   RABBITMQ_URL,
   RED_PLUG_BASE_URL,
   RED_PLUG_AUTH_TOKEN,
-  JWT_SECRET,
 } = process.env;

@@ -68,10 +68,10 @@ class AdminService {
     }
 
     const token = jwt.sign(
-      { 
-        adminId: admin.adminId, 
-        email: admin.email
-        role: "admin" 
+      {
+        adminId: admin.adminId,
+        email: admin.email,
+        role: "admin",
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY || "24h" },
