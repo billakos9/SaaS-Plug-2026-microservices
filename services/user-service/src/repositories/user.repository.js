@@ -40,6 +40,28 @@ class UserRepository {
   static async delete(userId) {
     return User.deleteOne({ userId });
   }
+
+  static async upsert(userData) {
+    return User.findOneAndUpdate(
+      { userId: userData.userId },
+      { $set: userData },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+      },
+    ).lean();
+  }
+
+  static async setCounterAtLeast(userId) {
+    return Counter.findOneAndUpdate(
+      { _id: "userId" },
+      { $max: { seq: userId } },
+      { upsert: true },
+    ).lean();
+  }
+
 }
 
 export default UserRepository;

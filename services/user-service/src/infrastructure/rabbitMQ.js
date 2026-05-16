@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import { Exchanges } from "../constants/messaging.js";
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
 let connection = null;
 let channel = null;
@@ -34,6 +34,16 @@ export async function setupMessaging() {
   await channel.assertExchange(Exchanges.USER, "topic", {
     durable: true,
   });
+
+  await channel.assertQueue(MessageQueues.USER_PROFILE, {
+    durable: true,
+  });
+
+  await channel.bindQueue(
+    MessageQueues.USER_PROFILE,
+    Exchanges.USER,
+    RoutingKeys.USER_CREATED,
+  );
 }
 
 export async function publishEvent(exchange, routingKey, payload) {

@@ -36,6 +36,31 @@ class UserService {
 
     return UserRepository.delete(userId);
   }
+
+  static async syncCreatedUser(userData) {
+    const userId = Number(userData.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new AppError(HttpCode.BAD_REQUEST, "Invalid userId in user.created event");
+    }
+
+    if (!userData.email || !userData.name) {
+      throw new AppError(HttpCode.BAD_REQUEST, "Invalid user.created event payload");
+    }
+
+    const user = await UserRepository.upsert({
+      userId,
+      email: userData.email,
+      name: userData.name,
+      phoneNumber: userData.phoneNumber ?? null,
+      role: userData.role ?? "user",
+    });
+
+    await UserRepository.setCounterAtLeast(userId);
+
+    return user;
+  }
+
 }
 
 export default UserService;
