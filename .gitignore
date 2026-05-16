@@ -2,6 +2,8 @@
 *.lck
 *.bak_*
 apps/front-end
+postman 
+.postman
 
 # Dependencies
 # Ignores the folder where npm stores all the downloaded packages
