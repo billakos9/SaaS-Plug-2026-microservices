@@ -2,7 +2,9 @@
  * Integration test runner.
  * Usage:  node tests/integration/run.js
  * Env:    GATEWAY_URL (default: http://localhost)
+ *         GATEWAY_API_PREFIX (default: /api)
  *         BLUE_ADAPTER_URL / RED_ADAPTER_URL / GREEN_ADAPTER_URL
+ *         Optional direct adapter URLs are intended for docker-compose.dev.yml.
  *
  * Requires Docker Compose stack to be running.
  */

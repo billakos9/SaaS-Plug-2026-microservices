@@ -15,16 +15,16 @@
 import { describe, it, before } from "node:test";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { req, assertEqual, assertExists, assert, mintUserToken, mintProviderToken, log } from "./helpers.js";
+import { req, assertEqual, assertExists, assert, mintUserToken, mintProviderToken, log, gatewayUrl } from "./helpers.js";
 
 const execAsync = promisify(exec);
 const sleep     = ms => new Promise(r => setTimeout(r, ms));
 
-// ── Adapter direct URLs (bypass gateway) ─────────────────────────────────────
+// ── Adapter URLs ─────────────────────────────────────────────────────────────
 
-const BLUE  = process.env.BLUE_ADAPTER_URL  ?? "http://localhost:3009";
-const RED   = process.env.RED_ADAPTER_URL   ?? "http://localhost:3010";
-const GREEN = process.env.GREEN_ADAPTER_URL ?? "http://localhost:3011";
+const BLUE  = process.env.BLUE_ADAPTER_URL  ?? gatewayUrl("/adapters/blue");
+const RED   = process.env.RED_ADAPTER_URL   ?? gatewayUrl("/adapters/red");
+const GREEN = process.env.GREEN_ADAPTER_URL ?? gatewayUrl("/adapters/green");
 
 // ── E2E-reserved charger IDs — never touch in this file ──────────────────────
 

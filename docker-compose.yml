@@ -8,7 +8,6 @@ services:
     container_name: api_gateway
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - user-service
       - auth-service
@@ -17,6 +16,9 @@ services:
       - provider-service
       - admin-service
       - analytics-service
+      - blueplug-adapter
+      - redplug-adapter
+      - greenplug-adapter
     networks:
       - backend
   #
@@ -24,8 +26,6 @@ services:
   user-service:
     build: ./services/user-service
     container_name: user_service
-    ports:
-      - "3001:3000"
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://user-db:27017/user
@@ -42,8 +42,6 @@ services:
   auth-service:
     build: ./services/auth-service
     container_name: auth_service
-    ports:
-      - "3002:3000"
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://auth-db:27017/auth
@@ -60,8 +58,6 @@ services:
   reservation-service:
     build: ./services/reservation-service
     container_name: reservation_service
-    ports:
-      - "3003:3000"
     env_file:
       - path: ./services/reservation-service/.env.development.local
         required: false
@@ -82,8 +78,6 @@ services:
   charger-service:
     build: ./services/charger-service
     container_name: charger_service
-    ports:
-      - "3004:3000"
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://charger-db:27017/charger
@@ -99,8 +93,6 @@ services:
   analytics-service:
     build: ./services/analytics-service
     container_name: analytics_service
-    ports:
-      - "3005:3000"
     env_file:
       - ./services/analytics-service/.env.development.local
     environment:
@@ -122,8 +114,6 @@ services:
   provider-service:
     build: ./services/provider-service
     container_name: provider_service
-    ports:
-      - "3006:3000"
     environment:
       - PORT=3000
       - MONGOOSE_URL=mongodb://provider-db:27017/provider
@@ -139,8 +129,6 @@ services:
   admin-service:
     build: ./services/admin-service
     container_name: admin_service
-    ports:
-      - "3007:3000"
     env_file:
       - path: ./services/admin-service/.env.development.local
         required: false
@@ -166,8 +154,6 @@ services:
   plug-service:
     container_name: Plug-Service
     build: ./services/plug-service
-    ports:
-      - "3008:3000"
     environment:
       - PORT=3000
       - RABBITMQ_URL=amqp://rabbitmq:5672
@@ -184,8 +170,6 @@ services:
   blueplug-adapter:
     container_name: BluePlug-Adapter
     build: ./services/plug-adapters/blue-plug-adapter
-    ports:
-      - "3009:3000"
     env_file:
       - path: ./services/plug-adapters/blue-plug-adapter/.env.development.local
         required: false
@@ -203,8 +187,6 @@ services:
   redplug-adapter:
     container_name: RedPlug-Adapter
     build: ./services/plug-adapters/red-plug-adapter
-    ports:
-      - "3010:3000"
     env_file:
       - path: ./services/plug-adapters/red-plug-adapter/.env.development.local
         required: false
@@ -222,8 +204,6 @@ services:
   greenplug-adapter:
     container_name: GreenPlug-Adapter
     build: ./services/plug-adapters/green-plug-adapter
-    ports:
-      - "3011:3000"
     env_file:
       - path: ./services/plug-adapters/green-plug-adapter/.env.development.local
         required: false
@@ -260,9 +240,6 @@ services:
   rabbitmq:
     image: rabbitmq:4-management
     container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
       interval: 10s
@@ -276,8 +253,6 @@ services:
   user-db:
     image: mongo:8
     container_name: user_db
-    ports:
-      - "27011:27017"
     volumes:
       - user_data:/data/db
     networks:
@@ -286,8 +261,6 @@ services:
   auth-db:
     image: mongo:8
     container_name: auth_db
-    ports:
-      - "27012:27017"
     volumes:
       - auth_data:/data/db
     networks:
@@ -296,8 +269,6 @@ services:
   reservation-db:
     image: mongo:8
     container_name: reservation_db
-    ports:
-      - "27013:27017"
     volumes:
       - reservation_data:/data/db
     networks:
@@ -306,8 +277,6 @@ services:
   charger-db:
     image: mongo:8
     container_name: charger_db
-    ports:
-      - "27014:27017"
     volumes:
       - charger_data:/data/db
     networks:
@@ -316,8 +285,6 @@ services:
   analytics-db:
     image: mongo:8
     container_name: analytics_db
-    ports:
-      - "27015:27017"
     volumes:
       - analytics_data:/data/db
     networks:
@@ -326,8 +293,6 @@ services:
   provider-db:
     image: mongo:8
     container_name: provider_db
-    ports:
-      - "27016:27017"
     volumes:
       - provider_data:/data/db
     networks:
@@ -336,8 +301,6 @@ services:
   admin-db:
     image: mongo:8
     container_name: admin_db
-    ports:
-      - "27021:27017"
     volumes:
       - admin_data:/data/db
     networks:
@@ -347,8 +310,6 @@ services:
   blueplug-db:
     container_name: bluePlug_db
     image: mongo:8
-    ports:
-      - "27018:27017"
     volumes:
       - blueplug_data:/data/db
     networks:
@@ -357,8 +318,6 @@ services:
   redplug-db:
     container_name: redPlug_db
     image: mongo:8
-    ports:
-      - "27019:27017"
     volumes:
       - redplug_data:/data/db
     networks:
@@ -367,8 +326,6 @@ services:
   greenplug-db:
     container_name: greenPlug_db
     image: mongo:8
-    ports:
-      - "27020:27017"
     volumes:
       - greenplug_data:/data/db
     networks:

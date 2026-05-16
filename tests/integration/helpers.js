@@ -1,11 +1,44 @@
 import { createHmac } from "node:crypto";
 
 export const BASE_URL = process.env.GATEWAY_URL ?? "http://localhost";
+export const API_PREFIX = process.env.GATEWAY_API_PREFIX ?? "/api";
+
+function trimTrailingSlash(value) {
+  return String(value).replace(/\/+$/, "");
+}
+
+function normalizePath(value) {
+  const path = String(value || "");
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+export function gatewayUrl(path = "") {
+  const base = trimTrailingSlash(BASE_URL);
+  const prefix = API_PREFIX ? normalizePath(API_PREFIX).replace(/\/+$/, "") : "";
+  const normalizedPath = normalizePath(path);
+
+  if (prefix && base.endsWith(prefix)) {
+    const pathWithoutPrefix =
+      normalizedPath === prefix
+        ? ""
+        : normalizedPath.startsWith(`${prefix}/`)
+          ? normalizedPath.slice(prefix.length)
+          : normalizedPath;
+
+    return `${base}${pathWithoutPrefix}`;
+  }
+
+  if (!prefix || normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)) {
+    return `${base}${normalizedPath}`;
+  }
+
+  return `${base}${prefix}${normalizedPath}`;
+}
 
 export async function req(method, path, body, token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(gatewayUrl(path), {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

@@ -1,14 +1,15 @@
 import { describe, it, before } from "node:test";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { req, assertEqual, assertExists, log, mintUserToken } from "./helpers.js";
+import { req, assertEqual, assertExists, log, mintUserToken, gatewayUrl } from "./helpers.js";
 
 const execAsync = promisify(exec);
 
-// Adapters called directly on their own ports, not through nginx
-const BLUE  = process.env.BLUE_ADAPTER_URL  ?? "http://localhost:3009";
-const RED   = process.env.RED_ADAPTER_URL   ?? "http://localhost:3010";
-const GREEN = process.env.GREEN_ADAPTER_URL ?? "http://localhost:3011";
+// Default adapter access goes through the API gateway. Override *_ADAPTER_URL
+// only when running docker-compose.dev.yml for direct modular debugging.
+const BLUE  = process.env.BLUE_ADAPTER_URL  ?? gatewayUrl("/adapters/blue");
+const RED   = process.env.RED_ADAPTER_URL   ?? gatewayUrl("/adapters/red");
+const GREEN = process.env.GREEN_ADAPTER_URL ?? gatewayUrl("/adapters/green");
 
 const BLUE_NTUA_BASE  = "https://davinci.softlab.ntua.gr/saas26/bluePlug/api";
 const RED_NTUA_BASE   = "https://davinci.softlab.ntua.gr/saas26/redPlug/api";
