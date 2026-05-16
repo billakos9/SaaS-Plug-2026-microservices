@@ -1,3 +1,7 @@
+export const MessageQueues = Object.freeze({
+  USER_PROFILE: "user.profile.queue",
+});
+
 export const Exchanges = Object.freeze({
   USER: "user",
 });

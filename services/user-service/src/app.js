@@ -6,6 +6,7 @@ import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import userRouter from "./routes/user.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
+import { startUserQueueConsumer } from "./events/rabbitmq.consumer.js";
 
 const app = express();
 
@@ -21,6 +22,10 @@ app.listen(PORT, () => {
 });
 
 connectMongoDB();
-setupMessaging();
+setupMessaging()
+  .then(startUserQueueConsumer)
+  .catch((error) => {
+    console.error("User service messaging bootstrap failed:", error);
+  });
 
 export default app;
