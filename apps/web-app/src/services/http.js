@@ -5,31 +5,40 @@ export const AUTH_TOKEN_KEY = "ionos:auth:token";
 
 let cachedAuthToken = null;
 
-// can be imported from other files
-// reads the jwt token, is this user logged in?
-export const getStoredToken = () => {
-  // if cached token great, error handling if not browser environment 
-  if (cachedAuthToken) return cachedAuthToken;
+const getSessionStorage = () => {
   if (typeof window === "undefined") return null;
 
-  // if find token in local storage => store it in cache
-  const stored = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+};
+
+
+export const getStoredToken = () => {
+  if (cachedAuthToken) return cachedAuthToken;
+
+  const storage = getSessionStorage();
+  if (!storage) return null;
+
+  const stored = storage.getItem(AUTH_TOKEN_KEY);
   if (stored) cachedAuthToken = stored;
+
   return stored;
 };
 
-// stores the jwt token
-// login or logout calls this function
+
 export const setStoredToken = (token) => {
   cachedAuthToken = token || null;
-  if (typeof window === "undefined") return;
+
+  const storage = getSessionStorage();
+  if (!storage) return;
 
   if (token) {
-    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
-  } 
-  // logout = remove token
-  else {
-    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    storage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    storage.removeItem(AUTH_TOKEN_KEY);
   }
 };
 

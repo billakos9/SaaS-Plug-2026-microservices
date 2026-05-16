@@ -27,6 +27,13 @@ if (result.error) {
 console.log(".env file loaded succesfully. Port is:",
     process.env.PORT);
 
+for (const key of ["JWT_SECRET"]) {
+    if (!process.env[key]) {
+        console.error(`${key} is required`);
+        process.exit(1);
+    }
+}
+
 export const {
     PORT,
     MONGOOSE_URL,

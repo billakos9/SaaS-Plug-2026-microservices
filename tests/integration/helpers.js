@@ -29,19 +29,31 @@ export function assertExists(value, label) {
     throw new Error(`${label}: expected a value, got ${JSON.stringify(value)}`);
 }
 
+function getJwtSecret(secret) {
+  const jwtSecret = secret ?? process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET is required to mint integration test tokens");
+  }
+
+  return jwtSecret;
+}
+
 // Manually mint a user JWT using the same algorithm as jsonwebtoken (HS256)
 // so we can test reservation-service without a running user-service.
-export function mintUserToken(userId, secret = "change_me_to_a_strong_secret") {
+export function mintUserToken(userId, secret) {
+  const jwtSecret = getJwtSecret(secret);
   const header  = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(JSON.stringify({ userId, email: `user${userId}@test.com`, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000) + 86400 })).toString("base64url");
-  const sig = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
+  const sig = createHmac("sha256", jwtSecret).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${sig}`;
 }
 
-export function mintProviderToken(providerName, secret = "change_me_to_a_strong_secret") {
+export function mintProviderToken(providerName, secret) {
+  const jwtSecret = getJwtSecret(secret);
   const header  = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(JSON.stringify({ userId: 0, role: "provider", providerName, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000) + 86400 })).toString("base64url");
-  const sig = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
+  const sig = createHmac("sha256", jwtSecret).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${sig}`;
 }
 
