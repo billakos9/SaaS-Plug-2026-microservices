@@ -6,7 +6,7 @@ import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import userRouter from "./routes/user.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
-import { startUserQueueConsumer } from "./events/rabbitmq.consumers.js";
+import { startUserQueueConsumer } from "./events/rabbitmq.consumer.js";
 
 const app = express();
 
