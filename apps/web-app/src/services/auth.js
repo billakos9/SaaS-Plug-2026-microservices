@@ -92,7 +92,7 @@ export async function login(email, password) {
   }
 
   const res = await http.post("/auth/login", { email, password });
-  const token = res.data?.token;
+  const token = res.data?.accessToken ?? res.data?.token;
 
   if (!token) {
     throw new Error("Login failed: no token returned");

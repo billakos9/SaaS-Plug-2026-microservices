@@ -29,6 +29,13 @@ if (result.error) {
   }
 }
 
+for (const key of ["JWT_SECRET"]) {
+  if (!process.env[key]) {
+    console.error(`${key} is required`);
+    process.exit(1);
+  }
+}
+
 export const {
   PORT,
   MONGOOSE_URL,

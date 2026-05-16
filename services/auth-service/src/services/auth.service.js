@@ -78,6 +78,7 @@ class AuthService {
 
     const payload = {
       userId: user.userId,
+      email: user.email,
       role: user.role,
       ...(user.providerName ? { providerName: user.providerName } : {}),
     };

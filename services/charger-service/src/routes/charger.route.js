@@ -1,5 +1,4 @@
 import { Router } from "express";
-// import { authorize } from "../middleware/auth.middleware.js";
 
 import {
   getChargerPointById,

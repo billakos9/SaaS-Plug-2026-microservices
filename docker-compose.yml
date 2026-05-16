@@ -70,6 +70,7 @@ services:
       - MONGOOSE_URL=mongodb://reservation-db:27017/reservation
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - CHARGER_SERVICE_URL=http://charger-service:3000
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       reservation-db:
         condition: service_started
@@ -150,6 +151,7 @@ services:
       - PROVIDER_SERVICE_URL=http://provider-service:3000
       - USER_SERVICE_URL=http://user-service:3000
       - CHARGER_SERVICE_URL=http://charger-service:3000
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -29,5 +29,5 @@ if (result.error) {
   }
 }
 
-export const { PORT, MONGOOSE_URL, RABBITMQ_URL, BLUE_PLUG_BASE_URL, BLUE_PLUG_AUTH_TOKEN, JWT_SECRET } =
+export const { PORT, MONGOOSE_URL, RABBITMQ_URL, BLUE_PLUG_BASE_URL, BLUE_PLUG_AUTH_TOKEN } =
   process.env;
