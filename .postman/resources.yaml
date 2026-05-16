@@ -1,0 +1,8 @@
+workspace:
+  id: 00c0646f-0b66-44ae-8121-edfd0f9ae211
+localResources:
+  collections:
+    - ../postman/collections/SaaS26 Local Tests
+cloudResources:
+  collections:
+    ../postman/collections/SaaS26 Local Tests: 52379491-9e05fb2f-92ca-42ab-8bbd-7a81f6084651

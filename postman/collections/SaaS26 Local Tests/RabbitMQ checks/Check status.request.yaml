@@ -1,0 +1,17 @@
+$kind: http-request
+name: Check status
+url: "{{rabbit_url}}/api/overview"
+method: GET
+auth:
+  type: basic
+  credentials:
+    username: guest
+    password: guest
+scripts:
+  - type: afterResponse
+    code: |
+      pm.test("RabbitMQ management is up", () => {
+        pm.response.to.have.status(200);
+      });
+    language: text/javascript
+order: 1778930409960
