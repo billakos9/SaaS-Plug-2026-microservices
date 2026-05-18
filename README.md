@@ -49,6 +49,11 @@ databases, RabbitMQ, and plug adapters stay internal to the Docker network.
 docker compose up -d --build
 ```
 
+Stop with
+```bash
+docker compose down
+```
+
 Local dev/debug mode adds explicit host ports for modular testing and tools
 such as MongoDB Compass or the RabbitMQ management UI.
 
