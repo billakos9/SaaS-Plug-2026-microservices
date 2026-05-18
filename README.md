@@ -24,13 +24,6 @@ saasplug/
 │   ├── redplug/
 │   ├── greenplug/
 │
-├── shared/ # shared logic
-│ ├── types/ # DTOs, interfaces
-│ ├── utils/
-│ ├── config/
-│ ├── logger/
-│ ├── errors/
-│
 ├── scripts/ # dev scripts
 │
 ├── .eslintrc.js
