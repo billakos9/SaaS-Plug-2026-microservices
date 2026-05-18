@@ -1,0 +1,38 @@
+$kind: http-request
+name: Me
+url: "{{gateway_url}}/users/me"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{gateway_access_token}}"
+scripts:
+  - type: afterResponse
+    code: |
+      const retries = Number(pm.environment.get("gateway_sync_retry") || 0);
+
+      if (pm.response.code === 404 && retries < 5) {
+        pm.environment.set("gateway_sync_retry", retries + 1);
+        pm.execution.setNextRequest(pm.info.requestName);
+      } else {
+        pm.environment.unset("gateway_sync_retry");
+
+        pm.test("gateway /users/me returns 200", () => {
+          pm.response.to.have.status(200);
+        });
+
+        const json = pm.response.json();
+
+        pm.test("gateway /users/me returns the registered synced profile", () => {
+          pm.expect(json.userId).to.eql(Number(pm.environment.get("gateway_registered_user_id")));
+          pm.expect(json.email).to.eql(pm.environment.get("gateway_registered_email"));
+          pm.expect(json.name).to.eql(pm.environment.get("gateway_register_name"));
+        });
+
+        pm.test("gateway /users/me does not expose password fields", () => {
+          pm.expect(json).to.not.have.property("password");
+          pm.expect(json).to.not.have.property("passwordHash");
+        });
+      }
+    language: text/javascript
+order: 3000

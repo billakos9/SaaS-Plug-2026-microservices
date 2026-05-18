@@ -1,0 +1,29 @@
+$kind: http-request
+name: Login with New User
+url: "{{gateway_url}}/auth/login"
+method: POST
+body:
+  type: json
+  content: |
+    {
+      "email": "{{gateway_registered_email}}",
+      "password": "{{test_password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |
+      pm.test("gateway login returns 200", () => {
+        pm.response.to.have.status(200);
+      });
+
+      const json = pm.response.json();
+
+      pm.test("gateway login returns token", () => {
+        pm.expect(json).to.have.property("accessToken");
+        pm.expect(json).to.have.property("expiresIn");
+        pm.expect(json).to.have.property("role", "user");
+      });
+
+      pm.environment.set("gateway_access_token", json.accessToken);
+    language: text/javascript
+order: 2000

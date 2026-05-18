@@ -1,0 +1,36 @@
+$kind: http-request
+name: New Registered User Check
+url: "{{user_url}}/{{registered_user_id}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |
+      const retries = Number(pm.environment.get("sync_retry") || 0);
+
+      if (pm.response.code === 404 && retries < 5) {
+        pm.environment.set("sync_retry", retries + 1);
+        pm.execution.setNextRequest(pm.info.requestName);
+      } else {
+        pm.environment.unset("sync_retry");
+
+        pm.test("registered user exists in user-service", () => {
+          pm.response.to.have.status(200);
+        });
+
+        const json = pm.response.json();
+
+        pm.test("profile matches registered auth user", () => {
+          pm.expect(json.userId).to.eql(Number(pm.environment.get("registered_user_id")));
+          pm.expect(json.email).to.eql(pm.environment.get("registered_email"));
+          pm.expect(json.name).to.eql(pm.environment.get("register_name"));
+          pm.expect(json.phoneNumber).to.eql(pm.environment.get("register_phone"));
+          pm.expect(json.role).to.eql("user");
+        });
+
+        pm.test("profile does not expose password fields", () => {
+          pm.expect(json).to.not.have.property("password");
+          pm.expect(json).to.not.have.property("passwordHash");
+        });
+      }
+    language: text/javascript
+order: 3185972192375031

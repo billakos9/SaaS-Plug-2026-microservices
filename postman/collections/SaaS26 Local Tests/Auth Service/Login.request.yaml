@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{auth_url}}/login"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "seed001@ionos.app",
+      "password": "123456"
+    }
+scripts:
+  - type: afterResponse
+    code: |
+      const json = pm.response.json();
+
+      if (json.accessToken) {
+        pm.environment.set("access_token", json.accessToken);
+      }
+    language: text/javascript
+order: 1000

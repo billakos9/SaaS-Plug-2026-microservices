@@ -1,0 +1,50 @@
+$kind: http-request
+name: Register User
+url: "{{gateway_url}}/auth/register"
+method: POST
+body:
+  type: json
+  content: |
+    {
+      "email": "{{gateway_register_email}}",
+      "password": "{{test_password}}",
+      "name": "{{gateway_register_name}}",
+      "phoneNumber": "{{gateway_register_phone}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |
+      const stamp = Date.now();
+
+      pm.environment.set("gateway_register_email", `gateway_${stamp}@ionos.app`);
+      pm.environment.set("gateway_register_name", `Gateway User ${stamp}`);
+      pm.environment.set("gateway_register_phone", "6900000888");
+      pm.environment.set("test_password", pm.environment.get("test_password") || "123456");
+      pm.environment.unset("gateway_sync_retry");
+      pm.environment.unset("gateway_access_token");
+      pm.environment.unset("gateway_registered_user_id");
+      pm.environment.unset("gateway_registered_email");
+    language: text/javascript
+  - type: afterResponse
+    code: |
+      pm.test("gateway register returns 201", () => {
+        pm.response.to.have.status(201);
+      });
+
+      const json = pm.response.json();
+
+      pm.test("gateway register response has public auth user fields", () => {
+        pm.expect(json).to.have.property("userId");
+        pm.expect(json).to.have.property("email");
+        pm.expect(json).to.have.property("role", "user");
+      });
+
+      pm.test("gateway register does not expose password fields", () => {
+        pm.expect(json).to.not.have.property("password");
+        pm.expect(json).to.not.have.property("passwordHash");
+      });
+
+      pm.environment.set("gateway_registered_user_id", json.userId);
+      pm.environment.set("gateway_registered_email", json.email);
+    language: text/javascript
+order: 1000

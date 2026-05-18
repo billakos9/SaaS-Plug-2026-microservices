@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{user_url}}"
+method: GET
+order: 1000
