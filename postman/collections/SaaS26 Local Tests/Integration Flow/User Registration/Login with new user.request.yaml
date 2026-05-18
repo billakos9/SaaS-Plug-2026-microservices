@@ -1,0 +1,29 @@
+$kind: http-request
+name: Login with new user
+url: "{{auth_url}}/login"
+method: POST
+body:
+  type: json
+  content: |
+    {
+      "email": "{{registered_email}}",
+      "password": "{{test_password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |
+      pm.test("login returns 200", () => {
+        pm.response.to.have.status(200);
+      });
+
+      const json = pm.response.json();
+
+      pm.test("login returns token", () => {
+        pm.expect(json).to.have.property("accessToken");
+        pm.expect(json).to.have.property("expiresIn");
+        pm.expect(json).to.have.property("role", "user");
+      });
+
+      pm.environment.set("access_token", json.accessToken);
+    language: text/javascript
+order: 4368236674209944

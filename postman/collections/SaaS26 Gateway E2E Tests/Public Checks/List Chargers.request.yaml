@@ -1,0 +1,17 @@
+$kind: http-request
+name: List Chargers
+url: "{{gateway_url}}/chargers/"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |
+      pm.test("gateway chargers list returns 200", () => {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("gateway chargers response is an array", () => {
+        const json = pm.response.json();
+        pm.expect(json).to.be.an("array");
+      });
+    language: text/javascript
+order: 1000

@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{auth_url}}/validate?token={{access_token}}"
+method: GET
+queryParams:
+  token: "{{access_token}}"
+order: 2000

@@ -1,0 +1,19 @@
+$kind: http-request
+name: Delete Registered User
+url: "{{user_url}}/delete/{{registered_user_id}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: |
+      pm.test("delete registered user returns 200", () => {
+        pm.response.to.have.status(200);
+      });
+
+      const json = pm.response.json();
+
+      pm.test("registered user profile was deleted", () => {
+        pm.expect(json).to.have.property("acknowledged", true);
+        pm.expect(json).to.have.property("deletedCount", 1);
+      });
+    language: text/javascript
+order: 4495984492074069
