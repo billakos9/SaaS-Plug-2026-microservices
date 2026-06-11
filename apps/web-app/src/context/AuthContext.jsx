@@ -1,4 +1,4 @@
-import { createContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   getCurrentUser,
   getUserFromToken,
@@ -12,43 +12,39 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize session directly from storage before first render if possible
   useEffect(() => {
-    let active = true;
-    const tokenUser = getUserFromToken();
-
-    if (!tokenUser) {
+    const initSession = async () => {
+      const tokenUser = getUserFromToken();
+      if (tokenUser) {
+        setUser(tokenUser);
+        try {
+          const profile = await getCurrentUser();
+          if (profile) setUser(profile);
+        } catch (err) {
+          console.warn('[Auth] Initial profile fetch failed', err);
+        }
+      }
       setLoading(false);
-      return () => {
-        active = false;
-      };
-    }
-
-    setUser(tokenUser);
-
-    getCurrentUser()
-      .then((profile) => {
-        if (active && profile) setUser(profile);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
     };
+    initSession();
   }, []);
 
-  const login = async (email, password) => {
-    const loggedInUser = await loginRequest(email, password);
-    setUser(loggedInUser);
-    return loggedInUser;
-  };
+  const login = useCallback(async (email, password) => {
+    try {
+      const loggedInUser = await loginRequest(email, password);
+      setUser(loggedInUser);
+      return loggedInUser;
+    } catch (err) {
+      console.error('[Auth] Login failed', err);
+      throw err;
+    }
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     logoutRequest();
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -61,7 +57,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       setUser,
     }),
-    [loading, user]
+    [loading, user, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

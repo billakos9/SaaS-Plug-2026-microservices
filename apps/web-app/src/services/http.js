@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // jwt token
-export const AUTH_TOKEN_KEY = "ionos:auth:token";
+export const AUTH_TOKEN_KEY = "saasplug:auth:token";
 
 let cachedAuthToken = null;
 

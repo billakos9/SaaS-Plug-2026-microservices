@@ -24,8 +24,13 @@ app.listen(PORT, () => {
 });
 
 connectMongoDB();
-setupMessaging().catch(err => console.error("RabbitMQ setup failed:", err.message));
-
-GreenPlugAdapterService.syncWithProvider(1);
+setupMessaging()
+  .then(() => {
+    console.log("Messaging setup complete. Starting provider sync...");
+    GreenPlugAdapterService.syncWithProvider(1);
+  })
+  .catch((err) => {
+    console.error("RabbitMQ setup failed:", err.message);
+  });
 
 export default app;

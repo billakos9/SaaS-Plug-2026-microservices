@@ -21,7 +21,21 @@ const AppRoutes = () => {
   const [selectedCharger, setSelectedCharger] = useState(null);
   const [reservation, setReservation] = useState(null);
   const [activeSession] = useState(null);
-  const { user, isAdmin, login, logout, setUser } = useAuth();
+  const { user, isAdmin, loading, logout } = useAuth();
+
+  if (loading) {
+    return (
+      <div className={styles.app}>
+        <Navbar />
+        <main className={styles.mainContent}>
+          <div className="card" style={{ textAlign: 'center', padding: '5rem' }}>
+            <p className="muted">Synchronizing with saasPlug network...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.app}>
@@ -52,12 +66,10 @@ const AppRoutes = () => {
           />
           <Route
             path="/charging"
-            element={<ChargingPage reservation={reservation} user={user} />}
+            element={<ChargingPage user={user} />}
           />
-          <Route path="/sessions-stats" element={<StatsPage reservation={reservation} user={user} />} />
-          <Route path="/sessions" element={<StatsPage reservation={reservation} user={user} />} />
-          <Route path="/stats" element={<StatsPage reservation={reservation} user={user} />} />
-          <Route path="/login" element={<LoginPage onLogin={login} />} />
+          <Route path="/stats" element={<StatsPage user={user} />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/provider/register" element={<ProviderRegisterPage />} />
           <Route path="/provider" element={<ProviderDashboardPage />} />

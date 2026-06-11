@@ -1,18 +1,26 @@
 // Login page — email + password form, redirects to home on success
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { login } from '../../services/auth';
+import { useAuth } from '../../hooks/useAuth';
 import styles from './LoginPage.module.css';
 import logo from '../../assets/LogoOnly.png';
 
-const LoginPage = ({ onLogin }) => {
+const LoginPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { login, user: currentUser } = useAuth();
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [info, setInfo] = useState(null);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (currentUser) {
+            navigate('/', { replace: true });
+        }
+    }, [currentUser, navigate]);
 
     useEffect(() => {
         const message = location.state?.message;
@@ -23,17 +31,18 @@ const LoginPage = ({ onLogin }) => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setLoading(true);
+        setIsSubmitting(true);
         setError(null);
+        
         try {
             const user = await login(email, password);
-            onLogin?.(user);
-            setInfo('Logged in succesfully.');
-            navigate('/');
+            if (user) {
+              setInfo('Authenticating...');
+              // Navigation will be handled by the useEffect once state propagates
+            }
         } catch (err) {
             setError(err.message || 'Login failed');
-        } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -42,45 +51,47 @@ const LoginPage = ({ onLogin }) => {
             <div className={styles.AuthGlow} aria-hidden='true' />
             <div className={styles.AuthCard}>
                 <header className={styles.AuthHeader}>
-                    <img src={logo} className={styles.AuthLogo} alt="IonOS" />
-                    <h1> Login to reserve</h1>
-                    <p>Access your IonOS account to reserve a charger and track sessions.</p>
+                    <img src={logo} className={styles.AuthLogo} alt="saasPlug" />
+                    <h1>Login to saasPlug</h1>
+                    <p>Access your account to reserve chargers and track sessions.</p>
                 </header>
 
                 <form className={styles.AuthForm} onSubmit={handleSubmit}>
                     <label className={styles.AuthField}>
                         Email
                         <input 
-                            type = "email"
+                            type="email"
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
-                            placeholder="you@ionos.app"
+                            placeholder="you@saasplug.app"
                             required
+                            disabled={isSubmitting}
                         />
                     </label>
 
                     <label className={styles.AuthField}>
                         Password
                         <input  
-                            type = "password"
-                            value = {password}
+                            type="password"
+                            value={password}
                             onChange={(event) => setPassword(event.target.value)}
-                            placeholder="????????????"
+                            placeholder="••••••••"
                             required
+                            disabled={isSubmitting}
                         />
                     </label>
 
                     {info && <div className={styles.AuthMessageSucces}>{info}</div>}
                     {error && <div className={styles.AuthMessageError}>{error}</div>}
 
-                    <button type = "submit" className={styles.AuthButton} disabled={loading}>
-                        {loading ? 'Signing in ...' : 'Login'}
+                    <button type="submit" className={styles.AuthButton} disabled={isSubmitting}>
+                        {isSubmitting ? 'Authenticating...' : 'Login'}
                     </button>
                 </form>
 
                 <p className={styles.AuthFooter}>
                     Need an account?{' '}
-                    <Link className={styles.AuthLink} to = "/register">
+                    <Link className={styles.AuthLink} to="/register">
                         Register
                     </Link>
                 </p>
@@ -89,4 +100,4 @@ const LoginPage = ({ onLogin }) => {
     );
 };
 
-export default LoginPage
+export default LoginPage;

@@ -1,63 +1,86 @@
 import http from "./http";
+import { getChargerById } from "./chargers";
 
-
+/**
+ * Normalizes a reservation from the backend DTO.
+ * Backend DTO fields: reservationId, userId, chargerId, providerName, duration, kwhPrice, status, createdAt, updatedAt
+ */
 const normalizeReservation = (reservation) => {
-  const chargerId =
-    reservation.pointid ??
-    reservation.pointId ??
-    reservation.chargerId ??
-    reservation.charger?.id ??
-    null;
-  const endTime =
-    reservation.endTime ??
-    reservation.endtime ??
-    reservation.reservationendtime ??
-    reservation.reservationEndTime ??
-    null;
+  if (!reservation) return null;
 
   return {
-    id: reservation.reservationId ?? reservation.id ?? null,
-    chargerId,
-    pointId: chargerId,
-    userId: reservation.userInfoId ?? reservation.userId ?? null,
-    status: reservation.status ?? "unknown",
-    startTime: reservation.startTime ?? reservation.starttime ?? null,
-    endTime,
-    reservationEndTime: endTime,
+    id: reservation.reservationId,
+    chargerId: reservation.chargerId,
+    userId: reservation.userId,
+    providerName: reservation.providerName,
+    status: reservation.status,
+    duration: reservation.duration,
+    kwhPrice: reservation.kwhPrice,
+    createdAt: reservation.createdAt,
+    updatedAt: reservation.updatedAt,
+    // Legacy support for UI components expecting startTime/endTime
+    startTime: reservation.createdAt,
+    endTime: reservation.updatedAt, 
     raw: reservation,
   };
 };
 
-
+/**
+ * Creates a new reservation.
+ * Logic: Fetches the charger first to derive the providerName.
+ * Backend route: POST /reservation/ (mapped via gateway to /api/reservations)
+ */
 export async function createReservation({ chargerId, minutes }) {
   if (!chargerId) {
     throw new Error("A chargerId is required to create a reservation");
   }
 
-  const res = await http.post("/reservations", {
-    chargerId,
-    minutes,
-  });
-
-  return normalizeReservation(res.data ?? {});
-}
-
-
-export async function cancelReservation(reservationId) {
-  if (!reservationId) {
-    throw new Error("A reservationId is required to cancel a reservation");
+  // 1. Fetch charger details to get providerName
+  const charger = await getChargerById(chargerId);
+  if (!charger) {
+    throw new Error(`Charger with ID ${chargerId} not found`);
   }
 
-  const res = await http.delete(`/reservations/${reservationId}`);
-  return res.data;
+  // 2. Submit reservation with required fields
+  const res = await http.post("/reservations", {
+    chargerId: Number(chargerId),
+    duration: minutes || 60,
+    providerName: charger.providerName,
+  });
+
+  return normalizeReservation(res.data);
 }
 
-
-export async function getMyReservations() {
-  const res = await http.get("/reservations/me");
-  const payload = res.data?.reservations || res.data;
-  const data = Array.isArray(payload) ? payload : [];
+/**
+ * Fetches reservations for the authenticated user.
+ * Backend route: GET /reservation/user/:userId (mapped via gateway to /api/reservations/user/:userId)
+ */
+export async function getMyReservations(userId) {
+  if (!userId) {
+    throw new Error("User ID is required to fetch reservations");
+  }
+  
+  const res = await http.get(`/reservations/user/${userId}`);
+  const data = Array.isArray(res.data) ? res.data : [];
   return data.map(normalizeReservation);
+}
+
+/**
+ * Fetches a single reservation by ID.
+ * Backend route: GET /reservation/:id
+ */
+export async function getReservationById(id) {
+  if (!id) throw new Error("Reservation ID is required");
+  const res = await http.get(`/reservations/${id}`);
+  return normalizeReservation(res.data);
+}
+
+/**
+ * Mocked cancellation (Backend does not support this yet).
+ */
+export async function cancelReservation(reservationId) {
+  console.warn("cancelReservation: Not implemented in backend yet", reservationId);
+  return { success: false, message: "Cancellation not yet supported." };
 }
 
 export { normalizeReservation };

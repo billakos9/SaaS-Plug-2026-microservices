@@ -1,48 +1,35 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AccountDashboard from './AccountDashboard';
-import './ProfilePage.module.css';
+import styles from './ProfilePage.module.css';
 
-const ProfilePage = ({ user, onLogout }) => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    onLogout?.();
-    navigate('/login');
-  };
-
+const ProfilePage = ({ user }) => {
   return (
-    <section className="profile-page">
-      <div className="profile-card">
-        <div className="profile-avatar" aria-hidden="true" />
-        <header className="profile-header">
+    <section className={styles.profilePage}>
+      <div className={styles.profileCard}>
+        <div className={styles.profileAvatar} aria-hidden="true" />
+        <header className={styles.profileHeader}>
           <h1>Profile</h1>
-          <p>Manage your IonOS account details and access preferences.</p>
-          <div className="profile-divider" />
+          <p>Manage your saasPlug account details and access preferences.</p>
+          <div className={styles.profileDivider} />
         </header>
 
         {user ? (
-          <div className="profile-content">
-            <div className="profile-row">
-              <span className="profile-label">Username</span>
-              <span className="profile-value">
+          <div className={styles.profileContent}>
+            <div className={styles.profileRow}>
+              <span className={styles.profileLabel}>Username</span>
+              <span className={styles.profileValue}>
                 {user.username || user.name || user.email?.split('@')[0] || '—'}
               </span>
             </div>
-            <div className="profile-row">
-              <span className="profile-label">Email</span>
-              <span className="profile-value">{user.email || '—'}</span>
-            </div>
-
-            <div className="profile-actions">
-              <button type="button" className="profile-logout" onClick={handleLogout}>
-                Logout
-              </button>
+            <div className={styles.profileRow}>
+              <span className={styles.profileLabel}>Email</span>
+              <span className={styles.profileValue}>{user.email || '—'}</span>
             </div>
           </div>
         ) : (
-          <div className="profile-empty">
-            <p className="profile-subtle">You are not logged in yet.</p>
-            <Link className="profile-logout" to="/login">
+          <div className={styles.profileEmpty}>
+            <p className={styles.profileSubtle}>You are not logged in yet.</p>
+            <Link className={styles.profileLogout} to="/login">
               Go to Login
             </Link>
           </div>

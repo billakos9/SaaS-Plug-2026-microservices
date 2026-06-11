@@ -76,17 +76,17 @@ class GreenPlugAdapterService {
    */
   static async syncWithProvider(intervalMinutes = 5) {
     const intervalMs = intervalMinutes * 60 * 1000;
-    console.log("Fetching chargers from green plug provider...");
+    console.log("Setting up periodic sync with green plug provider...");
 
-    const WATCH_FIELDS = ["status", "kwhPrice", "address", "locationName", "connectionType", "cap"];
+    const WATCH_FIELDS = ["status", "kwhPrice", "address", "locationName", "connectionType", "cap", "latitude", "longitude"];
 
-    setInterval(async () => {
+    const performSync = async () => {
       try {
         const Client = new GreenPlugHttpClient();
         const providerChargers = await Client.fetchLocations();
 
         console.log(
-          `Fetched ${providerChargers.length} chargers from provider. Syncing with local database...`,
+          `Fetched ${providerChargers.length} chargers from green provider. Syncing...`,
         );
 
         for (const chargerData of providerChargers) {
@@ -107,16 +107,22 @@ class GreenPlugAdapterService {
                 locationName:   chargerDTO.locationName,
                 connectionType: chargerDTO.connectionType,
                 cap:            chargerDTO.cap,
+                latitude:       chargerDTO.latitude,
+                longitude:      chargerDTO.longitude,
               });
             }
           } else {
             await ChargerPointRepository.create(chargerDTO);
+            await publishEvent(Exchanges.CHARGER, RoutingKeys.CHARGER_ADD, chargerDTO);
           }
         }
       } catch (error) {
-        console.error("Error during sync interval:", error.message);
+        console.error("Error during green sync:", error.message);
       }
-    }, intervalMs);
+    };
+
+    performSync();
+    setInterval(performSync, intervalMs);
   }
 }
 

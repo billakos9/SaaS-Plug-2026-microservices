@@ -16,14 +16,14 @@ const Home = ({ user, lastReservation, activeSession }) => {
                     muted
                     loop
                     playsInline
-                    aria-label="IonOS platform walkthrough"
+                    aria-label="saasPlug platform walkthrough"
                 />
                 <div className={styles.heroOverlay} />
 
                 <div className={styles.heroGrid}>
                     <div className={styles.heroCopy}>
-                        <p className={styles.eyebrowHighlight}>IonOS Charging Network</p>
-                        <h2>Charge faster with IonOS</h2>
+                        <p className={styles.eyebrowHighlight}>saasPlug Charging Network</p>
+                        <h2>Charge faster with saasPlug</h2>
                         <div className={styles.heroActions}>
                             <Link className= {`${styles.btn} ${styles.btnPrimary} ${styles.heroBtn}`} to="/map">
                                 Find the nearest location

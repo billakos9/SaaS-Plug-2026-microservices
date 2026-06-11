@@ -1,398 +1,186 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats } from '../../services/analytics';
-import './StatsPage.module.css';
+import { getMyReservations } from '../../services/reservations';
+import { motion } from 'framer-motion';
+import styles from './StatsPage.module.css';
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const VIEW_MODE = {
-  SEMESTER: 'semester',
-  ALL_TIME: 'all_time',
-};
+const StatCard = ({ label, value, unit, color, index }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.1 }}
+    className={styles.statCard}
+    style={{ borderBottom: `4px solid ${color || 'var(--primary)'}` }}
+  >
+    <p className={styles.statLabel}>{label}</p>
+    <p className={styles.statValue}>
+      {value} <span className={styles.statUnit}>{unit}</span>
+    </p>
+    <div className={styles.statGlow} style={{ background: color }} />
+  </motion.div>
+);
 
-const emptyOverview = () => ({
-  userEmail: '',
-  username: '',
-  totalEnergyKWh: 0,
-  avgSessionMinutes: 0,
-  totalSessions: 0,
-});
-
-const formatDateParam = (date) => {
-  const d = date instanceof Date ? new Date(date) : new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getSemesterInfo = (sourceDate) => {
-  const date = new Date(sourceDate);
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const isFirstSemester = month <= 5;
-
-  if (isFirstSemester) {
-    return {
-      label: `Jan - Jun ${year}`,
-      key: `S1-${year}`,
-      start: new Date(year, 0, 1),
-      end: new Date(year, 5, 30),
-    };
-  }
-
-  return {
-    label: `Jul - Dec ${year}`,
-    key: `S2-${year}`,
-    start: new Date(year, 6, 1),
-    end: new Date(year, 11, 31),
-  };
-};
-
-const getPreviousSemesterInfo = (currentSemester) => {
-  const previousDay = new Date(currentSemester.start);
-  previousDay.setDate(previousDay.getDate() - 1);
-  return getSemesterInfo(previousDay);
-};
-
-const toMonthLabel = (value) => {
-  const [year, month] = String(value ?? '').split('-');
-  const monthIndex = Number(month) - 1;
-  if (!year || !Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) {
-    return String(value ?? '—');
-  }
-  return `${MONTH_LABELS[monthIndex]} '${year.slice(2)}`;
-};
-
-const formatNumber = (value, suffix = '') => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return `0${suffix}`;
-  return `${num.toFixed(1)}${suffix}`;
-};
-
-const SessionsStatsPage = ({ user }) => {
+const StatsPage = ({ user }) => {
   const navigate = useNavigate();
-  const [pointId, setPointId] = useState('');
-  const [viewMode, setViewMode] = useState(VIEW_MODE.ALL_TIME);
-  const [dashboard, setDashboard] = useState({
-    mode: VIEW_MODE.ALL_TIME,
-    allTime: {
-      overview: emptyOverview(),
-      trends: [],
-    },
-    currentSemester: null,
-    previousSemester: null,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login', { replace: true, state: { message: 'Login to view your statistics.' } });
-    }
+    if (!user) { navigate('/login', { replace: true }); return; }
+    getMyReservations(user.id).then(setSessions).finally(() => setLoading(false));
   }, [user, navigate]);
 
-  const loadStats = async (mode = viewMode) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const normalizedPointId = String(pointId || '').trim() || undefined;
+  const overview = useMemo(() => {
+    const total = sessions.length;
+    const minutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    return {
+      total,
+      minutes,
+      avg: total > 0 ? (minutes / total).toFixed(1) : 0,
+      energy: (minutes * 0.35).toFixed(1),
+      co2: (minutes * 0.35 * 0.4).toFixed(1) // Rough estimate
+    };
+  }, [sessions]);
 
-      if (mode === VIEW_MODE.SEMESTER) {
-        const currentSemester = getSemesterInfo(new Date());
-        const previousSemester = getPreviousSemesterInfo(currentSemester);
-
-        const [currentData, previousData] = await Promise.all([
-          getDashboardStats({
-            pointId: normalizedPointId,
-            from: formatDateParam(currentSemester.start),
-            to: formatDateParam(currentSemester.end),
-          }),
-          getDashboardStats({
-            pointId: normalizedPointId,
-            from: formatDateParam(previousSemester.start),
-            to: formatDateParam(previousSemester.end),
-          }),
-        ]);
-
-        setDashboard({
-          mode: VIEW_MODE.SEMESTER,
-          allTime: null,
-          currentSemester: {
-            ...currentSemester,
-            data: currentData,
-          },
-          previousSemester: {
-            ...previousSemester,
-            data: previousData,
-          },
-        });
-      } else {
-        const allTimeData = await getDashboardStats({
-          pointId: normalizedPointId,
-        });
-
-        setDashboard({
-          mode: VIEW_MODE.ALL_TIME,
-          allTime: allTimeData,
-          currentSemester: null,
-          previousSemester: null,
-        });
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to load statistics');
-      setDashboard({
-        mode,
-        allTime: {
-          overview: emptyOverview(),
-          trends: [],
-        },
-        currentSemester: null,
-        previousSemester: null,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadStats(VIEW_MODE.ALL_TIME);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const stats = useMemo(() => {
-    if (viewMode === VIEW_MODE.SEMESTER) {
-      const currentOverview = dashboard.currentSemester?.data?.overview || emptyOverview();
-      const previousOverview = dashboard.previousSemester?.data?.overview || emptyOverview();
-      const hasCurrentSessions = Number(currentOverview.totalSessions) > 0;
-      const hasPreviousSessions = Number(previousOverview.totalSessions) > 0;
-
-      return [
-        {
-          label: 'User',
-          value:
-            currentOverview.username ||
-            user?.username ||
-            user?.name ||
-            currentOverview.userEmail ||
-            user?.email ||
-            '—',
-        },
-        {
-          label: 'Point Filter',
-          value: String(pointId || '').trim() || 'All points',
-        },
-        {
-          label: 'Current Semester',
-          value: dashboard.currentSemester?.label || '—',
-        },
-        {
-          label: 'Current Sessions',
-          value: String(Number(currentOverview.totalSessions) || 0),
-        },
-        {
-          label: 'Current Energy',
-          value: `${formatNumber(currentOverview.totalEnergyKWh)} kWh`,
-        },
-        {
-          label: 'Current Avg Time',
-          value: hasCurrentSessions
-            ? `${Math.round(Number(currentOverview.avgSessionMinutes) || 0)} min`
-            : '—',
-        },
-        {
-          label: 'Previous Semester',
-          value: dashboard.previousSemester?.label || '—',
-        },
-        {
-          label: 'Previous Sessions',
-          value: String(Number(previousOverview.totalSessions) || 0),
-        },
-        {
-          label: 'Previous Energy',
-          value: `${formatNumber(previousOverview.totalEnergyKWh)} kWh`,
-        },
-        {
-          label: 'Previous Avg Time',
-          value: hasPreviousSessions
-            ? `${Math.round(Number(previousOverview.avgSessionMinutes) || 0)} min`
-            : '—',
-        },
-      ];
-    }
-
-    const overview = dashboard?.allTime?.overview || emptyOverview();
-    const hasSessions = Number(overview.totalSessions) > 0;
-    return [
-      {
-        label: 'User',
-        value:
-          overview.username || user?.username || user?.name || overview.userEmail || user?.email || '—',
-      },
-      {
-        label: 'Email',
-        value: overview.userEmail || user?.email || '—',
-      },
-      {
-        label: 'Range',
-        value: 'From first session until now',
-      },
-      {
-        label: 'Total Sessions',
-        value: String(Number(overview.totalSessions) || 0),
-      },
-      {
-        label: 'Energy Delivered',
-        value: `${formatNumber(overview.totalEnergyKWh)} kWh`,
-      },
-      {
-        label: 'Avg. Session Time',
-        value: hasSessions ? `${Math.round(Number(overview.avgSessionMinutes) || 0)} min` : '—',
-      },
-      {
-        label: 'Point Filter',
-        value: String(pointId || '').trim() || 'All points',
-      },
-    ];
-  }, [dashboard, pointId, user, viewMode]);
-
-  const trendData = useMemo(() => {
-    if (viewMode === VIEW_MODE.SEMESTER) {
-      const previous = dashboard.previousSemester;
-      const current = dashboard.currentSemester;
-      return [
-        {
-          month: previous?.label || 'Previous',
-          rawMonth: previous?.key || 'previous',
-          kwh: Number(previous?.data?.overview?.totalEnergyKWh) || 0,
-        },
-        {
-          month: current?.label || 'Current',
-          rawMonth: current?.key || 'current',
-          kwh: Number(current?.data?.overview?.totalEnergyKWh) || 0,
-        },
-      ];
-    }
-
-    return (Array.isArray(dashboard?.allTime?.trends) ? dashboard.allTime.trends : []).map((entry) => ({
-      month: toMonthLabel(entry.month),
-      rawMonth: entry.month,
-      kwh: Number(entry.energyKWh) || 0,
-    }));
-  }, [dashboard, viewMode]);
-
-  const maxTrendValue = Math.max(1, ...trendData.map((m) => m.kwh));
-
-  const handleModeToggle = (mode) => {
-    if (mode === viewMode) return;
-    setViewMode(mode);
-    loadStats(mode);
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    loadStats(viewMode);
-  };
+  const dominantProvider = useMemo(() => {
+    if (!sessions.length) return null;
+    const counts = sessions.reduce((acc, s) => {
+      const name = s.providerName || 'saasPlug';
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {});
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0];
+    return {
+      name: top[0],
+      percentage: Math.round((top[1] / sessions.length) * 100)
+    };
+  }, [sessions]);
 
   if (!user) return null;
 
   return (
-    <section className="sessions-stats-page">
-      <div className="sessions-background" aria-hidden="true" />
-      <div className="sessions-container">
-        <header className="sessions-header">
-          <h1>Statistics</h1>
-          <p>Statistics for your charging sessions. Data is fetched from the IonOS backend.</p>
-        </header>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={styles.container}
+    >
+      <header className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Personal Insights</span>
+          <h1>Usage Analytics</h1>
+          <p className={styles.muted}>Detailed breakdown of your charging behavior and energy footprint.</p>
+        </div>
+      </header>
 
-        <section className="sessions-section">
-          <h2>Filters</h2>
-          <p className="sessions-subtitle">
-            Pick the timeframe with toggle. Date selection is automatic and stats stay per logged-in user.
-          </p>
-
-          <form className="sessions-form" onSubmit={handleSubmit}>
-            <label className="form-field">
-              Point ID (optional)
-              <input
-                type="text"
-                value={pointId}
-                onChange={(event) => setPointId(event.target.value)}
-                placeholder="e.g., 12"
-              />
-            </label>
-            <div className="form-field">
-              <span>Timeframe</span>
-              <div className="view-toggle" role="group" aria-label="Statistics timeframe">
-                <button
-                  type="button"
-                  className={`view-toggle-btn ${viewMode === VIEW_MODE.SEMESTER ? 'active' : ''}`}
-                  onClick={() => handleModeToggle(VIEW_MODE.SEMESTER)}
-                >
-                  By Semester
-                </button>
-                <button
-                  type="button"
-                  className={`view-toggle-btn ${viewMode === VIEW_MODE.ALL_TIME ? 'active' : ''}`}
-                  onClick={() => handleModeToggle(VIEW_MODE.ALL_TIME)}
-                >
-                  From First Session
-                </button>
-              </div>
-            </div>
-            <button type="submit" className="apply-btn" disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
-          </form>
-
-          {error && <div className="sessions-results">{error}</div>}
-        </section>
-
-        <section className="sessions-section">
-          <h2>Statistics Overview</h2>
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <div className="stat-card" key={`${stat.label}-${index}`} style={{ '--delay': `${index * 0.05}s` }}>
-                <span className="stat-card-label">{stat.label}</span>
-                <span className="stat-card-value">{stat.value}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="sessions-section">
-          <h2>Energy Trends</h2>
-          <div className="trend-card">
-            <div className="trend-bars">
-              {trendData.length === 0 && !loading && (
-                <div className="sessions-results">No trend data available for this user.</div>
-              )}
-              {trendData.map((entry, index) => (
-                <div
-                  className="trend-bar"
-                  key={`${entry.rawMonth}-${index}`}
-                  style={{ height: `${(entry.kwh / maxTrendValue) * 100}%` }}
-                  title={`${entry.rawMonth}: ${entry.kwh} kWh`}
-                />
-              ))}
-            </div>
-            <div className="trend-caption">
-              {viewMode === VIEW_MODE.SEMESTER
-                ? 'Energy grouped by semester (kWh)'
-                : 'Energy delivered per month (kWh)'}
-            </div>
-          </div>
-        </section>
+      <div className={styles.statsGrid}>
+        <StatCard index={0} label="Total Energy" value={overview.energy} unit="kWh" color="#00c853" />
+        <StatCard index={1} label="Connection Time" value={overview.minutes} unit="min" color="#2979ff" />
+        <StatCard index={2} label="Avg Session" value={overview.avg} unit="min" color="#ffab00" />
       </div>
-    </section>
+
+      <div className={styles.mainGrid}>
+        <section className={styles.historySection}>
+          <div className={styles.sectionHeader}>
+            <h2>Session History</h2>
+            <span className={styles.countBadge}>{sessions.length} Sessions</span>
+          </div>
+          <div className={styles.tableCard}>
+             {loading ? (
+               <div className={styles.loading}>
+                 <div className={styles.spinner} />
+                 <p>Loading records...</p>
+               </div>
+             ) : sessions.length > 0 ? (
+               <table className={styles.table}>
+                 <thead>
+                   <tr>
+                     <th>Station</th>
+                     <th>Network</th>
+                     <th>Date</th>
+                     <th>Duration</th>
+                     <th>Cost</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   {sessions.slice(0, 8).map((s, idx) => (
+                     <motion.tr 
+                       key={s.id}
+                       initial={{ opacity: 0, x: -10 }}
+                       animate={{ opacity: 1, x: 0 }}
+                       transition={{ delay: 0.3 + idx * 0.05 }}
+                     >
+                       <td><strong>Station {s.chargerId}</strong></td>
+                       <td>{s.providerName || 'saasPlug'}</td>
+                       <td>{new Date(s.createdAt).toLocaleDateString()}</td>
+                       <td>{s.duration || 0} min</td>
+                       <td><span className={styles.costBadge}>€{((s.duration || 0) * 0.15).toFixed(2)}</span></td>
+                     </motion.tr>
+                   ))}
+                 </tbody>
+               </table>
+             ) : (
+               <div className={styles.emptyTable}>
+                 <p>No session data available yet.</p>
+               </div>
+             )}
+          </div>
+        </section>
+
+        <aside className={styles.sidebar}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+            className={styles.impactCard}
+          >
+            <div className={styles.impactHeader}>
+              <span className={styles.leafIcon}>🍃</span>
+              <h3>CO2 Emissions Prevented</h3>
+            </div>
+            <div className={styles.impactValue}>
+              {overview.co2} <span className={styles.impactUnit}>kg CO₂</span>
+            </div>
+            <p className={styles.impactDesc}>
+              By choosing electric, you've prevented this much CO₂ from entering the atmosphere.
+            </p>
+            <div className={styles.impactMetric}>
+              <div className={styles.metricItem}>
+                <strong>{Math.ceil(overview.energy / 10)}</strong>
+                <span>Trees Equivalent</span>
+              </div>
+              <div className={styles.divider} />
+              <div className={styles.metricItem}>
+                <strong>{Math.ceil(overview.minutes / 60)}</strong>
+                <span>Hours Connected</span>
+              </div>
+            </div>
+          </motion.div>
+          
+          {dominantProvider && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className={styles.providerCard}
+            >
+              <h3>Network Affinity</h3>
+              <div className={styles.providerInfo}>
+                 <div className={styles.providerLogo}>{dominantProvider.name.substring(0, 2).toUpperCase()}</div>
+                 <div>
+                    <p className={styles.providerName}>{dominantProvider.name}</p>
+                    <p className={styles.providerStat}>Dominant Provider ({dominantProvider.percentage}%)</p>
+                 </div>
+              </div>
+              <div className={styles.progressTrack}>
+                <div className={styles.progressBar} style={{ width: `${dominantProvider.percentage}%` }} />
+              </div>
+            </motion.div>
+          )}
+        </aside>
+      </div>
+    </motion.div>
   );
 };
 
-export default SessionsStatsPage;
-
-// Optional enhancements
-// - Animated number counters: use a hook (e.g., react-countup) to animate stat values after data loads.
-// - Mini line chart: replace the trend placeholder with Chart.js and feed it monthly energy data.
-// - Hover tooltips: add an info icon per card and show a tooltip component with metric definitions.
+export default StatsPage;

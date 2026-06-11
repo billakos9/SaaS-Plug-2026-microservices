@@ -7,7 +7,7 @@ export default function HowItWorksSection() {
         {
             icon: <FiMapPin size = {40} />,
             title: "Find a Charger",
-            text: "Locate nearby IonOS stations on the interactive map.",
+            text: "Locate nearby saasPlug stations on the interactive map.",
         },
         {
             icon: <FiZap size = {40} />,

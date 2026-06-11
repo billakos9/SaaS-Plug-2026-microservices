@@ -21,7 +21,7 @@ const RegisterPage = () => {
       return;
     }
     try {
-      await register({ email, password, name: email.split('@')[0] || 'IonOS User' });
+      await register({ email, password, name: email.split('@')[0] || 'saasPlug User' });
       navigate('/login', {
         state: { message: 'Account created. Please log in.' },
       });
@@ -38,7 +38,7 @@ const RegisterPage = () => {
       <div className={styles["auth-card"]}>
         <header className={styles["auth-header"]}>
           <h1>Create Your Account</h1>
-          <p>Join IonOS to reserve chargers, monitor sessions, and view stats.</p>
+          <p>Join saasPlug to reserve chargers, monitor sessions, and view stats.</p>
         </header>
 
         <form className={styles["auth-form"]} onSubmit={handleSubmit}>
@@ -48,7 +48,7 @@ const RegisterPage = () => {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@ionos.app"
+              placeholder="you@saasplug.app"
               required
             />
           </label>
@@ -95,6 +95,6 @@ const RegisterPage = () => {
 export default RegisterPage;
 
 // Optional enhancements
-// - Animated IonOS logo: add a small glowing icon above the title and animate it with keyframes.
+// - Animated saasPlug logo: add a small glowing icon above the title and animate it with keyframes.
 // - Background gradient animation: apply the flow keyframes to .auth-page for a shifting glow.
 // - Success/failure popups: show toast notifications after submit using a lightweight toast component.

@@ -186,7 +186,7 @@
 }
 
 /* Optional enhancements
-   - Animated IonOS logo: add a .auth-logo element above the header and apply a glowing keyframe.
+   - Animated saasPlug logo: add a .auth-logo element above the header and apply a glowing keyframe.
    - Background gradient animation:
      @keyframes flow {
        from { background-position: 0% 50%; }
