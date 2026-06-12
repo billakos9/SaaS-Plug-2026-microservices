@@ -132,6 +132,20 @@ const ChargingPage = ({ user }) => {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDurationPrecise = (seconds) => {
+    if (!seconds) return '0s';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    const parts = [];
+    if (hrs > 0) parts.push(`${hrs}h`);
+    if (mins > 0) parts.push(`${mins}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+    
+    return parts.join(' ');
+  };
+
   const handleCancel = async () => {
     if (!activeSession) return;
     if (!window.confirm('Are you sure you want to terminate this charging session?')) return;
@@ -146,6 +160,13 @@ const ChargingPage = ({ user }) => {
       alert('Could not cancel the session. It may have already expired.');
     }
   };
+
+  const recentHistory = useMemo(() => {
+    // Filter out the currently active session from the history list
+    const filtered = sessions.filter(s => s.id !== activeSession?.id);
+    // Sort by newest first
+    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
+  }, [sessions, activeSession]);
 
   if (!user) return null;
 
@@ -257,7 +278,7 @@ const ChargingPage = ({ user }) => {
             </button>
           </div>
           <div className={styles.historyList}>
-            {sessions.slice(0, 3).map((s, idx) => (
+            {recentHistory.map((s, idx) => (
               <motion.div 
                 key={s.id} 
                 initial={{ opacity: 0, x: -20 }}
@@ -274,7 +295,7 @@ const ChargingPage = ({ user }) => {
                 </div>
                 <div className={styles.historyMetrics}>
                   <span className={styles.historyBadge}>{s.status}</span>
-                  <p className={styles.historyDuration}>{s.duration || 0} min</p>
+                  <p className={styles.historyDuration}>{formatDurationPrecise(s.duration)}</p>
                 </div>
               </motion.div>
             ))}

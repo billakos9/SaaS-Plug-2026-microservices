@@ -106,48 +106,11 @@ const groupChargers = (items) => {
 };
 
 const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
-  const [chargers, setChargers] = useState([]);
-  const [chargerId, setChargerId] = useState(selectedCharger?.id ? String(selectedCharger.id) : '');
-  const [query, setQuery] = useState('');
   const [minutes, setMinutes] = useState(30);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    loadChargers();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCharger?.id) {
-      setChargerId(String(selectedCharger.id));
-      setChargers((prev) => mergeSelectedCharger(prev, selectedCharger));
-    }
-  }, [selectedCharger]);
-
-  const loadChargers = async () => {
-    try {
-      const data = await getChargers({ status: 'available' });
-      setChargers(mergeSelectedCharger(data, selectedCharger));
-    } catch (err) {
-      setError(err.message || 'Failed to load chargers');
-    }
-  };
-
-  const filteredChargers = useMemo(() => {
-    const filtered = filterChargers(chargers, query);
-    if (!chargerId) return filtered;
-    const selected = chargers.find((c) => String(c.id) === String(chargerId));
-    if (!selected) return filtered;
-    const hasSelected = filtered.some((c) => String(c.id) === String(chargerId));
-    return hasSelected ? filtered : [selected, ...filtered];
-  }, [chargers, query, chargerId]);
-
-  const groupedChargers = useMemo(
-    () => groupChargers(filteredChargers),
-    [filteredChargers]
-  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -155,13 +118,17 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
       navigate('/login', { replace: true, state: { message: 'Login to reserve chargers.' } });
       return;
     }
+    if (!selectedCharger) {
+        setError('Please select a charger from the map first.');
+        return;
+    }
+
     setLoading(true);
     setMessage(null);
     setError(null);
     try {
       const result = await createReservation({
-        chargerId,
-        userId: user?.id || 'guest',
+        chargerId: selectedCharger.id,
         minutes,
       });
       
@@ -194,83 +161,69 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
       </header>
 
       <div className={styles.reserveCard}>
-        <form onSubmit={handleSubmit} className={styles.reserveForm}>
-          <div className={styles.formGroup}>
-            <label htmlFor="query">Quick Search</label>
-            <input
-              id="query"
-              className={styles.input}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g., Alimos, Marousi or Station ID"
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="charger">Select Charger *</label>
-            <select
-              id="charger"
-              className={styles.select}
-              required
-              value={chargerId}
-              onChange={(e) => setChargerId(e.target.value)}
-            >
-              <option value="">Choose a point...</option>
-              {groupedChargers.map((group) => (
-                <optgroup
-                  key={group.key}
-                  label={`${group.town} - ${group.region}`}
-                >
-                  {group.items.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.locationName} — {c.capacityKw}kW ({c.providerName})
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            {!filteredChargers.length && query && (
-              <div className={styles.formHelp}>No chargers match your search.</div>
-            )}
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="minutes">Session Duration (Minutes)</label>
-            <div className={styles.durationControl}>
-               <input
-                id="minutes"
-                className={styles.input}
-                type="number"
-                min="10"
-                max="120"
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-              />
-              <span className={styles.unit}>min</span>
+        {!selectedCharger ? (
+            <div className={styles.noSelection}>
+                <div className={styles.emptyIcon}>📍</div>
+                <h3>No Station Selected</h3>
+                <p>Please return to the map to choose a charging station.</p>
+                <button className={styles.submitBtn} onClick={() => navigate('/map')}>
+                    Open Interactive Map
+                </button>
             </div>
-            <p className={styles.formHelp}>Recommended: 30-60 mins for most vehicles.</p>
-          </div>
+        ) : (
+            <form onSubmit={handleSubmit} className={styles.reserveForm}>
+              <div className={styles.formGroup}>
+                <label>Selected Station</label>
+                <div className={styles.stationDisplay}>
+                    <div className={styles.stationInfo}>
+                        <strong className={styles.stationName}>{selectedCharger.locationName}</strong>
+                        <span className={styles.stationMeta}>
+                            {selectedCharger.providerName} • {selectedCharger.capacityKw}kW
+                        </span>
+                        <p className={styles.stationAddress}>{selectedCharger.address}</p>
+                    </div>
+                    <span className={styles.statusBadge}>Ready</span>
+                </div>
+              </div>
 
-          {message && <div className={styles.successAlert}>{message}</div>}
-          {error && <div className={styles.errorAlert}>{error}</div>}
+              <div className={styles.formGroup}>
+                <label htmlFor="minutes">Session Duration</label>
+                <div className={styles.durationControl}>
+                   <input
+                    id="minutes"
+                    className={styles.input}
+                    type="number"
+                    min="10"
+                    max="120"
+                    value={minutes}
+                    onChange={(e) => setMinutes(e.target.value)}
+                  />
+                  <span className={styles.unit}>min</span>
+                </div>
+                <p className={styles.formHelp}>Recommended: 30-60 mins for most vehicles.</p>
+              </div>
 
-          <div className={styles.actions}>
-            <button
-              type="submit"
-              className={styles.submitBtn}
-              disabled={loading || !chargerId}
-            >
-              {loading ? 'Processing...' : 'Confirm Reservation'}
-            </button>
-            <button 
-              type="button" 
-              className={styles.cancelLink}
-              onClick={() => navigate('/map')}
-            >
-              Back to Map
-            </button>
-          </div>
-        </form>
+              {message && <div className={styles.successAlert}>{message}</div>}
+              {error && <div className={styles.errorAlert}>{error}</div>}
+
+              <div className={styles.actions}>
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
+                >
+                  {loading ? 'Processing...' : 'Confirm Reservation'}
+                </button>
+                <button 
+                  type="button" 
+                  className={styles.cancelLink}
+                  onClick={() => navigate('/map')}
+                >
+                  Change Station
+                </button>
+              </div>
+            </form>
+        )}
       </div>
     </div>
   );

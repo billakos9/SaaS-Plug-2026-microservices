@@ -20,6 +20,20 @@ const StatCard = ({ label, value, unit, color, index }) => (
   </motion.div>
 );
 
+const formatDuration = (seconds) => {
+  if (!seconds) return '0s';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0) parts.push(`${mins}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+  
+  return parts.join(' ');
+};
+
 const StatsPage = ({ user }) => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
@@ -36,19 +50,19 @@ const StatsPage = ({ user }) => {
 
   const overview = useMemo(() => {
     const total = sessions.length;
-    const minutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const energy = sessions.reduce((acc, s) => {
-      const durationHrs = (s.duration || 0) / 60;
+      const durationHrs = (s.duration || 0) / 3600;
       const kw = s.capacityKw || 22;
       return acc + (durationHrs * kw);
     }, 0);
     
     return {
       total,
-      minutes,
-      avg: total > 0 ? (minutes / total).toFixed(1) : 0,
-      energy: energy.toFixed(1),
-      co2: (energy * 0.4).toFixed(1) // 0.4kg CO2 per kWh saved
+      totalSeconds,
+      avgSeconds: total > 0 ? Math.round(totalSeconds / total) : 0,
+      energy: energy.toFixed(2),
+      co2: (energy * 0.4).toFixed(2)
     };
   }, [sessions]);
 
@@ -85,8 +99,8 @@ const StatsPage = ({ user }) => {
 
       <div className={styles.statsGrid}>
         <StatCard index={0} label="Total Energy" value={overview.energy} unit="kWh" color="#00c853" />
-        <StatCard index={1} label="Connection Time" value={overview.minutes} unit="min" color="#2979ff" />
-        <StatCard index={2} label="Avg Session" value={overview.avg} unit="min" color="#ffab00" />
+        <StatCard index={1} label="Connection Time" value={formatDuration(overview.totalSeconds)} unit="" color="#2979ff" />
+        <StatCard index={2} label="Avg Session" value={formatDuration(overview.avgSeconds)} unit="" color="#ffab00" />
       </div>
 
       <div className={styles.mainGrid}>
@@ -126,8 +140,8 @@ const StatsPage = ({ user }) => {
                        </td>
                        <td>{s.providerName || 'saasPlug'}</td>
                        <td>{new Date(s.createdAt).toLocaleDateString()}</td>
-                       <td>{s.duration || 0} min</td>
-                       <td><span className={styles.costBadge}>€{((s.duration || 0) / 60 * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
+                       <td>{formatDuration(s.duration)}</td>
+                       <td><span className={styles.costBadge}>€{((s.duration || 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
                      </motion.tr>
                    ))}
                  </tbody>
@@ -164,7 +178,7 @@ const StatsPage = ({ user }) => {
               </div>
               <div className={styles.divider} />
               <div className={styles.metricItem}>
-                <strong>{Math.ceil(overview.minutes / 60)}</strong>
+                <strong>{Math.ceil(overview.totalSeconds / 3600)}</strong>
                 <span>Hours Connected</span>
               </div>
             </div>

@@ -58,9 +58,8 @@
   font-size: 0.95rem;
   color: var(--text-primary);
 }
-
 .input, .select {
-  background: var(--background);
+  background: rgba(0, 167, 181, 0.05);
   border: 2px solid var(--outline);
   border-radius: 12px;
   padding: 1rem;
@@ -68,6 +67,71 @@
   color: var(--text-primary);
   transition: all 0.2s ease;
   width: 100%;
+}
+
+.stationDisplay {
+  background: rgba(0, 167, 181, 0.08);
+  border: 2px solid var(--primary);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stationName {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.stationMeta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.stationAddress {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.statusBadge {
+  background: #00c853;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.noSelection {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.noSelection h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.noSelection p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
 }
 
 .input:focus, .select:focus {

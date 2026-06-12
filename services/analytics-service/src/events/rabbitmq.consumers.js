@@ -15,11 +15,11 @@ export async function startConsumers() {
         });
       } else if (routingKey === "reservation.completed" || routingKey === "reservation.cancelled") {
         // Add actual duration, energy, and revenue once finished
-        const durationHrs = (payload.actualDuration || 0) / 60;
+        const durationHrs = (payload.actualDuration || 0) / 3600;
         const energyKwh = durationHrs * (payload.capacityKw || 22);
 
         await AnalyticStatRepository.upsertIncrement(payload.providerName, period, {
-          totalDurationMinutes: payload.actualDuration || 0,
+          totalDurationMinutes: (payload.actualDuration || 0) / 60,
           totalEnergyKwh: energyKwh,
           totalRevenue: payload.totalCost || 0,
         });

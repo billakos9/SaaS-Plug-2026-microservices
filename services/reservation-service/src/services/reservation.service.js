@@ -103,8 +103,8 @@ class ReservationService {
     const reservation = await ReservationRepository.getById(reservationId);
     if (!reservation) throw new AppError(HttpCode.NOT_FOUND, "Reservation not found");
 
-    const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 60000);
-    const totalCost = (actualDuration / 60) * reservation.kwhPrice;
+    const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
+    const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
     await ReservationRepository.update(reservationId, { 
       status: "cancelled", 
@@ -135,8 +135,8 @@ class ReservationService {
     const reservation = await ReservationRepository.getById(reservationId);
     if (!reservation) throw new AppError(HttpCode.NOT_FOUND, "Reservation not found");
 
-    const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 60000);
-    const totalCost = (actualDuration / 60) * reservation.kwhPrice;
+    const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
+    const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
     await ReservationRepository.update(reservationId, { 
       status: "completed", 
