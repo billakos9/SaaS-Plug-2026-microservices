@@ -63,10 +63,10 @@ class AnalyticsService {
       providers:   providerStats,
       chargers:    chargerStats,
       totalRevenue: globalReport?.totalRevenue ?? 0,
-      totalEnergyKWh: globalReport?.totalEnergyKWh ?? 0,
+      totalEnergyKWh: globalReport?.totalEnergyKwh ?? 0,
       totalSessions: globalReport?.totalReservations ?? 0,
       avgSessionDuration: globalReport?.averageDurationMinutes ?? 0,
-      activeChargers: globalReport?.chargersByStatus?.occupied ?? 0,
+      activeChargers: (globalReport?.chargersByStatus?.charging ?? 0) + (globalReport?.chargersByStatus?.reserved ?? 0),
       generatedAt: new Date().toISOString(),
     };
   }
@@ -95,9 +95,9 @@ class AnalyticsService {
     }
 
     const breakdown = providers.map((p) => {
-      const report = providerReportMap[p.name];
+      const report = providerReportMap[p.providerName];
       const providerChargers = chargers.filter(
-        (c) => c.ProviderName === p.name,
+        (c) => c.ProviderName === p.providerName,
       );
 
       const byStatus = providerChargers.reduce((acc, c) => {
@@ -108,11 +108,11 @@ class AnalyticsService {
 
       return {
         providerId:   p.providerId,
-        providerName: p.name,
+        providerName: p.providerName,
         totalChargers: providerChargers.length,
         chargersByStatus: byStatus,
         totalRevenue: report?.totalRevenue ?? 0,
-        totalEnergyKWh: report?.totalEnergyKWh ?? 0,
+        totalEnergyKWh: report?.totalEnergyKwh ?? 0,
       };
     });
 

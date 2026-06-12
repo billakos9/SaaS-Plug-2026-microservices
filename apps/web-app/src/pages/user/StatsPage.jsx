@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyReservations } from '../../services/reservations';
 import { getGlobalStats, getProviderBreakdown } from '../../services/admin';
+import { getProviderReport } from '../../services/analytics';
 import { useAuth } from '../../hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './StatsPage.module.css';
@@ -38,10 +39,11 @@ const formatDuration = (seconds) => {
 
 const StatsPage = () => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isProvider } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [globalStats, setGlobalStats] = useState(null);
   const [providerStats, setProviderStats] = useState([]);
+  const [providerReport, setProviderReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = useCallback(async () => {
@@ -72,17 +74,31 @@ const StatsPage = () => {
     }
   }, []);
 
+  const fetchProviderData = useCallback(async () => {
+    if (!user?.providerName) return;
+    try {
+      const report = await getProviderReport(user.providerName);
+      setProviderReport(report);
+    } catch (err) {
+      console.error('Failed to fetch provider analytics', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.providerName]);
+
   useEffect(() => {
     if (!user) { navigate('/login', { replace: true }); return; }
     if (isAdmin) {
       fetchAdminData();
+    } else if (isProvider) {
+      fetchProviderData();
     } else {
       fetchUserData();
     }
-  }, [user, isAdmin, navigate, fetchAdminData, fetchUserData]);
+  }, [user, isAdmin, isProvider, navigate, fetchAdminData, fetchProviderData, fetchUserData]);
 
   const overview = useMemo(() => {
-    if (isAdmin) return null;
+    if (isAdmin || isProvider) return null;
     const total = sessions.length;
     const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const energy = sessions.reduce((acc, s) => {
@@ -101,7 +117,7 @@ const StatsPage = () => {
   }, [sessions, isAdmin]);
 
   const dominantProvider = useMemo(() => {
-    if (isAdmin || !sessions.length) return null;
+    if (isAdmin || isProvider || !sessions.length) return null;
     const counts = sessions.reduce((acc, s) => {
       const name = s.providerName || 'saasPlug';
       acc[name] = (acc[name] || 0) + 1;
@@ -125,18 +141,117 @@ const StatsPage = () => {
     >
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>{isAdmin ? 'Network Ecosystem' : 'Personal Insights'}</span>
-          <h1>{isAdmin ? 'Global Analytics' : 'Usage Analytics'}</h1>
+          <span className={styles.eyebrow}>
+            {isAdmin ? 'Network Ecosystem' : isProvider ? 'Fleet Intelligence' : 'Personal Insights'}
+          </span>
+          <h1>{isAdmin ? 'Global Analytics' : isProvider ? 'Provider Analytics' : 'Usage Analytics'}</h1>
           <p className={styles.muted}>
-            {isAdmin 
-              ? 'Real-time monitoring of global energy flow and network performance.' 
+            {isAdmin
+              ? 'Real-time monitoring of global energy flow and network performance.'
+              : isProvider
+              ? "Your network's energy delivery and revenue performance."
               : 'Detailed breakdown of your charging behavior and energy footprint.'}
           </p>
         </div>
       </header>
 
       <AnimatePresence mode="wait">
-        {isAdmin ? (
+        {isProvider ? (
+          <motion.div
+            key="provider-stats"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className={styles.statsGrid}>
+              <StatCard index={0} label="Total Revenue" value={providerReport?.totalRevenue?.toFixed(2) || '0.00'} unit="€" color="#00c853" />
+              <StatCard index={1} label="Energy Delivered" value={(providerReport?.totalEnergyKwh ?? providerReport?.totalEnergyKWh ?? 0).toFixed(1)} unit="kWh" color="#2979ff" />
+              <StatCard index={2} label="Sessions" value={providerReport?.totalReservations || '0'} unit="" color="#ffab00" />
+            </div>
+
+            <div className={styles.mainGrid}>
+              <section className={styles.historySection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Fleet Status</h2>
+                  <span className={styles.countBadge}>{providerReport?.totalChargers || 0} Stations</span>
+                </div>
+                <div className={styles.tableCard}>
+                  {loading ? (
+                    <div className={styles.loading}>
+                      <div className={styles.spinner} />
+                      <p>Loading fleet data...</p>
+                    </div>
+                  ) : providerReport ? (
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Count</th>
+                          <th>Share</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(providerReport.chargersByStatus || {})
+                          .filter(([, count]) => count > 0)
+                          .map(([status, count], idx) => {
+                            const pct = providerReport.totalChargers > 0
+                              ? Math.round(count / providerReport.totalChargers * 100)
+                              : 0;
+                            return (
+                              <motion.tr
+                                key={status}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1 + idx * 0.05 }}
+                              >
+                                <td><strong style={{ textTransform: 'capitalize' }}>{status}</strong></td>
+                                <td>{count}</td>
+                                <td>
+                                  <div className={styles.progressTrack} style={{ width: '80px', margin: 0 }}>
+                                    <div className={styles.progressBar} style={{ width: `${pct}%`, background: 'var(--primary)' }} />
+                                  </div>
+                                  <small style={{ fontSize: '0.7rem', opacity: 0.6 }}>{pct}%</small>
+                                </td>
+                              </motion.tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className={styles.emptyTable}><p>No fleet data available.</p></div>
+                  )}
+                </div>
+              </section>
+
+              <aside className={styles.sidebar}>
+                <div className={styles.impactCard} style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)' }}>
+                  <div className={styles.impactHeader}>
+                    <span className={styles.leafIcon}>⚡</span>
+                    <h3>Fleet Health</h3>
+                  </div>
+                  <div className={styles.impactValue}>
+                    {Math.round((providerReport?.utilizationRate || 0) * 100)}
+                    <span className={styles.impactUnit}>% utilized</span>
+                  </div>
+                  <p className={styles.impactDesc}>
+                    Live utilization across your registered charging fleet.
+                  </p>
+                  <div className={styles.impactMetric}>
+                    <div className={styles.metricItem}>
+                      <strong>{providerReport?.averageDurationMinutes?.toFixed(0) || 0}m</strong>
+                      <span>Avg Session</span>
+                    </div>
+                    <div className={styles.divider} />
+                    <div className={styles.metricItem}>
+                      <strong>€{providerReport?.averageKwhPrice?.toFixed(3) || '0.00'}</strong>
+                      <span>Avg kWh Price</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </motion.div>
+        ) : isAdmin ? (
           <motion.div 
             key="admin-stats"
             initial={{ opacity: 0, y: 10 }}
@@ -161,6 +276,7 @@ const StatsPage = () => {
                       <tr>
                         <th>Provider</th>
                         <th>Fleet Size</th>
+                        <th>Operational</th>
                         <th>Occupancy</th>
                         <th>Energy Delivered</th>
                       </tr>
@@ -176,18 +292,31 @@ const StatsPage = () => {
                           <td><strong>{p.providerName}</strong></td>
                           <td>{p.totalChargers} units</td>
                           <td>
-                             <div className={styles.progressTrack} style={{ width: '80px', margin: 0 }}>
-                                <div 
-                                  className={styles.progressBar} 
-                                  style={{ 
-                                    width: `${(p.chargersByStatus?.occupied || 0) / p.totalChargers * 100}%`,
-                                    background: 'var(--primary)'
-                                  }} 
-                                />
-                             </div>
-                             <small style={{ fontSize: '0.7rem', opacity: 0.6 }}>
-                               {Math.round((p.chargersByStatus?.occupied || 0) / p.totalChargers * 100)}% active
-                             </small>
+                            {(() => {
+                              const s = p.chargersByStatus || {};
+                              const operational = (s.available || 0) + (s.charging || 0) + (s.reserved || 0);
+                              const offline = (s.offline || 0) + (s.malfunction || 0);
+                              return (
+                                <span>
+                                  {operational}/{p.totalChargers}
+                                  {offline > 0 && <small style={{ color: '#ff1744', marginLeft: '0.4rem' }}>({offline} down)</small>}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td>
+                             {(() => {
+                               const active = (p.chargersByStatus?.charging || 0) + (p.chargersByStatus?.reserved || 0);
+                               const pct = p.totalChargers > 0 ? Math.round(active / p.totalChargers * 100) : 0;
+                               return (
+                                 <>
+                                   <div className={styles.progressTrack} style={{ width: '80px', margin: 0 }}>
+                                     <div className={styles.progressBar} style={{ width: `${pct}%`, background: 'var(--primary)' }} />
+                                   </div>
+                                   <small style={{ fontSize: '0.7rem', opacity: 0.6 }}>{pct}% in use</small>
+                                 </>
+                               );
+                             })()}
                           </td>
                           <td><span className={styles.costBadge}>{p.totalEnergyKWh?.toFixed(1) || 0} kWh</span></td>
                         </motion.tr>

@@ -6,7 +6,7 @@ import styles from './Navbar.module.css';
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isProvider, logout } = useAuth();
 
   const closeMenu = () => setOpen(false);
 
@@ -34,15 +34,25 @@ const Navbar = () => {
           </button>
 
           <ul className={styles.navMenu}>
-            {!isAdmin && <li><NavLink to="/" end onClick={closeMenu}>Home</NavLink></li>}
-            <li><NavLink to="/map" onClick={closeMenu}>{isAdmin ? 'System Map' : 'Map'}</NavLink></li>
-            
+            {!isAdmin && !isProvider && <li><NavLink to="/" end onClick={closeMenu}>Home</NavLink></li>}
+            <li>
+              <NavLink to="/map" onClick={closeMenu}>
+                {isAdmin ? 'System Map' : isProvider ? 'My Network' : 'Map'}
+              </NavLink>
+            </li>
+
             {user ? (
               <>
-                {!isAdmin && <li><NavLink to="/charging" onClick={closeMenu}>Charging</NavLink></li>}
-                <li><NavLink to="/stats" onClick={closeMenu}>{isAdmin ? 'Global Analytics' : 'Statistics'}</NavLink></li>
+                {!isAdmin && !isProvider && <li><NavLink to="/charging" onClick={closeMenu}>Charging</NavLink></li>}
+                <li>
+                  <NavLink to="/stats" onClick={closeMenu}>
+                    {isAdmin ? 'Global Analytics' : isProvider ? 'Analytics' : 'Statistics'}
+                  </NavLink>
+                </li>
                 {isAdmin ? (
                   <li><NavLink to="/admin" onClick={closeMenu}>Management</NavLink></li>
+                ) : isProvider ? (
+                  <li><NavLink to="/provider/profile" onClick={closeMenu}>Account</NavLink></li>
                 ) : (
                   <li><NavLink to="/profile" onClick={closeMenu}>Profile</NavLink></li>
                 )}

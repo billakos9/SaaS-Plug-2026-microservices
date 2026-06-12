@@ -44,13 +44,14 @@ const buildUserFromToken = (token) => {
   const role = payload.role || "user";
 
   const user = {
-    id: payload.userId || payload.sub,
+    id: payload.userId || payload.adminId || payload.sub,
     email: payload.email || "",
     username: payload.username || "",
     name: payload.name || (payload.email ? payload.email.split("@")[0] : "saasPlug User"),
     role: role,
     isAdmin: role === "admin",
     isProvider: role === "provider",
+    providerName: payload.providerName || null,
   };
   console.log("[Auth] Built user from token:", user);
   return user;
@@ -109,20 +110,36 @@ export async function login(email, password) {
   }
 
   console.log("[Auth] Attempting login for:", email);
-  const res = await http.post("/auth/login", { email, password });
-  const token = res.data?.accessToken || res.data?.token;
+
+  let token = null;
+
+  // Try user auth-service first, then fall back to admin-service
+  try {
+    const res = await http.post("/auth/login", { email, password });
+    token = res.data?.accessToken || res.data?.token;
+  } catch {
+    // auth-service rejected — try admin-service
+  }
 
   if (!token) {
-    console.error("[Auth] Login response missing token:", res.data);
-    throw new Error("Login failed: no token returned");
+    try {
+      const res = await http.post("/admin/login", { email, password });
+      token = res.data?.accessToken || res.data?.token;
+    } catch {
+      // admin-service also rejected
+    }
+  }
+
+  if (!token) {
+    throw new Error("Invalid credentials");
   }
 
   console.log("[Auth] Login successful, saving token.");
   setStoredToken(token);
 
-  // Use token data for immediate UI update, then try to fetch full profile
   const tokenUser = buildUserFromToken(token);
-  
+
+  // Admins don't have a user-service profile — fall back to token data
   try {
     const profile = await getCurrentUser();
     const finalUser = {

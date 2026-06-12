@@ -15,13 +15,14 @@ import StatsPage from './pages/user/StatsPage';
 import AdminPage from './pages/admin/AdminPage';
 import ProviderDashboardPage from './pages/provider/ProviderDashboardPage';
 import ProviderRegisterPage from './pages/provider/ProviderRegisterPage';
+import ProviderProfilePage from './pages/provider/ProviderProfilePage';
 import styles from './App.module.css';
 
 const AppRoutes = () => {
   const [selectedCharger, setSelectedCharger] = useState(null);
   const [reservation, setReservation] = useState(null);
   const [activeSession] = useState(null);
-  const { user, isAdmin, loading, logout } = useAuth();
+  const { user, isAdmin, isProvider, loading, logout } = useAuth();
 
   if (loading) {
     return (
@@ -48,6 +49,8 @@ const AppRoutes = () => {
             element={
               isAdmin ? (
                 <Navigate to="/admin" replace />
+              ) : isProvider ? (
+                <Navigate to="/map" replace />
               ) : (
                 <HomePage
                   user={user}
@@ -61,8 +64,8 @@ const AppRoutes = () => {
           <Route
             path="/reserve"
             element={
-              isAdmin ? (
-                <Navigate to="/admin" replace />
+              isAdmin || isProvider ? (
+                <Navigate to={isAdmin ? "/admin" : "/map"} replace />
               ) : (
                 <ReservePage
                   selectedCharger={selectedCharger}
@@ -75,8 +78,8 @@ const AppRoutes = () => {
           <Route
             path="/charging"
             element={
-              isAdmin ? (
-                <Navigate to="/admin" replace />
+              isAdmin || isProvider ? (
+                <Navigate to={isAdmin ? "/admin" : "/map"} replace />
               ) : (
                 <ChargingPage user={user} />
               )
@@ -92,8 +95,20 @@ const AppRoutes = () => {
             element={
               isAdmin ? (
                 <Navigate to="/admin" replace />
+              ) : isProvider ? (
+                <Navigate to="/provider/profile" replace />
               ) : (
                 <ProfilePage user={user} onLogout={logout} />
+              )
+            }
+          />
+          <Route
+            path="/provider/profile"
+            element={
+              isProvider ? (
+                <ProviderProfilePage />
+              ) : (
+                <Navigate to={user ? "/" : "/login"} replace />
               )
             }
           />
