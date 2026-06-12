@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
 import ChargerMap from '../../components/map/ChargerMap';
 import { getChargers } from '../../services/chargers';
 import styles from './MapPage.module.css';
 
 const MapPage = ({ onSelect }) => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [chargers, setChargers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,7 @@ const MapPage = ({ onSelect }) => {
   }, []);
 
   const handleReserve = (charger) => {
+    if (isAdmin) return;
     onSelect(charger);
     navigate('/reserve');
   };
@@ -39,17 +42,20 @@ const MapPage = ({ onSelect }) => {
         transition={{ duration: 0.6 }}
         className={styles.header}
       >
-        <span className={styles.eyebrow}>Global Network</span>
-        <h1 className={styles.title}>Infrastructure Hub</h1>
+        <span className={styles.eyebrow}>{isAdmin ? 'System Monitoring' : 'Global Network'}</span>
+        <h1 className={styles.title}>{isAdmin ? 'Infrastructure Oversight' : 'Infrastructure Hub'}</h1>
         <p className={styles.description}>
-          Navigate the next generation of smart energy. Locate, monitor, and reserve 
-          premium charging points across the saasPlug ecosystem in real-time.
+          {isAdmin 
+            ? 'Monitor the next generation of smart energy. View real-time status and telemetry across the saasPlug ecosystem.'
+            : 'Navigate the next generation of smart energy. Locate, monitor, and reserve premium charging points across the saasPlug ecosystem in real-time.'
+          }
         </p>
       </motion.header>
       <ChargerMap
         chargers={chargers}
         loading={loading}
         onReserve={handleReserve}
+        isAdmin={isAdmin}
       />
     </section>
   );

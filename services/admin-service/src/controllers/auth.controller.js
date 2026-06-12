@@ -88,3 +88,9 @@ export const deleteAdmin = async (req, res) => {
   const result = await AdminService.delete(adminId);
   res.json(result);
 };
+
+export const createAccount = async (req, res) => {
+  const data = toAdminRegistrationRequestDTO({ ...req.body, registrationKey: process.env.ADMIN_REGISTRATION_KEY });
+  const admin = await AdminService.register(data);
+  res.status(201).json(toAdminResponseDTO(admin));
+};

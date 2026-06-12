@@ -46,34 +46,57 @@ const AppRoutes = () => {
           <Route
             path="/"
             element={
-              <HomePage
-                user={user}
-                lastReservation={reservation}
-                activeSession={activeSession}
-              />
+              isAdmin ? (
+                <Navigate to="/admin" replace />
+              ) : (
+                <HomePage
+                  user={user}
+                  lastReservation={reservation}
+                  activeSession={activeSession}
+                />
+              )
             }
           />
           <Route path="/map" element={<MapPage user={user} onSelect={setSelectedCharger} />} />
           <Route
             path="/reserve"
             element={
-              <ReservePage
-                selectedCharger={selectedCharger}
-                user={user}
-                onReserved={setReservation}
-              />
+              isAdmin ? (
+                <Navigate to="/admin" replace />
+              ) : (
+                <ReservePage
+                  selectedCharger={selectedCharger}
+                  user={user}
+                  onReserved={setReservation}
+                />
+              )
             }
           />
           <Route
             path="/charging"
-            element={<ChargingPage user={user} />}
+            element={
+              isAdmin ? (
+                <Navigate to="/admin" replace />
+              ) : (
+                <ChargingPage user={user} />
+              )
+            }
           />
           <Route path="/stats" element={<StatsPage user={user} />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/provider/register" element={<ProviderRegisterPage />} />
           <Route path="/provider" element={<ProviderDashboardPage />} />
-          <Route path="/profile" element={<ProfilePage user={user} onLogout={logout} />} />
+          <Route
+            path="/profile"
+            element={
+              isAdmin ? (
+                <Navigate to="/admin" replace />
+              ) : (
+                <ProfilePage user={user} onLogout={logout} />
+              )
+            }
+          />
           <Route
             path="/admin"
             element={

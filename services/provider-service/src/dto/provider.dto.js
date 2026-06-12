@@ -105,3 +105,12 @@ export function toProviderListDTO(providers) {
     apiBaseUrl:   p.apiBaseUrl,
   }));
 }
+
+export function toProviderDetailDTO(p) {
+  return {
+    providerId:   p.providerId,
+    providerName: p.providerName,
+    email:        p.email,
+    apiBaseUrl:   p.apiBaseUrl,
+  };
+}

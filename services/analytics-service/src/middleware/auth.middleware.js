@@ -12,10 +12,11 @@ export function requireProviderAuth(req, res, next) {
   const token = authHeader.slice(7);
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== "provider") {
-      return next(new AppError(HttpCode.FORBIDDEN, "Provider access only"));
+    if (decoded.role !== "provider" && decoded.role !== "admin") {
+      return next(new AppError(HttpCode.FORBIDDEN, "Provider or Admin access only"));
     }
-    req.provider = decoded;
+    req.user = decoded;
+    if (decoded.role === "provider") req.provider = decoded;
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {

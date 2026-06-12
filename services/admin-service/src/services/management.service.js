@@ -23,12 +23,14 @@ async function proxyRequest(url, method = "GET", body = null) {
   try {
     res = await fetch(url, options);
   } catch (err) {
+    console.error(`[proxy] failed to reach ${url}:`, err.message);
     throw new AppError(HttpCode.SERVER_ERROR, `Downstream service unreachable: ${url}`, err.message);
   }
 
   const data = await res.json();
 
   if (!res.ok) {
+    console.error(`[proxy] ${url} error:`, data);
     throw new AppError(res.status, data?.error ?? "Downstream service error", data?.debugInfo ?? null);
   }
 
@@ -61,7 +63,7 @@ class ManagementService {
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
   static getAllProviders() {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider`);
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/`);
   }
 
   /**
@@ -113,7 +115,7 @@ class ManagementService {
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
   static getAllUsers() {
-    return proxyRequest(`${USER_SERVICE_URL}/user`);
+    return proxyRequest(`${USER_SERVICE_URL}/user/`);
   }
 
   /**

@@ -1,4 +1,8 @@
 import AnalyticsService from "../services/analytics.service.js";
+import {
+  USER_SERVICE_URL, CHARGER_SERVICE_URL, PROVIDER_SERVICE_URL,
+  ANALYTICS_SERVICE_URL, AUTH_SERVICE_URL, RESERVATION_SERVICE_URL,
+} from "../config/env.js";
 
 /**
  * Handles GET /admin/analytics/stats
@@ -9,7 +13,8 @@ import AnalyticsService from "../services/analytics.service.js";
  * @returns {Promise<void>} Sends JSON snapshot of global stats
  */
 export const getGlobalStats = async (req, res) => {
-  const stats = await AnalyticsService.getGlobalStats();
+  const token = req.headers["authorization"];
+  const stats = await AnalyticsService.getGlobalStats(token);
   res.json(stats);
 };
 
@@ -22,6 +27,31 @@ export const getGlobalStats = async (req, res) => {
  * @returns {Promise<void>} Sends JSON breakdown of chargers per provider
  */
 export const getProviderBreakdown = async (req, res) => {
-  const breakdown = await AnalyticsService.getProviderChargerBreakdown();
+  const token = req.headers["authorization"];
+  const breakdown = await AnalyticsService.getProviderChargerBreakdown(token);
   res.json(breakdown);
+};
+
+const SERVICE_HEALTH_TARGETS = [
+  { label: "Identity & Auth",    url: () => `${AUTH_SERVICE_URL}/health` },
+  { label: "User Registry",      url: () => `${USER_SERVICE_URL}/health` },
+  { label: "Station Hub",        url: () => `${CHARGER_SERVICE_URL}/health` },
+  { label: "Provider Network",   url: () => `${PROVIDER_SERVICE_URL}/health` },
+  { label: "Reservation Engine", url: () => `${RESERVATION_SERVICE_URL}/health` },
+  { label: "Energy Analytics",   url: () => `${ANALYTICS_SERVICE_URL}/health` },
+];
+
+export const getSystemHealth = async (_req, res) => {
+  const checks = await Promise.allSettled(
+    SERVICE_HEALTH_TARGETS.map(({ url }) =>
+      fetch(url(), { signal: AbortSignal.timeout(3000) }).then(r => r.ok ? "operational" : "degraded")
+    )
+  );
+
+  const result = {};
+  SERVICE_HEALTH_TARGETS.forEach(({ label }, i) => {
+    result[label] = checks[i].status === "fulfilled" ? checks[i].value : "unreachable";
+  });
+
+  res.json(result);
 };

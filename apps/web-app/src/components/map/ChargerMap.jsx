@@ -28,7 +28,7 @@ const createStationIcon = (status) => {
 /**
  * A popup that displays charger details.
  */
-const SmartPopup = ({ charger, onReserve }) => {
+const SmartPopup = ({ charger, onReserve, isAdmin }) => {
   return (
     <motion.div 
       className={styles.mapPopup}
@@ -38,8 +38,8 @@ const SmartPopup = ({ charger, onReserve }) => {
     >
       <header className={styles.popupHeader}>
         <div className={styles.popupTitleGroup}>
-          <strong className={styles.popupTitle}>{charger.locationName}</strong>
-          <p className={styles.popupProvider}>{charger.providerName}</p>
+          <strong className={styles.popupTitle}>{charger.locationName || 'Charging Station'}</strong>
+          <p className={styles.popupProvider}>Station #{charger.id} • {charger.providerName}</p>
         </div>
         <span className={`${styles.statusBadge} ${styles[charger.status]}`}>{charger.status}</span>
       </header>
@@ -66,9 +66,11 @@ const SmartPopup = ({ charger, onReserve }) => {
         </div>
       </div>
       
-      <button className={styles.primaryButton} onClick={() => onReserve(charger)}>
-        Reserve Station
-      </button>
+      {!isAdmin && (
+        <button className={styles.primaryButton} onClick={() => onReserve(charger)}>
+          Reserve Station
+        </button>
+      )}
     </motion.div>
   );
 };
@@ -76,8 +78,9 @@ const SmartPopup = ({ charger, onReserve }) => {
 /**
  * A popup that lists multiple stations at the same location.
  */
-const MultiStationPopup = ({ chargers, onReserve }) => {
+const MultiStationPopup = ({ chargers, onReserve, isAdmin }) => {
   const displayAddress = chargers.length > 0 ? chargers[0].address : "Multiple chargers registered here.";
+  const locationName = chargers.length > 0 ? chargers[0].locationName : "Network Hub";
 
   return (
     <motion.div 
@@ -86,7 +89,7 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
       animate={{ opacity: 1 }}
     >
       <header className={styles.multiPopupHeader}>
-        <h3 className={styles.multiPopupTitle}>{chargers[0]?.locationName || 'Multiple Stations'}</h3>
+        <h3 className={styles.multiPopupTitle}>{locationName}</h3>
         <p className={styles.popupAddress}>📍 {displayAddress} ({chargers.length} units)</p>
       </header>
       <ul className={styles.stationList}>
@@ -99,7 +102,7 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
             transition={{ delay: Math.min(idx * 0.03, 0.5) }}
           >
             <div className={styles.stationItemMain}>
-              <span className={styles.stationItemName}>{charger.locationName || `Station #${charger.id}`} • {charger.providerName}</span>
+              <span className={styles.stationItemName}>Station #{charger.id} • {charger.providerName}</span>
               <span className={`${styles.statusBadge} ${styles[charger.status]}`}>
                 {charger.status}
               </span>
@@ -109,13 +112,15 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
               <span>€{charger.kwhPrice}/kWh</span>
               <span>{charger.connectionType || 'Type 2'}</span>
             </div>
-            <button 
-              className={styles.primaryButton} 
-              style={{ padding: '6px 12px', fontSize: '0.75rem', height: 'auto', width: 'auto' }}
-              onClick={() => onReserve(charger)}
-            >
-              Reserve
-            </button>
+            {!isAdmin && (
+              <button 
+                className={styles.primaryButton} 
+                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 'auto', width: 'auto' }}
+                onClick={() => onReserve(charger)}
+              >
+                Reserve
+              </button>
+            )}
           </motion.li>
         ))}
       </ul>
@@ -126,14 +131,14 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
 /**
  * A marker that displays charger details.
  */
-const SmartMarker = ({ charger, position, onReserve }) => {
+const SmartMarker = ({ charger, position, onReserve, isAdmin }) => {
   return (
     <Marker 
       position={position} 
       icon={createStationIcon(charger.status)}
     >
       <Popup className={styles.customPopup}>
-        <SmartPopup charger={charger} onReserve={onReserve} />
+        <SmartPopup charger={charger} onReserve={onReserve} isAdmin={isAdmin} />
       </Popup>
     </Marker>
   );
@@ -142,7 +147,7 @@ const SmartMarker = ({ charger, position, onReserve }) => {
 /**
  * Renders clustered markers that expand upon zoom or show multi-popups for exact matches.
  */
-const ClusterMarkers = ({ items, onReserve }) => {
+const ClusterMarkers = ({ items, onReserve, isAdmin }) => {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
@@ -192,6 +197,10 @@ const ClusterMarkers = ({ items, onReserve }) => {
   }, [items, zoom]);
 
   return clusters.map((c, i) => {
+    // Only highlight as "problematic" if there's an actual hardware/network issue.
+    // 'reserved' and 'occupied' are normal operational states.
+    const hasProblem = c.points.some(p => ['outOfOrder', 'malfunctioning', 'offline', 'out_of_order'].includes(p.status));
+
     if (c.isMulti) {
       return (
         <Marker 
@@ -199,7 +208,7 @@ const ClusterMarkers = ({ items, onReserve }) => {
           position={[c.lat, c.lon]} 
           icon={divIcon({
             html: `
-              <div class="${styles.multiMarker}">
+              <div class="${styles.multiMarker}" style="${hasProblem ? 'background: #ff1744; border-color: #ffcdd2;' : ''}">
                 <span>${c.points.length}</span>
               </div>
             `,
@@ -210,7 +219,7 @@ const ClusterMarkers = ({ items, onReserve }) => {
           })}
         >
           <Popup className={styles.customPopup}>
-            <MultiStationPopup chargers={c.points} onReserve={onReserve} />
+            <MultiStationPopup chargers={c.points} onReserve={onReserve} isAdmin={isAdmin} />
           </Popup>
         </Marker>
       );
@@ -224,6 +233,7 @@ const ClusterMarkers = ({ items, onReserve }) => {
           charger={p} 
           position={[c.lat, c.lon]} 
           onReserve={onReserve}
+          isAdmin={isAdmin}
         />
       );
     }
@@ -234,8 +244,8 @@ const ClusterMarkers = ({ items, onReserve }) => {
         position={[c.lat, c.lon]} 
         icon={divIcon({
           html: `
-            <div class="${styles.clusterMarker}">
-              <div class="${styles.clusterPulse}"></div>
+            <div class="${styles.clusterMarker}" style="${hasProblem ? 'background: #ff1744; box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4);' : ''}">
+              <div class="${styles.clusterPulse}" style="${hasProblem ? 'border-color: #ff1744;' : ''}"></div>
               <span>${c.points.length}</span>
             </div>
           `,
@@ -257,11 +267,11 @@ const ClusterMarkers = ({ items, onReserve }) => {
   });
 };
 
-const ChargerMap = ({ chargers, loading, onReserve }) => (
+const ChargerMap = ({ chargers, loading, onReserve, isAdmin }) => (
   <div className={styles.mapWrapper}>
     <MapContainer center={[37.9838, 23.7275]} zoom={12} maxZoom={MAX_SAFE_ZOOM} className={styles.leafletMap}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
-      <ClusterMarkers items={chargers} onReserve={onReserve} />
+      <ClusterMarkers items={chargers} onReserve={onReserve} isAdmin={isAdmin} />
     </MapContainer>
     {loading && <div className={styles.mapLoading}>Syncing Infrastructure...</div>}
   </div>

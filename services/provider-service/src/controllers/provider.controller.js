@@ -1,6 +1,7 @@
 import ProviderService from "../services/provider.service.js";
 import {
   toProviderListDTO,
+  toProviderDetailDTO,
   toProviderRegisteredDTO,
   toProviderRegistrationRequestDTO,
   toProviderUpdateRequestDTO,
@@ -31,7 +32,7 @@ export const getAllProviders = async (req, res) => {
 export const getProviderById = async (req, res) => {
   const id = Number(req.params.id);
   const provider = await ProviderService.getById(id);
-  res.json(provider);
+  res.json(toProviderDetailDTO(provider));
 };
 
 /**

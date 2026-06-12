@@ -94,6 +94,31 @@ class AnalyticsService {
       generatedAt: new Date().toISOString(),
     };
   }
+
+  static async getGlobalReport(period) {
+    const [stats, allChargers] = await Promise.all([
+      AnalyticStatRepository.getAllByPeriod(period),
+      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
+    ]);
+
+    const totalFleet = buildFleetStats(allChargers ?? []);
+    
+    const aggregatedReservation = stats.reduce((acc, s) => {
+      acc.totalReservations += (s.totalReservations ?? 0);
+      acc.totalDurationMinutes += (s.totalDurationMinutes ?? 0);
+      acc.totalEnergyKwh += (s.totalEnergyKwh ?? 0);
+      acc.totalRevenue += (s.totalRevenue ?? 0);
+      return acc;
+    }, { totalReservations: 0, totalDurationMinutes: 0, totalEnergyKwh: 0, totalRevenue: 0 });
+
+    return {
+      period,
+      ...totalFleet,
+      ...buildReservationStats(aggregatedReservation),
+      providerCount: stats.length,
+      generatedAt: new Date().toISOString(),
+    };
+  }
 }
 
 export default AnalyticsService;

@@ -10,6 +10,8 @@ import errorMiddleware from "./middleware/error.middleware.js";
 const app = express();
 app.use(express.json());
 
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
 app.use("/analytics", analyticsRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);

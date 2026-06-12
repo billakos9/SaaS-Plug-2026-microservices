@@ -34,15 +34,18 @@ const Navbar = () => {
           </button>
 
           <ul className={styles.navMenu}>
-            <li><NavLink to="/" end onClick={closeMenu}>Home</NavLink></li>
-            <li><NavLink to="/map" onClick={closeMenu}>Map</NavLink></li>
+            {!isAdmin && <li><NavLink to="/" end onClick={closeMenu}>Home</NavLink></li>}
+            <li><NavLink to="/map" onClick={closeMenu}>{isAdmin ? 'System Map' : 'Map'}</NavLink></li>
             
             {user ? (
               <>
-                <li><NavLink to="/charging" onClick={closeMenu}>Charging</NavLink></li>
-                <li><NavLink to="/stats" onClick={closeMenu}>Statistics</NavLink></li>
-                {isAdmin && <li><NavLink to="/admin" onClick={closeMenu}>Admin</NavLink></li>}
-                <li><NavLink to="/profile" onClick={closeMenu}>Profile</NavLink></li>
+                {!isAdmin && <li><NavLink to="/charging" onClick={closeMenu}>Charging</NavLink></li>}
+                <li><NavLink to="/stats" onClick={closeMenu}>{isAdmin ? 'Global Analytics' : 'Statistics'}</NavLink></li>
+                {isAdmin ? (
+                  <li><NavLink to="/admin" onClick={closeMenu}>Management</NavLink></li>
+                ) : (
+                  <li><NavLink to="/profile" onClick={closeMenu}>Profile</NavLink></li>
+                )}
                 <li>
                   <button type="button" className={styles.logoutButton} onClick={handleLogout}>
                     Logout
