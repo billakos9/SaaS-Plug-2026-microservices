@@ -57,16 +57,16 @@ class ReservationRepository {
   }
 
   /**
-   * Updates the status field of an existing reservation and returns the updated document.
+   * Updates fields of an existing reservation and returns the updated document.
    *
    * @param {number} reservationId - The unique numeric reservation identifier
-   * @param {string} status - The new status value (e.g. "active" or "cancelled")
+   * @param {Object} fields - The fields to update
    * @returns {Promise<Object|null>} The updated lean reservation document, or null if not found
    */
-  static async updateStatus(reservationId, status) {
+  static async update(reservationId, fields) {
     return Reservation.findOneAndUpdate(
       { reservationId },
-      { $set: { status } },
+      { $set: fields },
       { new: true },
     ).lean();
   }

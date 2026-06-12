@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import ChargerMap from '../../components/map/ChargerMap';
 import { getChargers } from '../../services/chargers';
 import styles from './MapPage.module.css';
@@ -32,11 +33,19 @@ const MapPage = ({ onSelect }) => {
 
   return (
     <section className={styles.mapPage}>
-      <header className={styles.header}>
-        <p className="eyebrow">Interactive Map</p>
-        <h1>Infrastructure Hub</h1>
-        <p className="muted">Explore chargers across the city. Zoom in to disperse clusters.</p>
-      </header>
+      <motion.header 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className={styles.header}
+      >
+        <span className={styles.eyebrow}>Global Network</span>
+        <h1 className={styles.title}>Infrastructure Hub</h1>
+        <p className={styles.description}>
+          Navigate the next generation of smart energy. Locate, monitor, and reserve 
+          premium charging points across the saasPlug ecosystem in real-time.
+        </p>
+      </motion.header>
       <ChargerMap
         chargers={chargers}
         loading={loading}

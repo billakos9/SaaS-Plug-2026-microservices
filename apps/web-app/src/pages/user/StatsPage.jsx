@@ -27,18 +27,28 @@ const StatsPage = ({ user }) => {
 
   useEffect(() => {
     if (!user) { navigate('/login', { replace: true }); return; }
-    getMyReservations(user.id).then(setSessions).finally(() => setLoading(false));
+    getMyReservations(user.id).then(data => {
+      // Only show finished sessions in stats
+      const finished = data.filter(s => ['completed', 'cancelled'].includes(s.status));
+      setSessions(finished);
+    }).finally(() => setLoading(false));
   }, [user, navigate]);
 
   const overview = useMemo(() => {
     const total = sessions.length;
     const minutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const energy = sessions.reduce((acc, s) => {
+      const durationHrs = (s.duration || 0) / 60;
+      const kw = s.capacityKw || 22;
+      return acc + (durationHrs * kw);
+    }, 0);
+    
     return {
       total,
       minutes,
       avg: total > 0 ? (minutes / total).toFixed(1) : 0,
-      energy: (minutes * 0.35).toFixed(1),
-      co2: (minutes * 0.35 * 0.4).toFixed(1) // Rough estimate
+      energy: energy.toFixed(1),
+      co2: (energy * 0.4).toFixed(1) // 0.4kg CO2 per kWh saved
     };
   }, [sessions]);
 
@@ -110,11 +120,14 @@ const StatsPage = ({ user }) => {
                        animate={{ opacity: 1, x: 0 }}
                        transition={{ delay: 0.3 + idx * 0.05 }}
                      >
-                       <td><strong>Station {s.chargerId}</strong></td>
+                       <td>
+                         <strong>{s.locationName || `Station #${s.chargerId}`}</strong>
+                         <small style={{ display: 'block', opacity: 0.6, fontSize: '0.7rem' }}>#{s.chargerId}</small>
+                       </td>
                        <td>{s.providerName || 'saasPlug'}</td>
                        <td>{new Date(s.createdAt).toLocaleDateString()}</td>
                        <td>{s.duration || 0} min</td>
-                       <td><span className={styles.costBadge}>€{((s.duration || 0) * 0.15).toFixed(2)}</span></td>
+                       <td><span className={styles.costBadge}>€{((s.duration || 0) / 60 * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
                      </motion.tr>
                    ))}
                  </tbody>

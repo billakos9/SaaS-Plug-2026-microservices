@@ -64,14 +64,22 @@ class ChargerPointService {
    * Updates a charger point only if it exists
    *
    * @param {Object} chargerPointData - ChargerPoint DTO
+   * @param {boolean} skipEnrichment - If true, skips expensive geocoding logic (useful for status-only updates)
    * @returns {Promise<Object>} Updated charger point
    * @throws {AppError} If charger point does not exist
    */
-  static async update(chargerPointData) {
+  static async update(chargerPointData, skipEnrichment = false) {
     validChargerPointStatus(chargerPointData.status);
-    const enrichedData = await enrichLocationData(chargerPointData);
+    
+    let dataToUpdate = chargerPointData;
+    
+    // Only enrich if not explicitly skipped AND we have location hints
+    const hasLocationHints = chargerPointData.address || chargerPointData.latitude || chargerPointData.longitude;
+    if (!skipEnrichment && hasLocationHints) {
+      dataToUpdate = await enrichLocationData(chargerPointData);
+    }
 
-    const updated = await ChargerPointRepository.update(enrichedData);
+    const updated = await ChargerPointRepository.update(dataToUpdate);
 
     if (!updated) {
       throw new AppError(HttpCode.NOT_FOUND, "Charger point not found");

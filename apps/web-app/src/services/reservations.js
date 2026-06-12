@@ -12,7 +12,9 @@ const normalizeReservation = (reservation) => {
     id: reservation.reservationId,
     chargerId: reservation.chargerId,
     userId: reservation.userId,
+    locationName: reservation.locationName,
     providerName: reservation.providerName,
+    capacityKw: reservation.capacityKw,
     status: reservation.status,
     duration: reservation.duration,
     kwhPrice: reservation.kwhPrice,
@@ -46,6 +48,8 @@ export async function createReservation({ chargerId, minutes }) {
     chargerId: Number(chargerId),
     duration: minutes || 60,
     providerName: charger.providerName,
+    locationName: charger.locationName,
+    capacityKw: charger.capacityKw || 22,
   });
 
   return normalizeReservation(res.data);
@@ -76,11 +80,13 @@ export async function getReservationById(id) {
 }
 
 /**
- * Mocked cancellation (Backend does not support this yet).
+ * Cancels an active reservation.
+ * Backend route: POST /reservation/:id/cancel
  */
 export async function cancelReservation(reservationId) {
-  console.warn("cancelReservation: Not implemented in backend yet", reservationId);
-  return { success: false, message: "Cancellation not yet supported." };
+  if (!reservationId) throw new Error("Reservation ID is required");
+  const res = await http.post(`/reservations/${reservationId}/cancel`);
+  return res.data;
 }
 
 export { normalizeReservation };

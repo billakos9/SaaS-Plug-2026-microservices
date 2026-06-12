@@ -93,12 +93,24 @@ export async function startReservationQueueConsumer() {
       const routingKey = message.fields.routingKey;
       const reservationData = JSON.parse(message.content.toString());
 
-      switch (routingKey) {
-        case RoutingKeys.RESERVATION_CREATED:
-          await ChargerPointService.update(reservationData);
-          break;
-        default:
-          console.log("Unhandled reservation event:", routingKey);
+      try {
+        switch (routingKey) {
+          case RoutingKeys.RESERVATION_CREATED:
+            await ChargerPointService.update({ id: reservationData.chargerId, status: "reserved" }, true);
+            break;
+          case RoutingKeys.RESERVATION_CANCELLED:
+          case RoutingKeys.RESERVATION_COMPLETED:
+            await ChargerPointService.update({ id: reservationData.chargerId, status: "available" }, true);
+            break;
+          default:
+            console.log("Unhandled reservation event:", routingKey);
+        }
+      } catch (error) {
+        if (error.statusCode === 404) {
+          console.warn(`Reservation event ignored: Charger ${reservationData.chargerId} not found.`);
+        } else {
+          throw error;
+        }
       }
 
       channel.ack(message);

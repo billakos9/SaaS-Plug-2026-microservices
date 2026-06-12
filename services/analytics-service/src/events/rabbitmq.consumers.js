@@ -4,16 +4,26 @@ import AnalyticStatRepository from "../repositories/analytic-stat.repository.js"
 export async function startConsumers() {
   await startConsuming(async (msg) => {
     try {
+      const routingKey = msg.fields.routingKey;
       const payload = JSON.parse(msg.content.toString());
-      // payload: { reservationId, userId, id, pointId, providerName, duration, kwhPrice, status }
-      const period  = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-      const revenue = (payload.duration / 60) * (payload.kwhPrice ?? 0);
+      const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
-      await AnalyticStatRepository.upsertIncrement(payload.providerName, period, {
-        totalReservations:    1,
-        totalDurationMinutes: payload.duration,
-        totalRevenue:         revenue,
-      });
+      if (routingKey === "reservation.created") {
+        // Only increment the count of reservations
+        await AnalyticStatRepository.upsertIncrement(payload.providerName, period, {
+          totalReservations: 1,
+        });
+      } else if (routingKey === "reservation.completed" || routingKey === "reservation.cancelled") {
+        // Add actual duration, energy, and revenue once finished
+        const durationHrs = (payload.actualDuration || 0) / 60;
+        const energyKwh = durationHrs * (payload.capacityKw || 22);
+
+        await AnalyticStatRepository.upsertIncrement(payload.providerName, period, {
+          totalDurationMinutes: payload.actualDuration || 0,
+          totalEnergyKwh: energyKwh,
+          totalRevenue: payload.totalCost || 0,
+        });
+      }
     } catch (err) {
       console.error("analytics consumer error:", err.message);
     }

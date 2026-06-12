@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getChargers } from '../../services/chargers';
 import { createReservation } from '../../services/reservations';
-import './ReservePage.module.css';
+import styles from './ReservePage.module.css';
 
 const mergeSelectedCharger = (list, selected) => {
   if (!selected?.id) return list;
@@ -164,11 +164,16 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
         userId: user?.id || 'guest',
         minutes,
       });
-      setMessage(
-        result.status === 'reserved'
-          ? `Reserved point ${result.pointId} until ${result.reservationEndTime}`
-          : `Could not reserve. Current status: ${result.status}`
-      );
+      
+      const isSuccess = ['active', 'reserved'].includes(result.status);
+
+      if (isSuccess) {
+        // Instant redirect for better UX
+        navigate('/charging');
+      } else {
+        setError(`Could not reserve. Current status: ${result.status}`);
+      }
+      
       onReserved?.(result);
     } catch (err) {
       setError(err.message || 'Reservation failed');
@@ -178,76 +183,95 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
   };
 
   return (
-    <div className="card">
-      <h2>Reserve Charger</h2>
-      <p className="muted">
-        SRS UC2 step 2–5: pick a charger and reserve a time window with payment pre-auth logic mocked.
-      </p>
+    <div className={styles.reserveContainer}>
+      <header className={styles.pageHeader}>
+        <span className={styles.eyebrow}>Reservation Hub</span>
+        <h1>Secure a Station</h1>
+        <p className={styles.muted}>
+          Confirm your charging window. Our network will lock the selected station 
+          exclusively for your vehicle.
+        </p>
+      </header>
 
-      <form onSubmit={handleSubmit} className="stack">
-        <div className="form-group">
-          <label htmlFor="query">Search by point, address, municipality</label>
-          <input
-            id="query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g., Kλειδί, Ημαθίας or 101"
-          />
-        </div>
+      <div className={styles.reserveCard}>
+        <form onSubmit={handleSubmit} className={styles.reserveForm}>
+          <div className={styles.formGroup}>
+            <label htmlFor="query">Quick Search</label>
+            <input
+              id="query"
+              className={styles.input}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g., Alimos, Marousi or Station ID"
+            />
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="charger">Charger *</label>
-          <select
-            id="charger"
-            required
-            value={chargerId}
-            onChange={(e) => setChargerId(e.target.value)}
-          >
-            <option value="">Select charger</option>
-            {groupedChargers.map((group) => (
-              <optgroup
-                key={group.key}
-                label={`${group.town} - ${group.region} (${group.items.length})`}
-              >
-                {group.items.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Point {c.id} — {c.provider} — {c.location || 'No address'}
-                    {c.capacityKw ? ` — ${c.capacityKw} kW` : ''}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {!filteredChargers.length && (
-            <div className="muted" style={{ marginTop: '0.5rem' }}>
-              No chargers match your search.
+          <div className={styles.formGroup}>
+            <label htmlFor="charger">Select Charger *</label>
+            <select
+              id="charger"
+              className={styles.select}
+              required
+              value={chargerId}
+              onChange={(e) => setChargerId(e.target.value)}
+            >
+              <option value="">Choose a point...</option>
+              {groupedChargers.map((group) => (
+                <optgroup
+                  key={group.key}
+                  label={`${group.town} - ${group.region}`}
+                >
+                  {group.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.locationName} — {c.capacityKw}kW ({c.providerName})
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {!filteredChargers.length && query && (
+              <div className={styles.formHelp}>No chargers match your search.</div>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="minutes">Session Duration (Minutes)</label>
+            <div className={styles.durationControl}>
+               <input
+                id="minutes"
+                className={styles.input}
+                type="number"
+                min="10"
+                max="120"
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+              />
+              <span className={styles.unit}>min</span>
             </div>
-          )}
-        </div>
+            <p className={styles.formHelp}>Recommended: 30-60 mins for most vehicles.</p>
+          </div>
 
-        <div className="form-group">
-          <label htmlFor="minutes">Reservation minutes</label>
-          <input
-            id="minutes"
-            type="number"
-            min="10"
-            max="60"
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
-          />
-        </div>
+          {message && <div className={styles.successAlert}>{message}</div>}
+          {error && <div className={styles.errorAlert}>{error}</div>}
 
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-error">{error}</div>}
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading || !chargerId}
-        >
-          {loading ? 'Reserving...' : 'Reserve'}
-        </button>
-      </form>
+          <div className={styles.actions}>
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={loading || !chargerId}
+            >
+              {loading ? 'Processing...' : 'Confirm Reservation'}
+            </button>
+            <button 
+              type="button" 
+              className={styles.cancelLink}
+              onClick={() => navigate('/map')}
+            >
+              Back to Map
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

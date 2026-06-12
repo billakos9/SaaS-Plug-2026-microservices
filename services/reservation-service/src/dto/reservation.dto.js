@@ -32,6 +32,8 @@ export function toReservationRequestDTO(userId, input) {
   return {
     userId,
     chargerId,
+    locationName: input.locationName?.trim(),
+    capacityKw: input.capacityKw ? Number(input.capacityKw) : 22,
     providerName: input.providerName.trim(),
     duration,
   };
@@ -48,6 +50,8 @@ export function toReservationResponseDTO(data) {
     reservationId: data.reservationId,
     userId:        data.userId,
     chargerId:     data.chargerId,
+    locationName:  data.locationName,
+    capacityKw:    data.capacityKw,
     providerName:  data.providerName,
     duration:      data.duration,
     kwhPrice:      data.kwhPrice,

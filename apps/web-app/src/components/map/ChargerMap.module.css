@@ -156,10 +156,10 @@
   letter-spacing: 0.5px;
 }
 
-.statusBadge.available { background: #e8f5e9; color: #2e7d32; }
-.statusBadge.occupied { background: #fff8e1; color: #f57f17; }
-.statusBadge.reserved { background: #e3f2fd; color: #1565c0; }
-.statusBadge.outOfOrder { background: #ffebee; color: #c62828; }
+.available { background: #e8f5e9; color: #2e7d32; }
+.occupied { background: #fff8e1; color: #f57f17; }
+.reserved { background: #e3f2fd; color: #1565c0; }
+.outOfOrder { background: #ffebee; color: #c62828; }
 
 .popupInfo {
   background: #f8f9fa;
@@ -279,8 +279,9 @@
   border-bottom: 1px solid #eee;
   z-index: 10;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .multiPopupTitle {

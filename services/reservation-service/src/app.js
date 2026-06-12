@@ -3,6 +3,7 @@ import express from "express";
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
 import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import SessionMonitorService from "./services/session-monitor.service.js";
 import reservationRouter from "./routes/reservation.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -20,5 +21,6 @@ app.listen(PORT, () => {
 
 connectMongoDB();
 setupMessaging();
+SessionMonitorService.start();
 
 export default app;

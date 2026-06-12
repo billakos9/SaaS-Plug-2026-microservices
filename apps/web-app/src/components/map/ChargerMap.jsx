@@ -38,7 +38,7 @@ const SmartPopup = ({ charger, onReserve }) => {
     >
       <header className={styles.popupHeader}>
         <div className={styles.popupTitleGroup}>
-          <strong className={styles.popupTitle}>Station #{charger.id}</strong>
+          <strong className={styles.popupTitle}>{charger.locationName}</strong>
           <p className={styles.popupProvider}>{charger.providerName}</p>
         </div>
         <span className={`${styles.statusBadge} ${styles[charger.status]}`}>{charger.status}</span>
@@ -86,8 +86,8 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
       animate={{ opacity: 1 }}
     >
       <header className={styles.multiPopupHeader}>
-        <h3 className={styles.multiPopupTitle}>{chargers.length} Stations here</h3>
-        <p className={styles.popupAddress}>📍 {displayAddress}</p>
+        <h3 className={styles.multiPopupTitle}>{chargers[0]?.locationName || 'Multiple Stations'}</h3>
+        <p className={styles.popupAddress}>📍 {displayAddress} ({chargers.length} units)</p>
       </header>
       <ul className={styles.stationList}>
         {chargers.map((charger, idx) => (
@@ -99,7 +99,7 @@ const MultiStationPopup = ({ chargers, onReserve }) => {
             transition={{ delay: Math.min(idx * 0.03, 0.5) }}
           >
             <div className={styles.stationItemMain}>
-              <span className={styles.stationItemName}>#{charger.id} • {charger.providerName}</span>
+              <span className={styles.stationItemName}>{charger.locationName || `Station #${charger.id}`} • {charger.providerName}</span>
               <span className={`${styles.statusBadge} ${styles[charger.status]}`}>
                 {charger.status}
               </span>
@@ -148,13 +148,17 @@ const ClusterMarkers = ({ items, onReserve }) => {
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
 
   const clusters = useMemo(() => {
-    const valid = (items || []).filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+    const valid = (items || []).filter(p => {
+      const lat = parseFloat(p.latitude);
+      const lon = parseFloat(p.longitude);
+      return !isNaN(lat) && !isNaN(lon);
+    });
     
     // Group markers that are at the EXACT same location
     const exactGroups = {};
     valid.forEach(p => {
-      const lat = Number(p.latitude).toFixed(6);
-      const lon = Number(p.longitude).toFixed(6);
+      const lat = parseFloat(p.latitude).toFixed(6);
+      const lon = parseFloat(p.longitude).toFixed(6);
       const posKey = `${lat},${lon}`;
       if (!exactGroups[posKey]) exactGroups[posKey] = [];
       exactGroups[posKey].push(p);
@@ -178,8 +182,10 @@ const ClusterMarkers = ({ items, onReserve }) => {
     const res = zoom >= 13 ? 0.008 : (zoom >= 10 ? 0.05 : 0.2);
     const bucket = {};
     valid.forEach(p => {
-      const k = `${(Math.round(p.latitude/res)*res).toFixed(4)}-${(Math.round(p.longitude/res)*res).toFixed(4)}`;
-      if (!bucket[k]) bucket[k] = { lat: p.latitude, lon: p.longitude, points: [] };
+      const pLat = parseFloat(p.latitude);
+      const pLon = parseFloat(p.longitude);
+      const k = `${(Math.round(pLat/res)*res).toFixed(4)}-${(Math.round(pLon/res)*res).toFixed(4)}`;
+      if (!bucket[k]) bucket[k] = { lat: pLat, lon: pLon, points: [] };
       bucket[k].points.push(p);
     });
     return Object.values(bucket);

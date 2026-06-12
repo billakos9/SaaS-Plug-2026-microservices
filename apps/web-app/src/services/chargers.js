@@ -30,7 +30,7 @@ export function normalizeChargerSync(charger) {
  */
 export async function getChargers() {
   try {
-    const res = await http.get("/chargers");
+    const res = await http.get("/chargers/");
     const data = Array.isArray(res.data) ? res.data : [];
     return data.map(normalizeChargerSync);
   } catch (error) {

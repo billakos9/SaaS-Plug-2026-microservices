@@ -34,11 +34,12 @@ function buildFleetStats(chargers) {
 function buildReservationStats(stat) {
   const totalReservations    = stat?.totalReservations ?? 0;
   const totalDurationMinutes = stat?.totalDurationMinutes ?? 0;
+  const totalEnergyKwh       = Math.round((stat?.totalEnergyKwh ?? 0) * 100) / 100;
   const totalRevenue         = Math.round((stat?.totalRevenue ?? 0) * 100) / 100;
   const averageDurationMinutes = totalReservations > 0
     ? Math.round(totalDurationMinutes / totalReservations * 10) / 10
     : 0;
-  return { totalReservations, averageDurationMinutes, totalRevenue };
+  return { totalReservations, averageDurationMinutes, totalRevenue, totalEnergyKwh };
 }
 
 class AnalyticsService {

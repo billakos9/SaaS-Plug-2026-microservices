@@ -1,18 +1,24 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyReservations } from '../../services/reservations';
+import { getMyReservations, cancelReservation } from '../../services/reservations';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './ChargingPage.module.css';
 
-const SESSION_LIMIT_SECONDS = 30 * 60; // 30 minutes
+const DEFAULT_SESSION_LIMIT = 30 * 60; // Fallback
 
 /**
  * High-quality animated progress ring.
  */
-const ProgressRing = ({ elapsed, label }) => {
-  const progress = Math.min((elapsed / SESSION_LIMIT_SECONDS) * 100, 100);
-  const remaining = Math.max(SESSION_LIMIT_SECONDS - elapsed, 0);
-  const mins = Math.floor(remaining / 60);
+const ProgressRing = ({ elapsed, label, durationSeconds }) => {
+  const limit = durationSeconds || DEFAULT_SESSION_LIMIT;
+  const remaining = Math.max(limit - elapsed, 0);
+  const progress = (remaining / limit) * 100;
+
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className={styles.progressContainer}>
@@ -44,9 +50,9 @@ const ProgressRing = ({ elapsed, label }) => {
           stroke="url(#ringGradient)"
           strokeWidth="14"
           strokeDasharray="628.3"
-          initial={{ strokeDashoffset: 628.3 }}
+          initial={{ strokeDashoffset: 0 }}
           animate={{ strokeDashoffset: 628.3 - (628.3 * progress) / 100 }}
-          transition={{ duration: 1, ease: "linear" }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
           strokeLinecap="round"
           fill="transparent"
           r="100"
@@ -61,7 +67,7 @@ const ProgressRing = ({ elapsed, label }) => {
           animate={{ opacity: 1, y: 0 }}
           className={styles.progressNumber}
         >
-          {mins}m
+          {formatTimer(remaining)}
         </motion.span>
         <span className={styles.progressLabel}>{label}</span>
       </div>
@@ -81,31 +87,40 @@ const ChargingPage = ({ user }) => {
       return;
     }
 
-    const loadData = async () => {
-      setLoading(true);
+    const loadData = async (isSilent = false) => {
+      if (!isSilent) setLoading(true);
       try {
         const data = await getMyReservations(user.id);
         setSessions(data);
       } catch (err) {
         console.error('Failed to load charging data', err);
       } finally {
-        setLoading(false);
+        if (!isSilent) setLoading(false);
       }
     };
+
     loadData();
+    // Refresh every 10 seconds to pick up status changes from backend monitor
+    const interval = setInterval(() => loadData(true), 10000);
+    return () => clearInterval(interval);
   }, [user, navigate]);
 
-  const activeSession = useMemo(() => 
-    sessions.find(s => ['active', 'charging', 'reserved'].includes(s.status)), 
-  [sessions]);
+  const activeSession = useMemo(() => {
+    if (!sessions.length) return null;
+    // Sort by createdAt descending to get the newest first
+    const sorted = [...sessions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return sorted.find(s => ['active', 'charging', 'reserved'].includes(s.status));
+  }, [sessions]);
 
   useEffect(() => {
     if (activeSession?.createdAt) {
       const start = new Date(activeSession.createdAt).getTime();
-      setElapsed(Math.floor((Date.now() - start) / 1000));
-      const interval = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - start) / 1000));
-      }, 1000);
+      const updateElapsed = () => {
+        const delta = Math.floor((Date.now() - start) / 1000);
+        setElapsed(Math.max(0, delta));
+      };
+      updateElapsed();
+      const interval = setInterval(updateElapsed, 1000);
       return () => clearInterval(interval);
     }
   }, [activeSession]);
@@ -115,6 +130,21 @@ const ChargingPage = ({ user }) => {
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleCancel = async () => {
+    if (!activeSession) return;
+    if (!window.confirm('Are you sure you want to terminate this charging session?')) return;
+
+    try {
+      await cancelReservation(activeSession.id);
+      // Refresh the list to show the updated status
+      const data = await getMyReservations(user.id);
+      setSessions(data);
+    } catch (err) {
+      console.error('Failed to cancel reservation', err);
+      alert('Could not cancel the session. It may have already expired.');
+    }
   };
 
   if (!user) return null;
@@ -159,7 +189,11 @@ const ChargingPage = ({ user }) => {
             className={styles.activeGrid}
           >
             <div className={styles.visualPanel}>
-              <ProgressRing elapsed={elapsed} label="REMAINING" />
+              <ProgressRing 
+                elapsed={elapsed} 
+                label="REMAINING" 
+                durationSeconds={(activeSession.duration || 30) * 60} 
+              />
             </div>
 
             <div className={styles.dataPanel}>
@@ -175,6 +209,10 @@ const ChargingPage = ({ user }) => {
 
               <div className={styles.infoSection}>
                  <div className={styles.infoRow}>
+                   <span className={styles.infoLabel}>Station</span>
+                   <span className={styles.infoValue}>{activeSession.locationName || `Station #${activeSession.chargerId}`}</span>
+                 </div>
+                 <div className={styles.infoRow}>
                    <span className={styles.infoLabel}>Station ID</span>
                    <span className={styles.infoValue}>#{activeSession.chargerId}</span>
                  </div>
@@ -188,8 +226,8 @@ const ChargingPage = ({ user }) => {
                  </div>
               </div>
 
-              <button className={styles.terminateBtn}>
-                Terminate Session
+              <button className={styles.cancelBtn} onClick={handleCancel}>
+                Cancel Charge
               </button>
             </div>
           </motion.div>
@@ -230,7 +268,7 @@ const ChargingPage = ({ user }) => {
                 <div className={styles.historyInfo}>
                   <div className={styles.brandIndicator} style={{ background: s.providerName === 'bluePlug' ? '#2979ff' : s.providerName === 'redPlug' ? '#ff1744' : '#00c853' }} />
                   <div>
-                    <p className={styles.historyTitle}>Station {s.chargerId}</p>
+                    <p className={styles.historyTitle}>{s.locationName || `Station #${s.chargerId}`}</p>
                     <p className={styles.historyDate}>{new Date(s.createdAt).toLocaleString()}</p>
                   </div>
                 </div>

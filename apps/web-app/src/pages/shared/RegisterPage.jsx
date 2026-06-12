@@ -6,6 +6,8 @@ import styles from './RegisterPage.module.css';
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ const RegisterPage = () => {
       return;
     }
     try {
-      await register({ email, password, name: email.split('@')[0] || 'saasPlug User' });
+      await register({ email, password, name, phoneNumber });
       navigate('/login', {
         state: { message: 'Account created. Please log in.' },
       });
@@ -42,6 +44,28 @@ const RegisterPage = () => {
         </header>
 
         <form className={styles["auth-form"]} onSubmit={handleSubmit}>
+          <div className={styles["form-row"]}>
+            <label className={styles["auth-field"]}>
+              Full Name
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="John Doe"
+                required
+              />
+            </label>
+            <label className={styles["auth-field"]}>
+              Phone Number
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
+                placeholder="6900000000"
+              />
+            </label>
+          </div>
+
           <label className={styles["auth-field"]}>
             Email
             <input

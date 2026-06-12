@@ -141,15 +141,16 @@ export async function login(email, password) {
 /**
  * Registration flow.
  */
-export async function register({ email, password, username, role }) {
-  if (!email || !password) {
-    throw new Error("Email and password are required");
+export async function register({ email, password, name, phoneNumber, role }) {
+  if (!email || !password || !name) {
+    throw new Error("Email, password and name are required");
   }
 
   const res = await http.post("/auth/register", { 
     email, 
     password, 
-    username: username || email.split("@")[0],
+    name,
+    phoneNumber,
     role: role || "user"
   });
   
