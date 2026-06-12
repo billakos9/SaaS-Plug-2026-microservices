@@ -8,7 +8,7 @@ import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import AuthUserRepository from "../repositories/auth-user.repository.js";
 
 class AuthService {
-  static async register({ email, password, name, phoneNumber }) {
+  static async register({ email, password, name, phoneNumber, username, firstName, lastName, birthdate }) {
     if (
       typeof email !== "string" ||
       typeof password !== "string" ||
@@ -50,6 +50,10 @@ class AuthService {
       userId: authUser.userId,
       email: authUser.email,
       name: normalizedName,
+      username: username?.trim() || null,
+      firstName: firstName?.trim() || null,
+      lastName: lastName?.trim() || null,
+      birthdate: birthdate || null,
       phoneNumber: normalizedPhoneNumber,
       role: authUser.role,
     });

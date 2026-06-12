@@ -24,6 +24,14 @@ class AuthUserRepository {
     const authUser = await AuthUser.create(authUserData);
     return authUser.toObject();
   }
+
+  static async update(userId, updateData) {
+    return AuthUser.findOneAndUpdate(
+      { userId },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).lean();
+  }
 }
 
 export default AuthUserRepository;

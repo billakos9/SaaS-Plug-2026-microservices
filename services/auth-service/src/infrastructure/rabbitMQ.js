@@ -1,6 +1,7 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges } from "../constants/messaging.js";
+import { setupAuthConsumers } from "../events/rabbitmq.consumers.js";
 
 let connection = null;
 let channel = null;
@@ -53,7 +54,7 @@ export async function setupMessaging() {
     durable: true,
   });
 
-  // other possible data , queues
+  await setupAuthConsumers();
 }
 
 /**

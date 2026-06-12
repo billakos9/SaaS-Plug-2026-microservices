@@ -17,7 +17,7 @@ const AccountDashboard = ({ user }) => (
         <p><strong>Phone:</strong> {user?.phoneNumber ?? '—'}</p>
         <p><strong>First name:</strong> {user?.firstName ?? '—'}</p>
         <p><strong>Last name:</strong> {user?.lastName ?? '—'}</p>
-        <p><strong>Birthdate:</strong> {user?.birthdate ?? '—'}</p>
+        <p><strong>Birthdate:</strong> {user?.birthdate ? new Date(user.birthdate).toLocaleDateString() : '—'}</p>
       </div>
     </section>
 

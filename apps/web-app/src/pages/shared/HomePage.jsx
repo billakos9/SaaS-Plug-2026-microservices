@@ -28,9 +28,6 @@ const Home = ({ user, lastReservation, activeSession }) => {
                             <Link className= {`${styles.btn} ${styles.btnPrimary} ${styles.heroBtn}`} to="/map">
                                 Find the nearest location
                             </Link>
-                            <Link className= {`${styles.btn} ${styles.btnGhost} ${styles.heroBtn}`} to="/reserve">
-                                Reserve a slot
-                            </Link>
                         </div>
                     </div>
                 </div>

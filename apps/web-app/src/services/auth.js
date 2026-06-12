@@ -47,7 +47,7 @@ const buildUserFromToken = (token) => {
     id: payload.userId || payload.sub,
     email: payload.email || "",
     username: payload.username || "",
-    name: payload.username || (payload.email ? payload.email.split("@")[0] : "saasPlug User"),
+    name: payload.name || (payload.email ? payload.email.split("@")[0] : "saasPlug User"),
     role: role,
     isAdmin: role === "admin",
     isProvider: role === "provider",
@@ -68,10 +68,11 @@ const normalizeUserProfile = (data) => {
     id: data.userId || data.id,
     email: data.email || "",
     username: data.username || "",
-    name: data.username || (data.email ? data.email.split("@")[0] : "saasPlug User"),
+    name: data.name || (data.email ? data.email.split("@")[0] : "saasPlug User"),
     phoneNumber: data.phoneNumber || null,
     firstName: data.firstName || null,
     lastName: data.lastName || null,
+    birthdate: data.birthdate || null,
     role: role,
     isAdmin: role === "admin",
     isProvider: role === "provider",
@@ -141,7 +142,7 @@ export async function login(email, password) {
 /**
  * Registration flow.
  */
-export async function register({ email, password, name, phoneNumber, role }) {
+export async function register({ email, password, name, phoneNumber, username, firstName, lastName, birthdate, role }) {
   if (!email || !password || !name) {
     throw new Error("Email, password and name are required");
   }
@@ -151,10 +152,23 @@ export async function register({ email, password, name, phoneNumber, role }) {
     password, 
     name,
     phoneNumber,
+    username,
+    firstName,
+    lastName,
+    birthdate,
     role: role || "user"
   });
   
   return normalizeUserProfile(res.data) || res.data;
+}
+
+/**
+ * Updates the current user profile.
+ */
+export async function updateProfile(updateData) {
+  console.log("[Auth] Updating profile with:", updateData);
+  const res = await http.put("/users/me", updateData);
+  return normalizeUserProfile(res.data);
 }
 
 export function logout() {

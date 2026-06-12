@@ -28,7 +28,7 @@ const ReservationSchema = new mongoose.Schema(
     },
     duration: {
       type:    Number,
-      default: 60,
+      default: 30,
     },
     kwhPrice: {
       type:    Number,

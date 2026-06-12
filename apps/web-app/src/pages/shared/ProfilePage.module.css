@@ -120,6 +120,86 @@
   text-align: right;
 }
 
+.profileInput {
+  background: rgba(0, 191, 255, 0.08);
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: white;
+  font-family: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+  max-width: 200px;
+  outline: none;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.profileInput:focus {
+  border-color: var(--primary);
+  background: rgba(0, 191, 255, 0.15);
+  box-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
+}
+
+.profileForm {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.editBtn, .saveBtn, .cancelBtn {
+  border-radius: 14px;
+  padding: 10px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.editBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.editBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary);
+}
+
+.saveBtn {
+  background: linear-gradient(135deg, var(--primary), #00d2ff);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3);
+}
+
+.saveBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 191, 255, 0.5);
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a0a8b5;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
 .profileActions {
   margin-top: 25px;
   display: flex;

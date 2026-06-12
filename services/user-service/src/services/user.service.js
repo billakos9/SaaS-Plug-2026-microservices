@@ -1,5 +1,7 @@
 import { HttpCode } from "../constants/http-codes.js";
+import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AppError from "../errors/app-error.js";
+import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import UserRepository from "../repositories/user.repository.js";
 
 class UserService {
@@ -27,6 +29,33 @@ class UserService {
     return user;
   }
 
+  static async updateUser(userId, updateData) {
+    const existing = await UserRepository.getById(userId);
+    if (!existing) {
+      throw new AppError(HttpCode.NOT_FOUND, "User not found");
+    }
+
+    // Don't allow updating sensitive fields directly here if needed
+    delete updateData.userId;
+    delete updateData.role;
+
+    const updated = await UserRepository.update({
+      userId,
+      ...updateData
+    });
+
+    // Notify other services if critical fields changed
+    if (updateData.email || updateData.name) {
+      await publishEvent(Exchanges.USER, RoutingKeys.USER_UPDATED, {
+        userId,
+        email: updated.email,
+        name: updated.name,
+      });
+    }
+
+    return updated;
+  }
+
   static async deleteUser(userId) {
     const existing = await UserRepository.getById(userId);
 
@@ -51,7 +80,11 @@ class UserService {
     const user = await UserRepository.upsert({
       userId,
       email: userData.email,
+      username: userData.username ?? null,
       name: userData.name,
+      firstName: userData.firstName ?? null,
+      lastName: userData.lastName ?? null,
+      birthdate: userData.birthdate ?? null,
       phoneNumber: userData.phoneNumber ?? null,
       role: userData.role ?? "user",
     });
