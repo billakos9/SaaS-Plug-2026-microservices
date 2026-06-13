@@ -16,7 +16,7 @@ scripts:
     code: |
       const stamp = Date.now();
 
-      pm.environment.set("standalone_register_email", `standalone_${stamp}@ionos.app`);
+      pm.environment.set("standalone_register_email", `standalone_${stamp}@saasplug.app`);
       pm.environment.set("standalone_register_name", `Standalone User ${stamp}`);
       pm.environment.set("standalone_register_phone", "6900000998");
     language: text/javascript

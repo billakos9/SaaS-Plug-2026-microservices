@@ -23,6 +23,15 @@ export const getCurrentUser = async (req, res, next) => {
   }
 };
 
+export const updateCurrentUser = async (req, res, next) => {
+  try {
+    const user = await UserService.updateUser(req.user.userId, req.body);
+    res.json(toUserResponseDTO(user));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getUserById = async (req, res, next) => {
   try {
     const userId = toUserIdDTO(req.params.id);

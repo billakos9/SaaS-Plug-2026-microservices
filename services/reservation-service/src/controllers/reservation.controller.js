@@ -47,3 +47,17 @@ export const getReservationsByUser = async (req, res) => {
   const reservations = await ReservationService.getByUserId(userId);
   res.json(toReservationListDTO(reservations));
 };
+
+export const cancelReservation = async (req, res) => {
+  const reservationId = Number(req.params.id);
+
+  if (!Number.isFinite(reservationId)) {
+    throw new AppError(HttpCode.BAD_REQUEST, "reservationId must be a valid number");
+  }
+
+  const reservation = await ReservationService.getById(reservationId);
+  assertOwnReservation(reservation, req.user.userId);
+
+  const updated = await ReservationService.cancel(reservationId);
+  res.json(toReservationResponseDTO(updated));
+};

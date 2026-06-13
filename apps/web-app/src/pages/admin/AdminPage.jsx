@@ -1,154 +1,566 @@
-import { useState } from 'react';
-import { healthCheck, resetPoints, addPoints } from '../../services/admin';
-import './AdminPage.module.css';
+import { useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  getAllUsers, getAllAdmins, getAllProviders,
+  deleteUser, deleteAdminAccount, deleteProvider,
+  getProviderById, registerProvider, createAdminAccount, getSystemHealth,
+} from '../../services/admin';
+import { getAllInvoices, generateInvoice, markInvoicePaid } from '../../services/invoices';
+import styles from './AdminPage.module.css';
 
-const Admin = () => {
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
-  const [healthStatus, setHealthStatus] = useState(null);
-  const [pointsFile, setPointsFile] = useState(null);
+// ── Health Panel ──────────────────────────────────────────────────────────────
 
-  const handleHealthCheck = async () => {
-    setLoading(true);
-    setMessage(null);
-    setError(null);
+const HealthPanel = () => {
+  const [health, setHealth] = useState(null);
 
+  const poll = useCallback(async () => {
     try {
-      const data = await healthCheck();
-      setHealthStatus(data);
-      setMessage('Health check successful!');
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        'Health check failed'
-      );
-      setHealthStatus(null);
-    } finally {
-      setLoading(false);
+      const data = await getSystemHealth();
+      setHealth(data);
+    } catch {
+      setHealth(null);
     }
-  };
+  }, []);
 
-  const handleResetPoints = async () => {
-    if (!window.confirm('Are you sure you want to reset all points? This action cannot be undone.')) {
-      return;
-    }
+  useEffect(() => {
+    poll();
+    const id = setInterval(poll, 30000);
+    return () => clearInterval(id);
+  }, [poll]);
 
-    setLoading(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      const data = await resetPoints();
-      setMessage(`Points reset successfully! ${data.message || ''}`);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to reset points'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddPoints = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      if (!pointsFile) throw new Error('Select a CSV file first');
-      const data = await addPoints(pointsFile);
-      setMessage(`Points added successfully! ${data.message || ''}`);
-      setPointsFile(null);
-      e.target.reset();
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to add points'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!health) return <div className={styles.emptyState}><p>Polling system status...</p></div>;
 
   return (
-    <div>
-      <div className="card">
-        <h2>Admin Panel</h2>
-
-        <div style={{ marginBottom: '2rem' }}>
-          <h3>Health Check</h3>
-          <button
-            className="btn btn-primary"
-            onClick={handleHealthCheck}
-            disabled={loading}
-          >
-            {loading ? 'Checking...' : 'Run Health Check'}
-          </button>
-          {healthStatus && (
-            <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-              <pre>{JSON.stringify(healthStatus, null, 2)}</pre>
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginBottom: '2rem' }}>
-          <h3>Reset Points</h3>
-          <button
-            className="btn btn-danger"
-            onClick={handleResetPoints}
-            disabled={loading}
-          >
-            {loading ? 'Resetting...' : 'Reset All Points'}
-          </button>
-        </div>
-
-        <div>
-          <h3>Add Points (CSV upload)</h3>
-          <form onSubmit={handleAddPoints}>
-            <div className="form-group">
-              <label htmlFor="points-file">CSV file *</label>
-              <input
-                id="points-file"
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(e) => setPointsFile(e.target.files?.[0] || null)}
-                required
-              />
-              <p className="muted small">
-                Must match the CSV schema used by /admin/resetpoints (same columns as the seed file).
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading || !pointsFile}
-            >
-              {loading ? 'Adding...' : 'Add Points'}
-            </button>
-          </form>
-        </div>
-
-        {message && (
-          <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-            {message}
+    <div className={styles.healthGrid}>
+      {Object.entries(health).map(([name, status], i) => (
+        <motion.div
+          key={name}
+          layout
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: i * 0.05 }}
+          className={styles.healthCard}
+        >
+          <div className={`${styles.statusIndicator} ${
+            status === 'operational' ? styles.statusOnline :
+            status === 'degraded'    ? styles.statusChecking : styles.statusOffline
+          }`} />
+          <div className={styles.serviceInfo}>
+            <h3>{name}</h3>
+            <p>{status}</p>
           </div>
-        )}
-
-        {error && (
-          <div className="alert alert-error" style={{ marginTop: '1rem' }}>
-            {error}
-          </div>
-        )}
-      </div>
+        </motion.div>
+      ))}
     </div>
   );
 };
 
-export default Admin;
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+const Modal = ({ title, onClose, children }) => (
+  <div className={styles.modalOverlay} onClick={onClose}>
+    <motion.div
+      className={styles.modal}
+      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className={styles.modalHeader}>
+        <h2>{title}</h2>
+        <button className={styles.closeBtn} onClick={onClose}>✕</button>
+      </div>
+      {children}
+    </motion.div>
+  </div>
+);
+
+const Field = ({ label, value }) => (
+  <div className={styles.fieldRow}>
+    <span className={styles.fieldLabel}>{label}</span>
+    <span className={styles.fieldValue}>{value || '—'}</span>
+  </div>
+);
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+const AdminPage = () => {
+  const [users, setUsers]         = useState([]);
+  const [providers, setProviders] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [activeTab, setActiveTab] = useState('health');
+
+  const [inspectProvider, setInspectProvider] = useState(null);
+  const [inspectLoading, setInspectLoading]   = useState(false);
+
+  const [showCreateProvider, setShowCreateProvider] = useState(false);
+  const [showCreateAdmin, setShowCreateAdmin]       = useState(false);
+  const [formError, setFormError] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
+
+  // Provider form state
+  const [pForm, setPForm] = useState({ providerName: '', email: '', password: '', apiBaseUrl: '', apiKey: '' });
+  // Admin form state
+  const [aForm, setAForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+
+  // Invoice state
+  const [invoices, setInvoices]                 = useState([]);
+  const [invoicesLoaded, setInvoicesLoaded]     = useState(false);
+  const [invoicesLoading, setInvoicesLoading]   = useState(false);
+  const [showGenerateInvoice, setShowGenerateInvoice] = useState(false);
+  const [genForm, setGenForm]                   = useState({ providerName: '', period: '' });
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [regularUsers, adminAccounts, p] = await Promise.all([
+        getAllUsers(),
+        getAllAdmins(),
+        getAllProviders(),
+      ]);
+
+      // Normalize admin accounts to the same shape as user accounts
+      const normalizedAdmins = adminAccounts.map(a => ({
+        userId:   `admin-${a.adminId}`,
+        _adminId: a.adminId,
+        username: `${a.firstName} ${a.lastName}`,
+        email:    a.email,
+        role:     'admin',
+        isAdmin:  true,
+      }));
+
+      setUsers([...regularUsers, ...normalizedAdmins]);
+      setProviders(p);
+    } catch (err) {
+      console.error('Failed to sync management data', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── User delete ─────────────────────────────────────────────────────────────
+  const handleDeleteUser = async (u) => {
+    if (!window.confirm(`Terminate account "${u.username}"?`)) return;
+    try {
+      if (u.isAdmin) {
+        await deleteAdminAccount(u._adminId);
+      } else {
+        await deleteUser(u.userId);
+      }
+      setUsers(prev => prev.filter(x => x.userId !== u.userId));
+    } catch (err) {
+      alert('Action failed: ' + err.message);
+    }
+  };
+
+  // ── Provider delete ─────────────────────────────────────────────────────────
+  const handleDeleteProvider = async (id) => {
+    if (!window.confirm(`Remove provider #${id} from the network?`)) return;
+    try {
+      await deleteProvider(id);
+      setProviders(prev => prev.filter(p => p.providerId !== id));
+    } catch (err) {
+      alert('Action failed: ' + err.message);
+    }
+  };
+
+  // ── Provider inspect ────────────────────────────────────────────────────────
+  const handleInspect = async (providerId) => {
+    setInspectLoading(true);
+    setInspectProvider({ loading: true });
+    try {
+      const data = await getProviderById(providerId);
+      setInspectProvider(data);
+    } catch {
+      setInspectProvider(null);
+    } finally {
+      setInspectLoading(false);
+    }
+  };
+
+  // ── Create provider ─────────────────────────────────────────────────────────
+  const handleCreateProvider = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const created = await registerProvider(pForm);
+      setProviders(prev => [...prev, { providerId: created.providerId, providerName: created.providerName, apiBaseUrl: pForm.apiBaseUrl }]);
+      setPForm({ providerName: '', email: '', password: '', apiBaseUrl: '', apiKey: '' });
+      setShowCreateProvider(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to register provider');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // ── Create admin ────────────────────────────────────────────────────────────
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const created = await createAdminAccount(aForm);
+      setUsers(prev => [...prev, {
+        userId:   `admin-${created.adminId}`,
+        _adminId: created.adminId,
+        username: `${created.firstName} ${created.lastName}`,
+        email:    created.email,
+        role:     'admin',
+        isAdmin:  true,
+      }]);
+      setAForm({ firstName: '', lastName: '', email: '', password: '' });
+      setShowCreateAdmin(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to create admin account');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // ── Load invoices once when tab is first activated ────────────────────────
+  useEffect(() => {
+    if (activeTab !== 'invoices' || invoicesLoaded) return;
+    setInvoicesLoading(true);
+    getAllInvoices()
+      .then(data => { setInvoices(data); setInvoicesLoaded(true); })
+      .catch(console.error)
+      .finally(() => setInvoicesLoading(false));
+  }, [activeTab, invoicesLoaded]);
+
+  // ── Generate invoice ────────────────────────────────────────────────────────
+  const handleGenerateInvoice = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const created = await generateInvoice(genForm);
+      setInvoices(prev => [created, ...prev]);
+      setInvoicesLoaded(true);
+      setGenForm({ providerName: '', period: '' });
+      setShowGenerateInvoice(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to generate invoice');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // ── Mark invoice paid ───────────────────────────────────────────────────────
+  const handleMarkPaid = async (invoiceId) => {
+    if (!window.confirm(`Mark invoice #${invoiceId} as paid? This cannot be undone.`)) return;
+    try {
+      const updated = await markInvoicePaid(invoiceId);
+      setInvoices(prev => prev.map(inv => inv.invoiceId === invoiceId ? updated : inv));
+    } catch (err) {
+      alert('Failed to mark as paid: ' + err.message);
+    }
+  };
+
+  const tabs = [
+    { id: 'health',    label: 'System Health' },
+    { id: 'users',     label: 'User Registry' },
+    { id: 'providers', label: 'Provider Networks' },
+    { id: 'invoices',  label: 'Invoices' },
+  ];
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={styles.eyebrow}>
+          System Administrator
+        </motion.span>
+        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={styles.title}>
+          saasPlug Command Center
+        </motion.h1>
+      </header>
+
+      <nav className={styles.tabs}>
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`${styles.tabBtn} ${activeTab === tab.id ? styles.activeTab : ''}`}>
+            {tab.label}
+            {activeTab === tab.id && <motion.div layoutId="activeTab" className={styles.activeIndicator} />}
+          </button>
+        ))}
+      </nav>
+
+      <main className={styles.content}>
+        <AnimatePresence mode="wait">
+
+          {activeTab === 'health' && (
+            <motion.div key="health" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <HealthPanel />
+            </motion.div>
+          )}
+
+          {activeTab === 'users' && (
+            <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className={styles.tableActions}>
+                <button className={styles.createBtn} onClick={() => { setFormError(''); setShowCreateAdmin(true); }}>
+                  + New Admin Account
+                </button>
+              </div>
+              <div className={styles.managementCard}>
+                {loading ? (
+                  <div className={styles.emptyState}><p>Synchronizing records...</p></div>
+                ) : (
+                  <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr><th>Identity</th><th>Status</th><th>Role</th><th>Actions</th></tr>
+                      </thead>
+                      <tbody>
+                        {users.length === 0 ? (
+                          <tr><td colSpan={4} className={styles.emptyRow}>No user records found.</td></tr>
+                        ) : users.map(u => (
+                          <tr key={u.userId}>
+                            <td>
+                              <div className={styles.userCell}>
+                                <div className={styles.avatar}>{u.username?.[0]?.toUpperCase() || 'U'}</div>
+                                <div>
+                                  <div className={styles.cellName}>{u.username || 'Anonymous'}</div>
+                                  <div className={styles.email}>{u.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td><span className={styles.badge}>Active</span></td>
+                            <td><span className={`${styles.badge} ${u.role === 'admin' ? styles.adminBadge : ''}`}>{u.role}</span></td>
+                            <td>
+                              <div className={styles.actions}>
+                                <button onClick={() => handleDeleteUser(u)} className={styles.deleteBtn}>Terminate</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'providers' && (
+            <motion.div key="providers" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className={styles.tableActions}>
+                <button className={styles.createBtn} onClick={() => { setFormError(''); setShowCreateProvider(true); }}>
+                  + Register Provider
+                </button>
+              </div>
+              <div className={styles.managementCard}>
+                {loading ? (
+                  <div className={styles.emptyState}><p>Synchronizing records...</p></div>
+                ) : (
+                  <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr><th>Identity</th><th>Status</th><th>Role</th><th>Actions</th></tr>
+                      </thead>
+                      <tbody>
+                        {providers.length === 0 ? (
+                          <tr><td colSpan={4} className={styles.emptyRow}>No provider records found.</td></tr>
+                        ) : providers.map(p => (
+                          <tr key={p.providerId}>
+                            <td>
+                              <div className={styles.userCell}>
+                                <div className={`${styles.avatar} ${styles.providerAvatar}`}>{p.providerName?.[0]?.toUpperCase() || 'P'}</div>
+                                <div>
+                                  <div className={styles.cellName}>{p.providerName}</div>
+                                  <div className={styles.email}>{p.apiBaseUrl}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td><span className={styles.badge}>Operational</span></td>
+                            <td><span className={`${styles.badge} ${styles.providerBadge}`}>Provider</span></td>
+                            <td>
+                              <div className={styles.actions}>
+                                <button className={styles.inspectBtn} onClick={() => handleInspect(p.providerId)}>Inspect</button>
+                                <button className={styles.deleteBtn} onClick={() => handleDeleteProvider(p.providerId)}>Remove</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'invoices' && (
+            <motion.div key="invoices" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className={styles.tableActions}>
+                <button className={styles.createBtn} onClick={() => { setFormError(''); setShowGenerateInvoice(true); }}>
+                  + Generate Invoice
+                </button>
+              </div>
+              <div className={styles.managementCard}>
+                {invoicesLoading ? (
+                  <div className={styles.emptyState}><p>Loading invoices...</p></div>
+                ) : (
+                  <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>#</th><th>Provider</th><th>Period</th><th>Sessions</th>
+                          <th>Revenue (€)</th><th>Commission (€)</th><th>Session Fees (€)</th>
+                          <th>Total Due (€)</th><th>Status</th><th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.length === 0 ? (
+                          <tr><td colSpan={10} className={styles.emptyRow}>No invoices generated yet.</td></tr>
+                        ) : invoices.map(inv => (
+                          <tr key={inv.invoiceId}>
+                            <td>{inv.invoiceId}</td>
+                            <td>{inv.providerName}</td>
+                            <td>{inv.period}</td>
+                            <td>{inv.totalSessions}</td>
+                            <td>{inv.totalRevenue?.toFixed(2)}</td>
+                            <td>{inv.commissionAmount?.toFixed(2)}</td>
+                            <td>{inv.sessionFee?.toFixed(2)}</td>
+                            <td><strong>{inv.totalDue?.toFixed(2)}</strong></td>
+                            <td>
+                              <span className={inv.status === 'paid' ? styles.paidBadge : styles.pendingBadge}>
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td>
+                              {inv.status === 'pending' && (
+                                <button className={styles.inspectBtn} onClick={() => handleMarkPaid(inv.invoiceId)}>
+                                  Mark Paid
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </main>
+
+      {/* ── Inspect Modal ── */}
+      <AnimatePresence>
+        {inspectProvider && (
+          <Modal title="Provider Details" onClose={() => setInspectProvider(null)}>
+            {inspectLoading || inspectProvider.loading ? (
+              <div className={styles.emptyState}><p>Loading...</p></div>
+            ) : (
+              <div className={styles.fieldList}>
+                <Field label="Provider ID"   value={inspectProvider.providerId} />
+                <Field label="Name"          value={inspectProvider.providerName} />
+                <Field label="Email"         value={inspectProvider.email} />
+                <Field label="API Base URL"  value={inspectProvider.apiBaseUrl} />
+                <Field label="API Key"       value="••••••••••••••••" />
+              </div>
+            )}
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ── Create Provider Modal ── */}
+      <AnimatePresence>
+        {showCreateProvider && (
+          <Modal title="Register New Provider" onClose={() => setShowCreateProvider(false)}>
+            <form onSubmit={handleCreateProvider} className={styles.form}>
+              {formError && <p className={styles.formError}>{formError}</p>}
+              <label className={styles.formLabel}>Provider Name
+                <input className={styles.formInput} value={pForm.providerName} onChange={e => setPForm(f => ({ ...f, providerName: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>Email
+                <input className={styles.formInput} type="email" value={pForm.email} onChange={e => setPForm(f => ({ ...f, email: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>Password
+                <input className={styles.formInput} type="password" value={pForm.password} onChange={e => setPForm(f => ({ ...f, password: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>API Base URL
+                <input className={styles.formInput} placeholder="http://provider-adapter:3000" value={pForm.apiBaseUrl} onChange={e => setPForm(f => ({ ...f, apiBaseUrl: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>API Key
+                <input className={styles.formInput} value={pForm.apiKey} onChange={e => setPForm(f => ({ ...f, apiKey: e.target.value }))} required />
+              </label>
+              <button className={styles.submitBtn} type="submit" disabled={formLoading}>
+                {formLoading ? 'Registering...' : 'Register Provider'}
+              </button>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ── Create Admin Modal ── */}
+      <AnimatePresence>
+        {showCreateAdmin && (
+          <Modal title="Create Admin Account" onClose={() => setShowCreateAdmin(false)}>
+            <form onSubmit={handleCreateAdmin} className={styles.form}>
+              {formError && <p className={styles.formError}>{formError}</p>}
+              <label className={styles.formLabel}>First Name
+                <input className={styles.formInput} value={aForm.firstName} onChange={e => setAForm(f => ({ ...f, firstName: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>Last Name
+                <input className={styles.formInput} value={aForm.lastName} onChange={e => setAForm(f => ({ ...f, lastName: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>Email
+                <input className={styles.formInput} type="email" value={aForm.email} onChange={e => setAForm(f => ({ ...f, email: e.target.value }))} required />
+              </label>
+              <label className={styles.formLabel}>Password
+                <input className={styles.formInput} type="password" value={aForm.password} onChange={e => setAForm(f => ({ ...f, password: e.target.value }))} required />
+              </label>
+              <button className={styles.submitBtn} type="submit" disabled={formLoading}>
+                {formLoading ? 'Creating...' : 'Create Account'}
+              </button>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ── Generate Invoice Modal ── */}
+      <AnimatePresence>
+        {showGenerateInvoice && (
+          <Modal title="Generate Invoice" onClose={() => setShowGenerateInvoice(false)}>
+            <form onSubmit={handleGenerateInvoice} className={styles.form}>
+              {formError && <p className={styles.formError}>{formError}</p>}
+              <label className={styles.formLabel}>Provider Name
+                <input
+                  className={styles.formInput}
+                  list="provider-names"
+                  value={genForm.providerName}
+                  onChange={e => setGenForm(f => ({ ...f, providerName: e.target.value }))}
+                  required
+                />
+                <datalist id="provider-names">
+                  {providers.map(p => <option key={p.providerId} value={p.providerName} />)}
+                </datalist>
+              </label>
+              <label className={styles.formLabel}>Period (YYYY-MM)
+                <input
+                  className={styles.formInput}
+                  type="month"
+                  value={genForm.period}
+                  onChange={e => setGenForm(f => ({ ...f, period: e.target.value }))}
+                  required
+                />
+              </label>
+              <button className={styles.submitBtn} type="submit" disabled={formLoading}>
+                {formLoading ? 'Generating...' : 'Generate Invoice'}
+              </button>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
+};
+
+export default AdminPage;

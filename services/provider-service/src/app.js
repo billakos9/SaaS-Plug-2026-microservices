@@ -17,6 +17,8 @@ import { startProviderQueueConsumer } from "./events/rabbitmq.consumers.js";
 const app = express();
 app.use(express.json());
 
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
 app.use("/provider", providerRouter);
 app.use(unmatchedRouteMiddleware);
 

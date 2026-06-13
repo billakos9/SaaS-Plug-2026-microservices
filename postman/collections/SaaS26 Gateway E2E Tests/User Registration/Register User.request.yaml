@@ -16,7 +16,7 @@ scripts:
     code: |
       const stamp = Date.now();
 
-      pm.environment.set("gateway_register_email", `gateway_${stamp}@ionos.app`);
+      pm.environment.set("gateway_register_email", `gateway_${stamp}@saasplug.app`);
       pm.environment.set("gateway_register_name", `Gateway User ${stamp}`);
       pm.environment.set("gateway_register_phone", "6900000888");
       pm.environment.set("test_password", pm.environment.get("test_password") || "123456");

@@ -8,7 +8,28 @@ import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import AuthUserRepository from "../repositories/auth-user.repository.js";
 
 class AuthService {
-  static async register({ email, password, name, phoneNumber }) {
+  static async registerProvider({ email, password, providerName }) {
+    if (!email || !password || !providerName) {
+      throw new AppError(HttpCode.BAD_REQUEST, "Email, password and providerName are required");
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await AuthUserRepository.findByEmail(normalizedEmail);
+    if (existing) {
+      throw new AppError(HttpCode.CONFLICT, "Email already exists");
+    }
+    const userId = await AuthUserRepository.getNextId();
+    const passwordHash = await bcrypt.hash(password, 10);
+    const authUser = await AuthUserRepository.create({
+      userId,
+      email: normalizedEmail,
+      passwordHash,
+      role: "provider",
+      providerName,
+    });
+    return { userId: authUser.userId, email: authUser.email, role: authUser.role, providerName: authUser.providerName };
+  }
+
+  static async register({ email, password, name, phoneNumber, username, firstName, lastName, birthdate }) {
     if (
       typeof email !== "string" ||
       typeof password !== "string" ||
@@ -50,6 +71,10 @@ class AuthService {
       userId: authUser.userId,
       email: authUser.email,
       name: normalizedName,
+      username: username?.trim() || null,
+      firstName: firstName?.trim() || null,
+      lastName: lastName?.trim() || null,
+      birthdate: birthdate || null,
       phoneNumber: normalizedPhoneNumber,
       role: authUser.role,
     });

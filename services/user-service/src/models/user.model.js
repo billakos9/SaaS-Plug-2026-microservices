@@ -14,10 +14,30 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
     name: {
       type: String,
       required: true,
       trim: true,
+    },
+    firstName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    birthdate: {
+      type: Date,
+      default: null,
     },
     phoneNumber: {
       type: String,

@@ -1,2 +1,228 @@
-/* Component-specific styles if needed */
+.reserveContainer {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
 
+.pageHeader {
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.85rem;
+}
+
+.pageHeader h1 {
+  font-size: 2.5rem;
+  margin: 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+
+.muted {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1.5;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.reserveCard {
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+.reserveForm {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.formGroup label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.input, .select {
+  background: rgba(0, 167, 181, 0.05);
+  border: 2px solid var(--outline);
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.stationDisplay {
+  background: rgba(0, 167, 181, 0.08);
+  border: 2px solid var(--primary);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stationName {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.stationMeta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.stationAddress {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.statusBadge {
+  background: #00c853;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.noSelection {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.noSelection h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.noSelection p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.input:focus, .select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(41, 121, 255, 0.1);
+}
+
+.durationControl {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 200px;
+}
+
+.unit {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.formHelp {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.submitBtn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 25px rgba(41, 121, 255, 0.4);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelLink {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.cancelLink:hover {
+  color: var(--text-primary);
+}
+
+.successAlert {
+  background: rgba(0, 200, 83, 0.1);
+  color: #00c853;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 200, 83, 0.2);
+  font-weight: 500;
+  text-align: center;
+}
+
+.errorAlert {
+  background: rgba(255, 23, 68, 0.1);
+  color: #ff1744;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 23, 68, 0.2);
+  font-weight: 500;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .reserveCard {
+    padding: 1.5rem;
+  }
+}

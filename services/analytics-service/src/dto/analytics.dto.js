@@ -9,5 +9,6 @@ export function toAnalyticsReportDTO(data) {
     totalReservations:      data.totalReservations,
     averageDurationMinutes: data.averageDurationMinutes,
     totalRevenue:           data.totalRevenue,
+    totalEnergyKwh:         data.totalEnergyKwh,
   };
 }

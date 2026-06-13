@@ -7,5 +7,7 @@ export const MessageQueues = Object.freeze({
 });
 
 export const RoutingKeys = Object.freeze({
-  RESERVATION_CREATED: "reservation.created",
+  RESERVATION_CREATED:   "reservation.created",
+  RESERVATION_CANCELLED: "reservation.cancelled",
+  RESERVATION_COMPLETED: "reservation.completed",
 });

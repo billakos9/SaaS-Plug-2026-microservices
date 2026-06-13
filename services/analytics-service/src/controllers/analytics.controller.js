@@ -25,3 +25,13 @@ export async function getAllProvidersReport(req, res, next) {
     next(err);
   }
 }
+
+export async function getGlobalReport(req, res, next) {
+  try {
+    const period = req.query.period ?? new Date().toISOString().slice(0, 7);
+    const result = await AnalyticsService.getGlobalReport(period);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}

@@ -1,92 +1,84 @@
 import http from "./http";
 
-// patern matching
-const stripAccents = (text) => {
-  if (!text) return "";
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-};
+/**
+ * Normalizes charger data.
+ */
+export function normalizeChargerSync(charger) {
+  if (!charger) return null;
 
-// get charger object from backend (lat long?)
-// convert to frontend show
-const normalizeCharger = (charger) => {
-  const lat = charger.lat ?? charger.latitude ?? null;
-  const lon = charger.lon ?? charger.longitude ?? null;
-
-  const addressParts = [
-    charger.name,
-    charger.locality,
-    charger.road,
-    charger.location,
-  ].filter(Boolean);
+  let lat = parseFloat(charger.latitude);
+  let lon = parseFloat(charger.longitude);
+  let address = charger.address || "Unknown";
 
   return {
-    id: String(charger.pointid ?? charger.pointId ?? charger.id ?? ""),
-    provider: charger.providerName || charger.provider || "Unknown provider",
-    status: charger.status || "unknown",
-    latitude: lat ? Number(lat) : null,
-    longitude: lon ? Number(lon) : null,
-    capacityKw: charger.cap ?? charger.capacity ?? charger.capacityKw ?? null,
-    power: charger.cap ?? charger.capacity ?? charger.capacityKw ?? null,
-    location:
-      addressParts.join(" • ") || (lat && lon ? `${lat}, ${lon}` : null),
-    reservationEndTime:
-      charger.reservationendtime ?? charger.reservationEndTime ?? null,
-    price: charger.kwhprice ?? charger.price ?? null,
-    raw: charger,
+    id: charger.id,
+    providerName: charger.ProviderName || charger.providerName || "Premium Provider",
+    longitude: lon,
+    latitude: lat,
+    status: charger.status || "available",
+    capacityKw: charger.cap || charger.capacityKw || 22,
+    kwhPrice: charger.kwhPrice || 0.55,
+    address: address,
+    locationName: charger.locationName || `Station ${charger.id}`,
+    connectionType: charger.connectionType || "Type 2",
+    raw: charger
   };
-};
+}
 
-// filter by status
+/**
+ * Fetches all chargers.
+ */
+export async function getChargers() {
+  try {
+    const res = await http.get("/chargers/");
+    const data = Array.isArray(res.data) ? res.data : [];
+    return data.map(normalizeChargerSync);
+  } catch (error) {
+    console.error("Failed to fetch chargers:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetches chargers by their current status.
+ */
 export async function getChargersByStatus(status) {
-  const res = await http.get("/chargers/points", {
-    params: {
-      ...(status ? { status } : {}),
-      format: "json",
-    },
-  });
-
-  const payload = res.data?.points || res.data?.chargers || res.data;
-  const data = Array.isArray(payload) ? payload : [];
-  return data.map(normalizeCharger);
+  try {
+    const res = await http.get(`/chargers/status/${status}`);
+    const data = Array.isArray(res.data) ? res.data : [];
+    return data.map(normalizeChargerSync);
+  } catch (error) {
+    console.error(`Failed to fetch chargers by status ${status}:`, error);
+    return [];
+  }
 }
 
-// filter by chargerID
-export async function getChargerById(chargerId) {
-  const res = await http.get(`/chargers/point/${chargerId}`, {
-    params: { format: "json" },
-  });
-
-  const payload = res.data?.point || res.data?.charger || res.data;
-  return normalizeCharger(payload ?? {});
+/**
+ * Fetches chargers belonging to a specific provider.
+ */
+export async function getChargersByProvider(providerId) {
+  try {
+    const res = await http.get(`/chargers/provider/${providerId}`);
+    const data = Array.isArray(res.data) ? res.data : [];
+    return data.map(normalizeChargerSync);
+  } catch (error) {
+    console.error(`Failed to fetch chargers for provider ${providerId}:`, error);
+    return [];
+  }
 }
 
-
-export async function getChargers(filters = {}) {
-  const chargers = await getChargersByStatus(filters.status);
-  const query = filters.query?.trim();
-
-  if (!query) return chargers;
-
-  const normalizedQuery = stripAccents(query);
-  
-  // client side filtering
-  return chargers.filter((charger) => {
-    const haystack = [
-      charger.id,
-      charger.provider,
-      charger.location,
-      charger.raw?.name,
-      charger.raw?.locality,
-      charger.raw?.road,
-    ]
-      .filter(Boolean)
-      .map((value) => stripAccents(String(value)));
-
-    return haystack.some((value) => value.includes(normalizedQuery));
-  });
+export async function getChargerById(id) {
+  try {
+    const res = await http.get(`/chargers/id/${id}`);
+    if (!res.data) return null;
+    return normalizeChargerSync(res.data);
+  } catch (error) {
+    console.error(`Failed to fetch charger ${id}:`, error);
+    return null;
+  }
 }
 
-export { normalizeCharger };
+// Backward compatibility
+export const normalizeCharger = async (charger) => {
+    return normalizeChargerSync(charger);
+};

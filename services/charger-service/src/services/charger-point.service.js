@@ -2,6 +2,7 @@ import { validChargerPointStatus } from "../constants/charger-status.js";
 import { HttpCode } from "../constants/http-codes.js";
 import AppError from "../errors/app-error.js";
 import ChargerPointRepository from "../repositories/charger-point.repository.js";
+import { enrichLocationData } from "../utils/geocoding.js";
 
 class ChargerPointService {
   /**
@@ -49,26 +50,36 @@ class ChargerPointService {
    */
   static async create(chargerData) {
     validChargerPointStatus(chargerData.status);
-    if (chargerData.id) {
-      const existing = await ChargerPointRepository.getById(chargerData.id);
+    const enrichedData = await enrichLocationData(chargerData);
+    if (enrichedData.id) {
+      const existing = await ChargerPointRepository.getById(enrichedData.id);
       if (existing) {
-        return ChargerPointRepository.update(chargerData);
+        return ChargerPointRepository.update(enrichedData);
       }
     }
-    return ChargerPointRepository.create(chargerData);
+    return ChargerPointRepository.create(enrichedData);
   }
 
   /**
    * Updates a charger point only if it exists
    *
    * @param {Object} chargerPointData - ChargerPoint DTO
+   * @param {boolean} skipEnrichment - If true, skips expensive geocoding logic (useful for status-only updates)
    * @returns {Promise<Object>} Updated charger point
    * @throws {AppError} If charger point does not exist
    */
-  static async update(chargerPointData) {
+  static async update(chargerPointData, skipEnrichment = false) {
     validChargerPointStatus(chargerPointData.status);
+    
+    let dataToUpdate = chargerPointData;
+    
+    // Only enrich if not explicitly skipped AND we have location hints
+    const hasLocationHints = chargerPointData.address || chargerPointData.latitude || chargerPointData.longitude;
+    if (!skipEnrichment && hasLocationHints) {
+      dataToUpdate = await enrichLocationData(chargerPointData);
+    }
 
-    const updated = await ChargerPointRepository.update(chargerPointData);
+    const updated = await ChargerPointRepository.update(dataToUpdate);
 
     if (!updated) {
       throw new AppError(HttpCode.NOT_FOUND, "Charger point not found");

@@ -6,6 +6,7 @@ const AnalyticStatSchema = new mongoose.Schema(
     period:               { type: String, required: true }, // "YYYY-MM"
     totalReservations:    { type: Number, default: 0 },
     totalDurationMinutes: { type: Number, default: 0 },
+    totalEnergyKwh:       { type: Number, default: 0 },
     totalRevenue:         { type: Number, default: 0 },
   },
   { timestamps: true },

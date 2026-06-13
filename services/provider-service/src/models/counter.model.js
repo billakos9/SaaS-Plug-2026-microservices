@@ -6,8 +6,8 @@ import mongoose from "mongoose";
  * the latest issued value so repository code can obtain monotonically increasing ids.
  */
 const CounterSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  value: { type: Number, default: 0 },
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 },
 });
 
 /**

@@ -46,6 +46,25 @@ class ReservationRepository {
     return Reservation.find({ userId }).lean();
   }
 
+  static async getActiveByUserId(userId) {
+    return Reservation.findOne({ userId, status: "active" }).lean();
+  }
+
+  static async getActiveByChargerId(chargerId) {
+    return Reservation.findOne({ chargerId, status: "active" }).lean();
+  }
+
+  static async getCompletedByProviderAndPeriod(providerName, period) {
+    const [year, month] = period.split("-").map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end   = new Date(year, month, 1);
+    return Reservation.find({
+      providerName,
+      status: { $in: ["completed", "cancelled"] },
+      createdAt: { $gte: start, $lt: end },
+    }).sort({ createdAt: 1 }).lean();
+  }
+
   /**
    * Persists a new reservation document to the database.
    *
@@ -57,16 +76,16 @@ class ReservationRepository {
   }
 
   /**
-   * Updates the status field of an existing reservation and returns the updated document.
+   * Updates fields of an existing reservation and returns the updated document.
    *
    * @param {number} reservationId - The unique numeric reservation identifier
-   * @param {string} status - The new status value (e.g. "active" or "cancelled")
+   * @param {Object} fields - The fields to update
    * @returns {Promise<Object|null>} The updated lean reservation document, or null if not found
    */
-  static async updateStatus(reservationId, status) {
+  static async update(reservationId, fields) {
     return Reservation.findOneAndUpdate(
       { reservationId },
-      { $set: { status } },
+      { $set: fields },
       { new: true },
     ).lean();
   }

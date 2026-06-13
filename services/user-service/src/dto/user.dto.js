@@ -7,7 +7,11 @@ export function toUserResponseDTO(user) {
   return {
     userId: user.userId,
     email: user.email,
+    username: user.username ?? null,
     name: user.name,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    birthdate: user.birthdate ?? null,
     phoneNumber: user.phoneNumber ?? null,
     role: user.role,
     createdAt: user.createdAt,

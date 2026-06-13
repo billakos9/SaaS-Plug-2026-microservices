@@ -53,10 +53,7 @@ export async function getChannelWithRetry(retries = 5) {
  */
 export async function setupMessaging() {
   const ch = await getChannelWithRetry();
-
   await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.RESERVATION, { durable: true });
-  await ch.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, "reservation.*");
 }
 
 /**

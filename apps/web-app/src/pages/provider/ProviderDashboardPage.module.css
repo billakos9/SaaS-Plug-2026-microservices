@@ -47,3 +47,301 @@
   color: #991b1b;
   margin-top: 1rem;
 }
+
+/* ── Heading ── */
+.heading {
+  margin: 0.25rem 0 1.5rem;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--outline);
+  padding-bottom: 1px;
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tabBtn:hover { color: var(--text); }
+
+.activeTab { color: var(--primary); }
+
+.activeIndicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary);
+}
+
+/* ── Stats grid ── */
+.bigNumber {
+  margin: 0.5rem 0 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--secondary);
+}
+
+/* ── Table wrapper ── */
+.tableWrap {
+  margin-top: 1.5rem;
+  border: 1px solid var(--outline);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tableHeading {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--outline);
+  background: rgba(238, 243, 251, 0.5);
+}
+
+/* ── Charger table ── */
+.chargerTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.chargerTable th {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(238, 243, 251, 0.5);
+  border-bottom: 1px solid var(--outline);
+}
+
+.chargerTable td {
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--outline);
+}
+
+.chargerTable tr:last-child td {
+  border-bottom: none;
+}
+
+.badgeSuccess {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00a855;
+}
+
+.badgeWarning {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 193, 7, 0.15);
+  color: #d97706;
+}
+
+.emptyRow {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Invoice table ── */
+.invoiceTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoiceTable th,
+.invoiceTable td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--outline);
+  font-size: 0.9rem;
+}
+
+.invoiceTable th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(238, 243, 251, 0.5);
+}
+
+.invoiceTable tr:last-child td {
+  border-bottom: none;
+}
+
+.paidBadge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 230, 118, 0.15);
+  color: #00a855;
+}
+
+.pendingBadge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 193, 7, 0.15);
+  color: #d97706;
+}
+
+.rowActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.viewBtn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--outline);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.viewBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.payBtn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--primary);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.payBtn:hover:not(:disabled) { opacity: 0.8; }
+.payBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Detail modal ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 31, 47, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--card);
+  border: 1px solid var(--outline);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 860px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(15, 31, 47, 0.18);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--outline);
+}
+
+.modalSubtitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin: 0 0 0.25rem;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--secondary);
+}
+
+.closeBtn {
+  background: transparent;
+  border: 1px solid var(--outline);
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  background: var(--outline);
+  color: var(--secondary);
+}
+
+/* ── Invoice summary ── */
+.invoiceSummary {
+  margin-top: 1.5rem;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--outline);
+  color: var(--muted);
+}
+
+.summaryRow:last-child { border-bottom: none; }
+
+.summaryTotal {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--secondary);
+  background: rgba(238, 243, 251, 0.5);
+}

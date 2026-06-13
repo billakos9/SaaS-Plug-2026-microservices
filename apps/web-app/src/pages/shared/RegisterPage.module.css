@@ -27,8 +27,8 @@
 
 .auth-card {
   position: relative;
-  width: min(450px, 90%);
-  padding: 2.5rem;
+  width: min(550px, 95%);
+  padding: 2.5rem 3rem;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(0, 191, 255, 0.2);
@@ -58,6 +58,11 @@
 
 .auth-form {
   display: grid;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: flex;
   gap: 1rem;
 }
 
@@ -66,6 +71,7 @@
   gap: 0.4rem;
   font-size: 0.92rem;
   color: rgba(255, 255, 255, 0.85);
+  flex: 1;
 }
 
 .auth-field input {
@@ -186,7 +192,7 @@
 }
 
 /* Optional enhancements
-   - Animated IonOS logo: add a .auth-logo element above the header and apply a glowing keyframe.
+   - Animated saasPlug logo: add a .auth-logo element above the header and apply a glowing keyframe.
    - Background gradient animation:
      @keyframes flow {
        from { background-position: 0% 50%; }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getChargers } from '../../services/chargers';
 import { createReservation } from '../../services/reservations';
-import './ReservePage.module.css';
+import styles from './ReservePage.module.css';
 
 const mergeSelectedCharger = (list, selected) => {
   if (!selected?.id) return list;
@@ -106,48 +106,11 @@ const groupChargers = (items) => {
 };
 
 const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
-  const [chargers, setChargers] = useState([]);
-  const [chargerId, setChargerId] = useState(selectedCharger?.id ? String(selectedCharger.id) : '');
-  const [query, setQuery] = useState('');
   const [minutes, setMinutes] = useState(30);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    loadChargers();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCharger?.id) {
-      setChargerId(String(selectedCharger.id));
-      setChargers((prev) => mergeSelectedCharger(prev, selectedCharger));
-    }
-  }, [selectedCharger]);
-
-  const loadChargers = async () => {
-    try {
-      const data = await getChargers({ status: 'available' });
-      setChargers(mergeSelectedCharger(data, selectedCharger));
-    } catch (err) {
-      setError(err.message || 'Failed to load chargers');
-    }
-  };
-
-  const filteredChargers = useMemo(() => {
-    const filtered = filterChargers(chargers, query);
-    if (!chargerId) return filtered;
-    const selected = chargers.find((c) => String(c.id) === String(chargerId));
-    if (!selected) return filtered;
-    const hasSelected = filtered.some((c) => String(c.id) === String(chargerId));
-    return hasSelected ? filtered : [selected, ...filtered];
-  }, [chargers, query, chargerId]);
-
-  const groupedChargers = useMemo(
-    () => groupChargers(filteredChargers),
-    [filteredChargers]
-  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -155,20 +118,29 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
       navigate('/login', { replace: true, state: { message: 'Login to reserve chargers.' } });
       return;
     }
+    if (!selectedCharger) {
+        setError('Please select a charger from the map first.');
+        return;
+    }
+
     setLoading(true);
     setMessage(null);
     setError(null);
     try {
       const result = await createReservation({
-        chargerId,
-        userId: user?.id || 'guest',
+        chargerId: selectedCharger.id,
         minutes,
       });
-      setMessage(
-        result.status === 'reserved'
-          ? `Reserved point ${result.pointId} until ${result.reservationEndTime}`
-          : `Could not reserve. Current status: ${result.status}`
-      );
+      
+      const isSuccess = ['active', 'reserved'].includes(result.status);
+
+      if (isSuccess) {
+        // Instant redirect for better UX
+        navigate('/charging');
+      } else {
+        setError(`Could not reserve. Current status: ${result.status}`);
+      }
+      
       onReserved?.(result);
     } catch (err) {
       setError(err.message || 'Reservation failed');
@@ -178,76 +150,81 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
   };
 
   return (
-    <div className="card">
-      <h2>Reserve Charger</h2>
-      <p className="muted">
-        SRS UC2 step 2–5: pick a charger and reserve a time window with payment pre-auth logic mocked.
-      </p>
+    <div className={styles.reserveContainer}>
+      <header className={styles.pageHeader}>
+        <span className={styles.eyebrow}>Reservation Hub</span>
+        <h1>Secure a Station</h1>
+        <p className={styles.muted}>
+          Confirm your charging window. Our network will lock the selected station 
+          exclusively for your vehicle.
+        </p>
+      </header>
 
-      <form onSubmit={handleSubmit} className="stack">
-        <div className="form-group">
-          <label htmlFor="query">Search by point, address, municipality</label>
-          <input
-            id="query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g., Kλειδί, Ημαθίας or 101"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="charger">Charger *</label>
-          <select
-            id="charger"
-            required
-            value={chargerId}
-            onChange={(e) => setChargerId(e.target.value)}
-          >
-            <option value="">Select charger</option>
-            {groupedChargers.map((group) => (
-              <optgroup
-                key={group.key}
-                label={`${group.town} - ${group.region} (${group.items.length})`}
-              >
-                {group.items.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Point {c.id} — {c.provider} — {c.location || 'No address'}
-                    {c.capacityKw ? ` — ${c.capacityKw} kW` : ''}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {!filteredChargers.length && (
-            <div className="muted" style={{ marginTop: '0.5rem' }}>
-              No chargers match your search.
+      <div className={styles.reserveCard}>
+        {!selectedCharger ? (
+            <div className={styles.noSelection}>
+                <div className={styles.emptyIcon}>📍</div>
+                <h3>No Station Selected</h3>
+                <p>Please return to the map to choose a charging station.</p>
+                <button className={styles.submitBtn} onClick={() => navigate('/map')}>
+                    Open Interactive Map
+                </button>
             </div>
-          )}
-        </div>
+        ) : (
+            <form onSubmit={handleSubmit} className={styles.reserveForm}>
+              <div className={styles.formGroup}>
+                <label>Selected Station</label>
+                <div className={styles.stationDisplay}>
+                    <div className={styles.stationInfo}>
+                        <strong className={styles.stationName}>{selectedCharger.locationName}</strong>
+                        <span className={styles.stationMeta}>
+                            {selectedCharger.providerName} • {selectedCharger.capacityKw}kW
+                        </span>
+                        <p className={styles.stationAddress}>{selectedCharger.address}</p>
+                    </div>
+                    <span className={styles.statusBadge}>Ready</span>
+                </div>
+              </div>
 
-        <div className="form-group">
-          <label htmlFor="minutes">Reservation minutes</label>
-          <input
-            id="minutes"
-            type="number"
-            min="10"
-            max="60"
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
-          />
-        </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="minutes">Session Duration</label>
+                <div className={styles.durationControl}>
+                   <input
+                    id="minutes"
+                    className={styles.input}
+                    type="number"
+                    min="10"
+                    max="120"
+                    value={minutes}
+                    onChange={(e) => setMinutes(e.target.value)}
+                  />
+                  <span className={styles.unit}>min</span>
+                </div>
+                <p className={styles.formHelp}>Recommended: 30-60 mins for most vehicles.</p>
+              </div>
 
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-error">{error}</div>}
+              {message && <div className={styles.successAlert}>{message}</div>}
+              {error && <div className={styles.errorAlert}>{error}</div>}
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading || !chargerId}
-        >
-          {loading ? 'Reserving...' : 'Reserve'}
-        </button>
-      </form>
+              <div className={styles.actions}>
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
+                >
+                  {loading ? 'Processing...' : 'Confirm Reservation'}
+                </button>
+                <button 
+                  type="button" 
+                  className={styles.cancelLink}
+                  onClick={() => navigate('/map')}
+                >
+                  Change Station
+                </button>
+              </div>
+            </form>
+        )}
+      </div>
     </div>
   );
 };

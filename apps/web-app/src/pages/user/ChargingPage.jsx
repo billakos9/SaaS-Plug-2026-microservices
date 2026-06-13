@@ -1,314 +1,308 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getChargerById as getPoint } from '../../services/chargers';
-import { getSessions } from '../../services/analytics';
-import './ChargingPage.module.css';
+import { getMyReservations, cancelReservation } from '../../services/reservations';
+import { motion, AnimatePresence } from 'framer-motion';
+import styles from './ChargingPage.module.css';
 
-const formatDateInput = (date) => date.toISOString().slice(0, 10);
+const DEFAULT_SESSION_LIMIT = 30 * 60; // Fallback
 
-const parseTimestamp = (value) => {
-  if (!value) return null;
-  const [datePart, timePart = '00:00'] = String(value).split(' ');
-  const [year, month, day] = datePart.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  const [hours, minutes] = timePart.split(':').map(Number);
-  return new Date(year, month - 1, day, hours || 0, minutes || 0);
-};
+/**
+ * High-quality animated progress ring.
+ */
+const ProgressRing = ({ elapsed, label, durationSeconds }) => {
+  const limit = durationSeconds || DEFAULT_SESSION_LIMIT;
+  const remaining = Math.max(limit - elapsed, 0);
+  const progress = (remaining / limit) * 100;
 
-const formatDuration = (start, end) => {
-  const startDate = parseTimestamp(start);
-  const endDate = parseTimestamp(end);
-  if (!startDate || !endDate) return '—';
-  const diffMs = Math.max(0, endDate - startDate);
-  const totalMinutes = Math.floor(diffMs / 60000);
-  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-  const minutes = String(totalMinutes % 60).padStart(2, '0');
-  return `${hours}:${minutes}`;
-};
-
-const formatCurrency = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return value ?? '—';
-  return `€${num.toFixed(2)}`;
-};
-
-const getSessionUserId = (session) => {
-  if (!session) return null;
-  if (session.user && typeof session.user === 'object') {
-    return session.user.id ?? session.user.userId ?? null;
-  }
-  return session.userid ?? session.userId ?? session.user_id ?? session.user ?? null;
-};
-
-const filterSessionsForUser = (data, userId) => {
-  if (!userId) return data;
-  const hasUserData = data.some((s) => getSessionUserId(s) != null);
-  if (!hasUserData) return data;
-  return data.filter((s) => String(getSessionUserId(s)) === String(userId));
-};
-
-const ChargingPage = ({ reservation, user }) => {
-  const navigate = useNavigate();
-  const [pointId, setPointId] = useState(reservation?.pointId ? String(reservation.pointId) : '');
-  const [from, setFrom] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 7);
-    return formatDateInput(date);
-  });
-  const [to, setTo] = useState(() => formatDateInput(new Date()));
-  const [point, setPoint] = useState(null);
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [expandedKey, setExpandedKey] = useState(null);
-
-  const loadData = async (id = pointId) => {
-    const targetId = String(id || '').trim();
-    if (!targetId) {
-      setError('Select a point ID to load charging data.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const fromDate = from ? new Date(`${from}T00:00:00`) : undefined;
-      const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
-      const [pointData, sessionData] = await Promise.all([
-        getPoint(targetId),
-        getSessions({ pointId: targetId, from: fromDate, to: toDate }),
-      ]);
-      setPoint(pointData);
-      const normalizedSessions = Array.isArray(sessionData) ? sessionData : [];
-      setSessions(filterSessionsForUser(normalizedSessions, user?.id));
-    } catch (err) {
-      setError(err.message || 'Failed to load charging data');
-      setPoint(null);
-      setSessions([]);
-    } finally {
-      setLoading(false);
-    }
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  return (
+    <div className={styles.progressContainer}>
+      <svg className={styles.progressRing} width="240" height="240">
+        <defs>
+          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--primary)" />
+            <stop offset="100%" stopColor="#00d2ff" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <circle 
+          className={styles.progressRingBg} 
+          stroke="var(--outline)" 
+          strokeWidth="14" 
+          fill="transparent" 
+          r="100" 
+          cx="120" 
+          cy="120" 
+        />
+        <motion.circle
+          className={styles.progressRingFill}
+          stroke="url(#ringGradient)"
+          strokeWidth="14"
+          strokeDasharray="628.3"
+          initial={{ strokeDashoffset: 0 }}
+          animate={{ strokeDashoffset: 628.3 - (628.3 * progress) / 100 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          strokeLinecap="round"
+          fill="transparent"
+          r="100"
+          cx="120"
+          cy="120"
+          style={{ filter: 'url(#glow)' }}
+        />
+      </svg>
+      <div className={styles.progressContent}>
+        <motion.span 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={styles.progressNumber}
+        >
+          {formatTimer(remaining)}
+        </motion.span>
+        <span className={styles.progressLabel}>{label}</span>
+      </div>
+    </div>
+  );
+};
+
+const ChargingPage = ({ user }) => {
+  const navigate = useNavigate();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!user) {
-      navigate('/login', { replace: true, state: { message: 'Login to view charging sessions.' } });
+      navigate('/login', { replace: true });
+      return;
     }
+
+    const loadData = async (isSilent = false) => {
+      if (!isSilent) setLoading(true);
+      try {
+        const data = await getMyReservations(user.id);
+        setSessions(data);
+      } catch (err) {
+        console.error('Failed to load charging data', err);
+      } finally {
+        if (!isSilent) setLoading(false);
+      }
+    };
+
+    loadData();
+    // Refresh every 10 seconds to pick up status changes from backend monitor
+    const interval = setInterval(() => loadData(true), 10000);
+    return () => clearInterval(interval);
   }, [user, navigate]);
 
+  const activeSession = useMemo(() => {
+    if (!sessions.length) return null;
+    // Sort by createdAt descending to get the newest first
+    const sorted = [...sessions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return sorted.find(s => ['active', 'charging', 'reserved'].includes(s.status));
+  }, [sessions]);
+
   useEffect(() => {
-    if (reservation?.pointId) {
-      const nextId = String(reservation.pointId);
-      setPointId(nextId);
-      loadData(nextId);
+    if (activeSession?.createdAt) {
+      const start = new Date(activeSession.createdAt).getTime();
+      const updateElapsed = () => {
+        const delta = Math.floor((Date.now() - start) / 1000);
+        setElapsed(Math.max(0, delta));
+      };
+      updateElapsed();
+      const interval = setInterval(updateElapsed, 1000);
+      return () => clearInterval(interval);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservation?.pointId]);
+  }, [activeSession]);
 
-  const latestSession = useMemo(() => {
-    const normalized = sessions
-      .map((s) => ({
-        ...s,
-        _start: parseTimestamp(s.starttime || s.startTime),
-      }))
-      .filter((s) => s._start);
-    normalized.sort((a, b) => b._start - a._start);
-    return normalized[0] || null;
-  }, [sessions]);
-
-  const sessionList = useMemo(() => {
-    const normalized = sessions
-      .map((s, index) => ({
-        ...s,
-        _key: `${s.starttime || s.startTime || 'session'}-${s.endtime || s.endTime || index}`,
-        _start: parseTimestamp(s.starttime || s.startTime),
-      }))
-      .filter((s) => s._start);
-    normalized.sort((a, b) => b._start - a._start);
-    return normalized;
-  }, [sessions]);
-
-  const chargePercent = useMemo(() => {
-    const raw = latestSession?.endsoc ?? latestSession?.startsoc ?? null;
-    const value = Number(raw);
-    if (!Number.isFinite(value)) return 0;
-    return Math.min(100, Math.max(0, value));
-  }, [latestSession]);
-
-  const energyUsed = latestSession?.totalkwh != null ? `${latestSession.totalkwh} kWh` : '—';
-  const duration = formatDuration(latestSession?.starttime, latestSession?.endtime);
-  const cost = latestSession?.amount != null ? formatCurrency(latestSession.amount) : '—';
-  const status = point?.status || reservation?.status || '—';
-  const reservationEnd = point?.reservationEndTime || reservation?.reservationEndTime || '—';
-  const price = point?.price != null ? `${formatCurrency(point.price)}/kWh` : '—';
-  const capacity = point?.capacityKw ? `${point.capacityKw} kW` : '—';
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    loadData();
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const formatDurationPrecise = (seconds) => {
+    if (!seconds) return '0s';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    const parts = [];
+    if (hrs > 0) parts.push(`${hrs}h`);
+    if (mins > 0) parts.push(`${mins}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+    
+    return parts.join(' ');
+  };
+
+  const handleCancel = async () => {
+    if (!activeSession) return;
+    if (!window.confirm('Are you sure you want to terminate this charging session?')) return;
+
+    try {
+      await cancelReservation(activeSession.id);
+      // Refresh the list to show the updated status
+      const data = await getMyReservations(user.id);
+      setSessions(data);
+    } catch (err) {
+      console.error('Failed to cancel reservation', err);
+      alert('Could not cancel the session. It may have already expired.');
+    }
+  };
+
+  const recentHistory = useMemo(() => {
+    // Filter out the currently active session from the history list
+    const filtered = sessions.filter(s => s.id !== activeSession?.id);
+    // Sort by newest first
+    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
+  }, [sessions, activeSession]);
 
   if (!user) return null;
 
   return (
-    <section className="charging-page">
-      <div className="charging-shell">
-        <div className="charging-card">
-          <header className="charging-header">
-            <h1>Charging</h1>
-            <p>Live point status and past sessions fetched from the IonOS backend.</p>
-          </header>
-
-          <div className="charging-body">
-            <form className="toolbar" onSubmit={handleSubmit}>
-              <div className="form-group small">
-                <label htmlFor="pointId">Point ID</label>
-                <input
-                  id="pointId"
-                  type="text"
-                  value={pointId}
-                  onChange={(event) => setPointId(event.target.value)}
-                  placeholder="e.g., 12"
-                  required
-                />
-              </div>
-              <div className="form-group small">
-                <label htmlFor="from">From</label>
-                <input
-                  id="from"
-                  type="date"
-                  value={from}
-                  onChange={(event) => setFrom(event.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group small">
-                <label htmlFor="to">To</label>
-                <input
-                  id="to"
-                  type="date"
-                  value={to}
-                  onChange={(event) => setTo(event.target.value)}
-                  required
-                />
-              </div>
-              <button className="btn btn-primary" type="submit" disabled={loading}>
-                {loading ? 'Loading...' : 'Refresh data'}
-              </button>
-            </form>
-
-            {error && <div className="alert alert-error">{error}</div>}
-
-            <div
-              className="progress-ring"
-              style={{ '--progress': `${chargePercent}%` }}
-              role="img"
-              aria-label={`Battery at ${chargePercent}%`}
-            >
-              <div className="progress-value">
-                <span className="progress-number">{chargePercent}%</span>
-                <span className="progress-label">Charged</span>
-              </div>
-            </div>
-
-            <div className="charging-stats">
-              <div className="stat-box">
-                <span className="stat-label">Energy Used</span>
-                <span className="stat-value">{energyUsed}</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-label">Duration</span>
-                <span className="stat-value">{duration}</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-label">Cost</span>
-                <span className="stat-value">{cost}</span>
-              </div>
-            </div>
-
-            <div className="charging-stats">
-              <div className="stat-box">
-                <span className="stat-label">Status</span>
-                <span className="stat-value">{status}</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-label">Price</span>
-                <span className="stat-value">{price}</span>
-              </div>
-              <div className="stat-box">
-                <span className="stat-label">Power</span>
-                <span className="stat-value">{capacity}</span>
-              </div>
-            </div>
-
-            <section>
-              <h2>Past Sessions</h2>
-              <div className="session-list">
-                {loading && <div className="loading">Loading sessions...</div>}
-                {!loading && sessionList.length === 0 && (
-                  <div className="muted session-empty">No sessions found for the selected range.</div>
-                )}
-                {!loading &&
-                  sessionList.map((s, index) => {
-                    const key = s._key || `${s.starttime}-${s.endtime}-${index}`;
-                    const isOpen = expandedKey === key;
-                    return (
-                      <div key={key} className="session-card">
-                        <div className="session-card-header">
-                          <div>
-                            <p className="eyebrow">Session</p>
-                            <h3>{s.starttime || s.startTime || '—'}</h3>
-                            <p className="muted">Ends: {s.endtime || s.endTime || '—'}</p>
-                          </div>
-                          <div className="session-card-actions">
-                            <span className="badge">{s.amount != null ? formatCurrency(s.amount) : '—'}</span>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => setExpandedKey(isOpen ? null : key)}
-                            >
-                              {isOpen ? 'Hide details' : 'View details'}
-                            </button>
-                          </div>
-                        </div>
-                        {isOpen && (
-                          <div className="session-card-details">
-                            <div className="session-detail-grid">
-                              <div className="session-detail">
-                                <span className="detail-label">Start SoC</span>
-                                <span className="detail-value">{s.startsoc ?? '—'}</span>
-                              </div>
-                              <div className="session-detail">
-                                <span className="detail-label">End SoC</span>
-                                <span className="detail-value">{s.endsoc ?? '—'}</span>
-                              </div>
-                              <div className="session-detail">
-                                <span className="detail-label">Energy (kWh)</span>
-                                <span className="detail-value">{s.totalkwh ?? '—'}</span>
-                              </div>
-                              <div className="session-detail">
-                                <span className="detail-label">Price (€ / kWh)</span>
-                                <span className="detail-value">{s.kwhprice ?? '—'}</span>
-                              </div>
-                              <div className="session-detail">
-                                <span className="detail-label">Amount (€)</span>
-                                <span className="detail-value">{s.amount ?? '—'}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-            </section>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={styles.container}
+    >
+      <header className={styles.header}>
+        <div className={styles.headerTitle}>
+          <span className={styles.eyebrow}>Energy Hub</span>
+          <h1>Session Monitor</h1>
+          <p className={styles.muted}>Live status and performance of your current saasPlug connection.</p>
+        </div>
+        {activeSession && (
+          <div className={styles.liveStatus}>
+             <span className={styles.pulseDot} />
+             LIVE CONNECTION
           </div>
-        </div>
+        )}
+      </header>
 
-        <div className="charging-status">
-          {pointId ? `Point ${pointId} • Reservation ends: ${reservationEnd}` : 'Select a point to view status.'}
-        </div>
-      </div>
-    </section>
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div 
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={styles.loadingPanel}
+          >
+            <div className={styles.spinner} />
+            <p>Synchronizing with smart network...</p>
+          </motion.div>
+        ) : activeSession ? (
+          <motion.div 
+            key="active"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={styles.activeGrid}
+          >
+            <div className={styles.visualPanel}>
+              <ProgressRing 
+                elapsed={elapsed} 
+                label="REMAINING" 
+                durationSeconds={(activeSession.duration || 30) * 60} 
+              />
+            </div>
+
+            <div className={styles.dataPanel}>
+              <div className={styles.panelHeader}>
+                <span className={styles.statusBadge}>
+                   {activeSession.status.toUpperCase()}
+                </span>
+                <div className={styles.timerContainer}>
+                  <span className={styles.timerLabel}>ELAPSED TIME</span>
+                  <span className={styles.timerValue}>{formatTime(elapsed)}</span>
+                </div>
+              </div>
+
+              <div className={styles.infoSection}>
+                 <div className={styles.infoRow}>
+                   <span className={styles.infoLabel}>Station</span>
+                   <span className={styles.infoValue}>{activeSession.locationName || `Station #${activeSession.chargerId}`}</span>
+                 </div>
+                 <div className={styles.infoRow}>
+                   <span className={styles.infoLabel}>Station ID</span>
+                   <span className={styles.infoValue}>#{activeSession.chargerId}</span>
+                 </div>
+                 <div className={styles.infoRow}>
+                   <span className={styles.infoLabel}>Network</span>
+                   <span className={styles.infoValue}>{activeSession.providerName || 'saasPlug'}</span>
+                 </div>
+                 <div className={styles.infoRow}>
+                   <span className={styles.infoLabel}>Started At</span>
+                   <span className={styles.infoValue}>{new Date(activeSession.createdAt).toLocaleTimeString()}</span>
+                 </div>
+              </div>
+
+              <button className={styles.cancelBtn} onClick={handleCancel}>
+                Cancel Charge
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={styles.emptyState}
+          >
+            <div className={styles.emptyIcon}>⚡</div>
+            <h2>No Active Connection</h2>
+            <p>Your vehicle is not currently connected to any saasPlug station.</p>
+            <button className={styles.primaryBtn} onClick={() => navigate('/map')}>
+              Locate a Station
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {sessions.length > 0 && (
+        <section className={styles.historySection}>
+          <div className={styles.sectionHeader}>
+            <h2>Recent Activity</h2>
+            <button className={styles.linkBtn} onClick={() => navigate('/stats')}>
+              Full Analytics →
+            </button>
+          </div>
+          <div className={styles.historyList}>
+            {recentHistory.map((s, idx) => (
+              <motion.div 
+                key={s.id} 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className={styles.historyItem}
+              >
+                <div className={styles.historyInfo}>
+                  <div className={styles.brandIndicator} style={{ background: s.providerName === 'bluePlug' ? '#2979ff' : s.providerName === 'redPlug' ? '#ff1744' : '#00c853' }} />
+                  <div>
+                    <p className={styles.historyTitle}>{s.locationName || `Station #${s.chargerId}`}</p>
+                    <p className={styles.historyDate}>{new Date(s.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className={styles.historyMetrics}>
+                  <span className={styles.historyBadge}>{s.status}</span>
+                  <p className={styles.historyDuration}>{formatDurationPrecise(s.duration)}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+    </motion.div>
   );
 };
 

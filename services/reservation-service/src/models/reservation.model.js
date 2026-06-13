@@ -15,13 +15,20 @@ const ReservationSchema = new mongoose.Schema(
       type:     Number,
       required: true,
     },
+    locationName: {
+      type: String,
+    },
+    capacityKw: {
+      type: Number,
+      default: 22,
+    },
     providerName: {
       type:     String,
       required: true,
     },
     duration: {
       type:    Number,
-      default: 60,
+      default: 30,
     },
     kwhPrice: {
       type:    Number,
@@ -29,7 +36,7 @@ const ReservationSchema = new mongoose.Schema(
     },
     status: {
       type:    String,
-      enum:    ["active", "cancelled"],
+      enum:    ["active", "cancelled", "completed"],
       default: "active",
     },
   },

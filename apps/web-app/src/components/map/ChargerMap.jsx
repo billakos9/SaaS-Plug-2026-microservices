@@ -1,274 +1,280 @@
-import { useMemo, useState } from 'react';
-import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { useMemo, useState, useEffect } from 'react';
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L, { divIcon } from 'leaflet';
+import { motion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import styles from './ChargerMap.module.css';
 
-const CLUSTER_BREAK_ZOOM = 13;
-const MAX_CLUSTER_ZOOM_STEP = 2;
 const MAX_SAFE_ZOOM = 19;
+const CLUSTER_ZOOM = 15; // Threshold where bubbles disperse
 
-const defaultIcon = new L.Icon({
-  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
-  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -32],
-  shadowSize: [41, 41],
-});
-
-const statusClass = (state) => {
-  const map = {
-    available: styles.statusAvailable,
-    charging: styles.statusOccupied,
-    occupied: styles.statusOccupied,
-    reserved: styles.statusReserved,
-    malfunction: styles.statusOutOfOrder,
-    offline: styles.statusOutOfOrder,
-    out_of_order: styles.statusOutOfOrder,
-  };
-
-  return map[state] || styles.statusOutOfOrder;
-};
-
-const MapCenterPicker = ({ enabled, onPick }) => {
-  useMapEvents({
-    click: (event) => {
-      if (!enabled) return;
-      onPick?.({
-        lat: event.latlng.lat,
-        lon: event.latlng.lng,
-      });
-    },
+// Professional Pins with saasPlug aesthetic
+const createStationIcon = (status) => {
+  const color = status === 'available' ? '#00c853' : (status === 'occupied' ? '#ffab00' : '#ff1744');
+  return divIcon({
+    html: `
+      <div class="${styles.customMarker}" style="--marker-color: ${color}">
+        <div class="${styles.markerPin}"></div>
+        <div class="${styles.markerDot}"></div>
+      </div>
+    `,
+    className: '',
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -40]
   });
-
-  return null;
 };
 
-const ChargerPopup = ({ charger, onSelect, onReserve }) => (
-  <div className={styles.mapPopup}>
-    <div className={styles.popupTitle}>Point {charger.id}</div>
-    <div className={styles.muted}>{charger.provider || 'Unknown provider'}</div>
-    <div className={`${styles.muted} ${styles.small}`}>
-      {charger.location || 'Location unavailable'}
-    </div>
-    <div className={`${styles.statusBadge} ${statusClass(charger.status)}`}>
-      {charger.status || 'unknown'}
-    </div>
-    <div className={styles.popupActions}>
-      <button type="button" className={styles.secondaryButton} onClick={() => onSelect?.(charger)}>
-        Select
-      </button>
-      <button type="button" className={styles.primaryButton} onClick={() => onReserve?.(charger)}>
-        Reserve here
-      </button>
-    </div>
-  </div>
-);
+/**
+ * A popup that displays charger details.
+ */
+const SmartPopup = ({ charger, onReserve, isAdmin }) => {
+  return (
+    <motion.div 
+      className={styles.mapPopup}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      <header className={styles.popupHeader}>
+        <div className={styles.popupTitleGroup}>
+          <strong className={styles.popupTitle}>{charger.locationName || 'Charging Station'}</strong>
+          <p className={styles.popupProvider}>Station #{charger.id} • {charger.providerName}</p>
+        </div>
+        <span className={`${styles.statusBadge} ${styles[charger.status]}`}>{charger.status}</span>
+      </header>
+      
+      <div className={styles.popupInfo}>
+        <div className={styles.popupAddressRow}>
+          <span className={styles.addressIcon}>📍</span>
+          <p className={styles.popupAddress}>{charger.address}</p>
+        </div>
+        
+        <div className={styles.popupSpecsGrid}>
+          <div className={styles.specItem}>
+            <span className={styles.specLabel}>Power</span>
+            <span className={styles.specValue}>{charger.capacityKw} kW</span>
+          </div>
+          <div className={styles.specItem}>
+            <span className={styles.specLabel}>Price</span>
+            <span className={styles.specValue}>€{charger.kwhPrice}/kWh</span>
+          </div>
+          <div className={styles.specItem}>
+            <span className={styles.specLabel}>Type</span>
+            <span className={styles.specValue}>{charger.connectionType || 'Type 2'}</span>
+          </div>
+        </div>
+      </div>
+      
+      {!isAdmin && (
+        <button className={styles.primaryButton} onClick={() => onReserve(charger)}>
+          Reserve Station
+        </button>
+      )}
+    </motion.div>
+  );
+};
 
-const ClusterMarkers = ({ items, onSelect, onReserve }) => {
+/**
+ * A popup that lists multiple stations at the same location.
+ */
+const MultiStationPopup = ({ chargers, onReserve, isAdmin }) => {
+  const displayAddress = chargers.length > 0 ? chargers[0].address : "Multiple chargers registered here.";
+  const locationName = chargers.length > 0 ? chargers[0].locationName : "Network Hub";
+
+  return (
+    <motion.div 
+      className={styles.scrollablePopup}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <header className={styles.multiPopupHeader}>
+        <h3 className={styles.multiPopupTitle}>{locationName}</h3>
+        <p className={styles.popupAddress}>📍 {displayAddress} ({chargers.length} units)</p>
+      </header>
+      <ul className={styles.stationList}>
+        {chargers.map((charger, idx) => (
+          <motion.li 
+            key={charger.id} 
+            className={styles.stationListItem}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: Math.min(idx * 0.03, 0.5) }}
+          >
+            <div className={styles.stationItemMain}>
+              <span className={styles.stationItemName}>Station #{charger.id} • {charger.providerName}</span>
+              <span className={`${styles.statusBadge} ${styles[charger.status]}`}>
+                {charger.status}
+              </span>
+            </div>
+            <div className={styles.stationItemMeta}>
+              <span>{charger.capacityKw} kW</span>
+              <span>€{charger.kwhPrice}/kWh</span>
+              <span>{charger.connectionType || 'Type 2'}</span>
+            </div>
+            {!isAdmin && (
+              <button 
+                className={styles.primaryButton} 
+                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 'auto', width: 'auto' }}
+                onClick={() => onReserve(charger)}
+              >
+                Reserve
+              </button>
+            )}
+          </motion.li>
+        ))}
+      </ul>
+    </motion.div>
+  );
+};
+
+/**
+ * A marker that displays charger details.
+ */
+const SmartMarker = ({ charger, position, onReserve, isAdmin }) => {
+  return (
+    <Marker 
+      position={position} 
+      icon={createStationIcon(charger.status)}
+    >
+      <Popup className={styles.customPopup}>
+        <SmartPopup charger={charger} onReserve={onReserve} isAdmin={isAdmin} />
+      </Popup>
+    </Marker>
+  );
+};
+
+/**
+ * Renders clustered markers that expand upon zoom or show multi-popups for exact matches.
+ */
+const ClusterMarkers = ({ items, onReserve, isAdmin }) => {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
 
-  useMapEvents({
-    zoomend: () => setZoom(map.getZoom()),
-  });
-
-  const filtered = useMemo(
-    () =>
-      (items || []).filter(
-        (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
-      ),
-    [items]
-  );
-
-  const resolution = zoom >= 13 ? 0.008 : zoom >= 11 ? 0.02 : 0.06;
   const clusters = useMemo(() => {
-    if (!filtered.length) return [];
-
-    const bucket = {};
-    filtered.forEach((point) => {
-      const keyLat = Math.round(point.latitude / resolution) * resolution;
-      const keyLon = Math.round(point.longitude / resolution) * resolution;
-      const key = `${keyLat}-${keyLon}`;
-
-      if (!bucket[key]) {
-        bucket[key] = { lat: keyLat, lon: keyLon, points: [] };
-      }
-
-      bucket[key].points.push(point);
+    const valid = (items || []).filter(p => {
+      const lat = parseFloat(p.latitude);
+      const lon = parseFloat(p.longitude);
+      return !isNaN(lat) && !isNaN(lon);
+    });
+    
+    // Group markers that are at the EXACT same location
+    const exactGroups = {};
+    valid.forEach(p => {
+      const lat = parseFloat(p.latitude).toFixed(6);
+      const lon = parseFloat(p.longitude).toFixed(6);
+      const posKey = `${lat},${lon}`;
+      if (!exactGroups[posKey]) exactGroups[posKey] = [];
+      exactGroups[posKey].push(p);
     });
 
+    if (zoom >= CLUSTER_ZOOM) {
+      const finalMarkers = [];
+      Object.entries(exactGroups).forEach(([key, groupPoints]) => {
+        const [lat, lon] = key.split(',').map(Number);
+        if (groupPoints.length === 1) {
+          finalMarkers.push({ points: [groupPoints[0]], lat, lon });
+        } else {
+          // If multiple chargers share the EXACT same coordinate at high zoom,
+          // group them into a single "Multi-Station" marker.
+          finalMarkers.push({ points: groupPoints, lat, lon, isMulti: true });
+        }
+      });
+      return finalMarkers;
+    }
+
+    const res = zoom >= 13 ? 0.008 : (zoom >= 10 ? 0.05 : 0.2);
+    const bucket = {};
+    valid.forEach(p => {
+      const pLat = parseFloat(p.latitude);
+      const pLon = parseFloat(p.longitude);
+      const k = `${(Math.round(pLat/res)*res).toFixed(4)}-${(Math.round(pLon/res)*res).toFixed(4)}`;
+      if (!bucket[k]) bucket[k] = { lat: pLat, lon: pLon, points: [] };
+      bucket[k].points.push(p);
+    });
     return Object.values(bucket);
-  }, [filtered, resolution]);
+  }, [items, zoom]);
 
-  if (!filtered.length) return null;
+  return clusters.map((c, i) => {
+    // Only highlight as "problematic" if there's an actual hardware/network issue.
+    // 'reserved' and 'occupied' are normal operational states.
+    const hasProblem = c.points.some(p => ['outOfOrder', 'malfunctioning', 'offline', 'out_of_order'].includes(p.status));
 
-  if (zoom >= CLUSTER_BREAK_ZOOM) {
-    return filtered.map((point) => (
-      <Marker
-        key={point.id}
-        position={[point.latitude, point.longitude]}
-        icon={defaultIcon}
-        eventHandlers={{ click: () => onSelect?.(point) }}
-      >
-        <Popup>
-          <ChargerPopup charger={point} onSelect={onSelect} onReserve={onReserve} />
-        </Popup>
-      </Marker>
-    ));
-  }
-
-  return clusters.map((cluster) => {
-    if (cluster.points.length === 1) {
-      const point = cluster.points[0];
-
+    if (c.isMulti) {
       return (
-        <Marker
-          key={point.id}
-          position={[point.latitude, point.longitude]}
-          icon={defaultIcon}
-          eventHandlers={{ click: () => onSelect?.(point) }}
+        <Marker 
+          key={`multi-${c.lat}-${c.lon}`} 
+          position={[c.lat, c.lon]} 
+          icon={divIcon({
+            html: `
+              <div class="${styles.multiMarker}" style="${hasProblem ? 'background: #ff1744; border-color: #ffcdd2;' : ''}">
+                <span>${c.points.length}</span>
+              </div>
+            `,
+            className: '',
+            iconSize: [38, 38],
+            iconAnchor: [19, 38],
+            popupAnchor: [0, -35]
+          })}
         >
-          <Popup>
-            <ChargerPopup charger={point} onSelect={onSelect} onReserve={onReserve} />
+          <Popup className={styles.customPopup}>
+            <MultiStationPopup chargers={c.points} onReserve={onReserve} isAdmin={isAdmin} />
           </Popup>
         </Marker>
       );
     }
 
-    const clusterIcon = divIcon({
-      html: `<div class="${styles.clusterMarker}"><span>${cluster.points.length}</span></div>`,
-      className: styles.clusterIcon,
-      iconSize: [46, 46],
-    });
-
-    let markerRef = null;
+    if (c.points.length === 1) {
+      const p = c.points[0];
+      return (
+        <SmartMarker 
+          key={p.id || `p-${i}`} 
+          charger={p} 
+          position={[c.lat, c.lon]} 
+          onReserve={onReserve}
+          isAdmin={isAdmin}
+        />
+      );
+    }
 
     return (
-      <Marker
-        key={`${cluster.lat}-${cluster.lon}`}
-        position={[cluster.lat, cluster.lon]}
-        icon={clusterIcon}
-        ref={(ref) => {
-          markerRef = ref;
-        }}
-        eventHandlers={{
-          click: (event) => event.target.openPopup(),
-        }}
-      >
-        <Popup className={styles.clusterPopup} closeButton>
-          <div className={styles.clusterPopupHeader}>
-            <strong>{cluster.points.length} points nearby</strong>
-            {zoom < 17 && (
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => {
-                  const targetZoom = Math.min(MAX_SAFE_ZOOM, zoom + MAX_CLUSTER_ZOOM_STEP);
-                  map.flyTo([cluster.lat, cluster.lon], targetZoom);
-                  map.once('moveend', () => markerRef?.openPopup());
-                }}
-              >
-                Zoom here
-              </button>
-            )}
-          </div>
-
-          <div className={styles.clusterList}>
-            {cluster.points.map((point) => (
-              <div key={point.id} className={styles.clusterItem}>
-                <div className={styles.clusterItemInfo}>
-                  <span className={styles.clusterItemTitle}>Point {point.id}</span>
-                  <span className={styles.clusterItemSub}>{point.status || 'unknown'}</span>
-                </div>
-                <div className={styles.clusterActions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => {
-                      const targetZoom = Math.max(
-                        CLUSTER_BREAK_ZOOM + 1,
-                        Math.min(MAX_SAFE_ZOOM, zoom + MAX_CLUSTER_ZOOM_STEP)
-                      );
-                      map.flyTo([point.latitude, point.longitude], targetZoom);
-                      map.once('moveend', () => onSelect?.(point));
-                    }}
-                  >
-                    Zoom
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.primaryButton}
-                    onClick={() => onReserve?.(point)}
-                  >
-                    Reserve
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Popup>
-      </Marker>
+      <Marker 
+        key={`cluster-${i}`} 
+        position={[c.lat, c.lon]} 
+        icon={divIcon({
+          html: `
+            <div class="${styles.clusterMarker}" style="${hasProblem ? 'background: #ff1744; box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4);' : ''}">
+              <div class="${styles.clusterPulse}" style="${hasProblem ? 'border-color: #ff1744;' : ''}"></div>
+              <span>${c.points.length}</span>
+            </div>
+          `,
+          className: styles.clusterIconContainer, 
+          iconSize: [46, 46],
+          iconAnchor: [23, 23]
+        })} 
+        eventHandlers={{ 
+          click: () => {
+             const nextZoom = Math.min(MAX_SAFE_ZOOM, zoom + 3);
+             map.flyTo([c.lat, c.lon], nextZoom, {
+               duration: 1.5,
+               easeLinearity: 0.25
+             });
+          }
+        }} 
+      />
     );
   });
 };
 
-const ChargerMap = ({
-  center,
-  defaultCenter,
-  defaultZoom,
-  mapRef,
-  radiusKm,
-  chargers,
-  loading,
-  pickMode,
-  onCenterPick,
-  onSelect,
-  onReserve,
-}) => {
-  const initialCenter = defaultCenter || [37.9838, 23.7275];
-  const radiusValue = Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : 8;
-
-  return (
-    <div className={styles.mapWrapper}>
-      <MapContainer
-        center={initialCenter}
-        zoom={defaultZoom || 11}
-        maxZoom={MAX_SAFE_ZOOM}
-        scrollWheelZoom
-        className={styles.leafletMap}
-        whenReady={(event) => {
-          if (mapRef) mapRef.current = event.target;
-        }}
-      >
-        <MapCenterPicker enabled={pickMode} onPick={onCenterPick} />
-        {center && (
-          <Circle
-            center={[center.lat, center.lon]}
-            radius={radiusValue * 1000}
-            pathOptions={{
-              color: '#00a7b5',
-              fillColor: '#00a7b5',
-              fillOpacity: 0.12,
-            }}
-          />
-        )}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <ClusterMarkers items={chargers} onSelect={onSelect} onReserve={onReserve} />
-      </MapContainer>
-
-      {!loading && chargers.length === 0 && (
-        <div className={styles.mapEmpty}>
-          No chargers found within {radiusValue} km. Change center or increase the radius.
-        </div>
-      )}
-    </div>
-  );
-};
+const ChargerMap = ({ chargers, loading, onReserve, isAdmin }) => (
+  <div className={styles.mapWrapper}>
+    <MapContainer center={[37.9838, 23.7275]} zoom={12} maxZoom={MAX_SAFE_ZOOM} className={styles.leafletMap}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+      <ClusterMarkers items={chargers} onReserve={onReserve} isAdmin={isAdmin} />
+    </MapContainer>
+    {loading && <div className={styles.mapLoading}>Syncing Infrastructure...</div>}
+  </div>
+);
 
 export default ChargerMap;

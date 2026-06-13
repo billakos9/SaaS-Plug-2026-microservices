@@ -8,4 +8,6 @@ export const Exchanges = Object.freeze({
 
 export const RoutingKeys = Object.freeze({
   RESERVATION_CREATED: "reservation.created",
+  RESERVATION_CANCELLED: "reservation.cancelled",
+  RESERVATION_COMPLETED: "reservation.completed",
 });

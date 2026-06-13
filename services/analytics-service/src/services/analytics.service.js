@@ -34,11 +34,12 @@ function buildFleetStats(chargers) {
 function buildReservationStats(stat) {
   const totalReservations    = stat?.totalReservations ?? 0;
   const totalDurationMinutes = stat?.totalDurationMinutes ?? 0;
+  const totalEnergyKwh       = Math.round((stat?.totalEnergyKwh ?? 0) * 100) / 100;
   const totalRevenue         = Math.round((stat?.totalRevenue ?? 0) * 100) / 100;
   const averageDurationMinutes = totalReservations > 0
     ? Math.round(totalDurationMinutes / totalReservations * 10) / 10
     : 0;
-  return { totalReservations, averageDurationMinutes, totalRevenue };
+  return { totalReservations, averageDurationMinutes, totalRevenue, totalEnergyKwh };
 }
 
 class AnalyticsService {
@@ -90,6 +91,31 @@ class AnalyticsService {
         ...buildFleetStats(chargersByProvider[name] ?? []),
         ...buildReservationStats(statMap[name]),
       })),
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  static async getGlobalReport(period) {
+    const [stats, allChargers] = await Promise.all([
+      AnalyticStatRepository.getAllByPeriod(period),
+      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
+    ]);
+
+    const totalFleet = buildFleetStats(allChargers ?? []);
+    
+    const aggregatedReservation = stats.reduce((acc, s) => {
+      acc.totalReservations += (s.totalReservations ?? 0);
+      acc.totalDurationMinutes += (s.totalDurationMinutes ?? 0);
+      acc.totalEnergyKwh += (s.totalEnergyKwh ?? 0);
+      acc.totalRevenue += (s.totalRevenue ?? 0);
+      return acc;
+    }, { totalReservations: 0, totalDurationMinutes: 0, totalEnergyKwh: 0, totalRevenue: 0 });
+
+    return {
+      period,
+      ...totalFleet,
+      ...buildReservationStats(aggregatedReservation),
+      providerCount: stats.length,
       generatedAt: new Date().toISOString(),
     };
   }

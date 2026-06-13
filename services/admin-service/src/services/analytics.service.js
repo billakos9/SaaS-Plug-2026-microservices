@@ -1,17 +1,25 @@
-import { PROVIDER_SERVICE_URL, CHARGER_SERVICE_URL } from "../config/env.js";
+import { PROVIDER_SERVICE_URL, CHARGER_SERVICE_URL, ANALYTICS_SERVICE_URL } from "../config/env.js";
 
 /**
  * Fetches data from a downstream service.
  * Returns null on failure so analytics can degrade gracefully.
  * @param {String} url 
+ * @param {String|null} token
  * @returns {Promise<Object|null>} The fetched data or null on failure.
  */
-async function safeFetch(url) {
+async function safeFetch(url, token = null) {
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const headers = {};
+    if (token) headers["Authorization"] = token;
+    
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+       console.error(`[analytics-fetch] ${url} failed with ${res.status}`);
+       return null;
+    }
     return res.json();
-  } catch {
+  } catch (err) {
+    console.error(`[analytics-fetch] ${url} exception:`, err.message);
     return null;
   }
 }
@@ -20,14 +28,16 @@ async function safeFetch(url) {
  */
 class AnalyticsService {
   /**
-   * Aggregates global statistics by querying the provider and charger services.
+   * Aggregates global statistics by querying the provider, charger, and analytics services.
    *
+   * @param {String|null} token - Authorization token to pass to downstream services
    * @returns {Promise<Object>} Aggregated stats snapshot
    */
-  static async getGlobalStats() {
-    const [providers, chargers] = await Promise.all([
-      safeFetch(`${PROVIDER_SERVICE_URL}/provider`),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
+  static async getGlobalStats(token = null) {
+    const [providers, chargers, globalReport] = await Promise.all([
+      safeFetch(`${PROVIDER_SERVICE_URL}/provider`, token),
+      safeFetch(`${CHARGER_SERVICE_URL}/charger`, token),
+      safeFetch(`${ANALYTICS_SERVICE_URL}/analytics/global`, token),
     ]);
 
     const providerStats = {
@@ -44,7 +54,7 @@ class AnalyticsService {
       }, {});
 
       chargerStats = {
-        total:   chargers.length,
+        total: chargers.length,
         byStatus,
       };
     }
@@ -52,25 +62,40 @@ class AnalyticsService {
     return {
       providers:   providerStats,
       chargers:    chargerStats,
+      totalRevenue: globalReport?.totalRevenue ?? 0,
+      totalEnergyKWh: globalReport?.totalEnergyKwh ?? 0,
+      totalSessions: globalReport?.totalReservations ?? 0,
+      avgSessionDuration: globalReport?.averageDurationMinutes ?? 0,
+      activeChargers: (globalReport?.chargersByStatus?.charging ?? 0) + (globalReport?.chargersByStatus?.reserved ?? 0),
       generatedAt: new Date().toISOString(),
     };
   }
 
   /**
    * Returns per-provider charger counts.
+   * @param {String|null} token
    * @returns {Promise<Object>} The breakdown data or an error indicator.
    */
-  static async getProviderChargerBreakdown() {
-    const [providers, chargers] = await Promise.all([
-      safeFetch(`${PROVIDER_SERVICE_URL}/provider`),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
+  static async getProviderChargerBreakdown(token = null) {
+    const [providers, chargers, providersReport] = await Promise.all([
+      safeFetch(`${PROVIDER_SERVICE_URL}/provider`, token),
+      safeFetch(`${CHARGER_SERVICE_URL}/charger`, token),
+      safeFetch(`${ANALYTICS_SERVICE_URL}/analytics/providers`, token),
     ]);
 
     if (!Array.isArray(providers) || !Array.isArray(chargers)) {
       return { available: false };
     }
 
+    const providerReportMap = {};
+    if (providersReport?.providers) {
+      providersReport.providers.forEach(p => {
+        providerReportMap[p.providerName] = p;
+      });
+    }
+
     const breakdown = providers.map((p) => {
+      const report = providerReportMap[p.providerName];
       const providerChargers = chargers.filter(
         (c) => c.ProviderName === p.providerName,
       );
@@ -84,12 +109,14 @@ class AnalyticsService {
       return {
         providerId:   p.providerId,
         providerName: p.providerName,
-        total:        providerChargers.length,
-        byStatus,
+        totalChargers: providerChargers.length,
+        chargersByStatus: byStatus,
+        totalRevenue: report?.totalRevenue ?? 0,
+        totalEnergyKWh: report?.totalEnergyKwh ?? 0,
       };
     });
 
-    return { breakdown, generatedAt: new Date().toISOString() };
+    return breakdown;
   }
 }
 

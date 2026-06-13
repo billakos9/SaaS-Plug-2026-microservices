@@ -1,398 +1,479 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats } from '../../services/analytics';
-import './StatsPage.module.css';
+import { getMyReservations } from '../../services/reservations';
+import { getGlobalStats, getProviderBreakdown } from '../../services/admin';
+import { getProviderReport } from '../../services/analytics';
+import { useAuth } from '../../hooks/useAuth';
+import { motion, AnimatePresence } from 'framer-motion';
+import styles from './StatsPage.module.css';
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const VIEW_MODE = {
-  SEMESTER: 'semester',
-  ALL_TIME: 'all_time',
+const StatCard = ({ label, value, unit, color, index }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.1 }}
+    className={styles.statCard}
+    style={{ borderBottom: `4px solid ${color || 'var(--primary)'}` }}
+  >
+    <p className={styles.statLabel}>{label}</p>
+    <p className={styles.statValue}>
+      {value} <span className={styles.statUnit}>{unit}</span>
+    </p>
+    <div className={styles.statGlow} style={{ background: color }} />
+  </motion.div>
+);
+
+const formatDuration = (seconds) => {
+  if (!seconds) return '0s';
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0) parts.push(`${mins}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+  
+  return parts.join(' ');
 };
 
-const emptyOverview = () => ({
-  userEmail: '',
-  username: '',
-  totalEnergyKWh: 0,
-  avgSessionMinutes: 0,
-  totalSessions: 0,
-});
-
-const formatDateParam = (date) => {
-  const d = date instanceof Date ? new Date(date) : new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getSemesterInfo = (sourceDate) => {
-  const date = new Date(sourceDate);
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const isFirstSemester = month <= 5;
-
-  if (isFirstSemester) {
-    return {
-      label: `Jan - Jun ${year}`,
-      key: `S1-${year}`,
-      start: new Date(year, 0, 1),
-      end: new Date(year, 5, 30),
-    };
-  }
-
-  return {
-    label: `Jul - Dec ${year}`,
-    key: `S2-${year}`,
-    start: new Date(year, 6, 1),
-    end: new Date(year, 11, 31),
-  };
-};
-
-const getPreviousSemesterInfo = (currentSemester) => {
-  const previousDay = new Date(currentSemester.start);
-  previousDay.setDate(previousDay.getDate() - 1);
-  return getSemesterInfo(previousDay);
-};
-
-const toMonthLabel = (value) => {
-  const [year, month] = String(value ?? '').split('-');
-  const monthIndex = Number(month) - 1;
-  if (!year || !Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) {
-    return String(value ?? '—');
-  }
-  return `${MONTH_LABELS[monthIndex]} '${year.slice(2)}`;
-};
-
-const formatNumber = (value, suffix = '') => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return `0${suffix}`;
-  return `${num.toFixed(1)}${suffix}`;
-};
-
-const SessionsStatsPage = ({ user }) => {
+const StatsPage = () => {
   const navigate = useNavigate();
-  const [pointId, setPointId] = useState('');
-  const [viewMode, setViewMode] = useState(VIEW_MODE.ALL_TIME);
-  const [dashboard, setDashboard] = useState({
-    mode: VIEW_MODE.ALL_TIME,
-    allTime: {
-      overview: emptyOverview(),
-      trends: [],
-    },
-    currentSemester: null,
-    previousSemester: null,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { user, isAdmin, isProvider } = useAuth();
+  const [sessions, setSessions] = useState([]);
+  const [globalStats, setGlobalStats] = useState(null);
+  const [providerStats, setProviderStats] = useState([]);
+  const [providerReport, setProviderReport] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login', { replace: true, state: { message: 'Login to view your statistics.' } });
-    }
-  }, [user, navigate]);
-
-  const loadStats = async (mode = viewMode) => {
-    setLoading(true);
-    setError(null);
+  const fetchUserData = useCallback(async () => {
+    if (!user) return;
     try {
-      const normalizedPointId = String(pointId || '').trim() || undefined;
-
-      if (mode === VIEW_MODE.SEMESTER) {
-        const currentSemester = getSemesterInfo(new Date());
-        const previousSemester = getPreviousSemesterInfo(currentSemester);
-
-        const [currentData, previousData] = await Promise.all([
-          getDashboardStats({
-            pointId: normalizedPointId,
-            from: formatDateParam(currentSemester.start),
-            to: formatDateParam(currentSemester.end),
-          }),
-          getDashboardStats({
-            pointId: normalizedPointId,
-            from: formatDateParam(previousSemester.start),
-            to: formatDateParam(previousSemester.end),
-          }),
-        ]);
-
-        setDashboard({
-          mode: VIEW_MODE.SEMESTER,
-          allTime: null,
-          currentSemester: {
-            ...currentSemester,
-            data: currentData,
-          },
-          previousSemester: {
-            ...previousSemester,
-            data: previousData,
-          },
-        });
-      } else {
-        const allTimeData = await getDashboardStats({
-          pointId: normalizedPointId,
-        });
-
-        setDashboard({
-          mode: VIEW_MODE.ALL_TIME,
-          allTime: allTimeData,
-          currentSemester: null,
-          previousSemester: null,
-        });
-      }
+      const data = await getMyReservations(user.id);
+      const finished = data.filter(s => ['completed', 'cancelled'].includes(s.status));
+      setSessions(finished);
     } catch (err) {
-      setError(err.message || 'Failed to load statistics');
-      setDashboard({
-        mode,
-        allTime: {
-          overview: emptyOverview(),
-          trends: [],
-        },
-        currentSemester: null,
-        previousSemester: null,
-      });
+      console.error('Failed to fetch user stats', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadStats(VIEW_MODE.ALL_TIME);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const stats = useMemo(() => {
-    if (viewMode === VIEW_MODE.SEMESTER) {
-      const currentOverview = dashboard.currentSemester?.data?.overview || emptyOverview();
-      const previousOverview = dashboard.previousSemester?.data?.overview || emptyOverview();
-      const hasCurrentSessions = Number(currentOverview.totalSessions) > 0;
-      const hasPreviousSessions = Number(previousOverview.totalSessions) > 0;
-
-      return [
-        {
-          label: 'User',
-          value:
-            currentOverview.username ||
-            user?.username ||
-            user?.name ||
-            currentOverview.userEmail ||
-            user?.email ||
-            '—',
-        },
-        {
-          label: 'Point Filter',
-          value: String(pointId || '').trim() || 'All points',
-        },
-        {
-          label: 'Current Semester',
-          value: dashboard.currentSemester?.label || '—',
-        },
-        {
-          label: 'Current Sessions',
-          value: String(Number(currentOverview.totalSessions) || 0),
-        },
-        {
-          label: 'Current Energy',
-          value: `${formatNumber(currentOverview.totalEnergyKWh)} kWh`,
-        },
-        {
-          label: 'Current Avg Time',
-          value: hasCurrentSessions
-            ? `${Math.round(Number(currentOverview.avgSessionMinutes) || 0)} min`
-            : '—',
-        },
-        {
-          label: 'Previous Semester',
-          value: dashboard.previousSemester?.label || '—',
-        },
-        {
-          label: 'Previous Sessions',
-          value: String(Number(previousOverview.totalSessions) || 0),
-        },
-        {
-          label: 'Previous Energy',
-          value: `${formatNumber(previousOverview.totalEnergyKWh)} kWh`,
-        },
-        {
-          label: 'Previous Avg Time',
-          value: hasPreviousSessions
-            ? `${Math.round(Number(previousOverview.avgSessionMinutes) || 0)} min`
-            : '—',
-        },
-      ];
+  const fetchAdminData = useCallback(async () => {
+    try {
+      const [stats, providers] = await Promise.all([
+        getGlobalStats(),
+        getProviderBreakdown()
+      ]);
+      setGlobalStats(stats);
+      setProviderStats(providers);
+    } catch (err) {
+      console.error('Failed to fetch global stats', err);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    const overview = dashboard?.allTime?.overview || emptyOverview();
-    const hasSessions = Number(overview.totalSessions) > 0;
-    return [
-      {
-        label: 'User',
-        value:
-          overview.username || user?.username || user?.name || overview.userEmail || user?.email || '—',
-      },
-      {
-        label: 'Email',
-        value: overview.userEmail || user?.email || '—',
-      },
-      {
-        label: 'Range',
-        value: 'From first session until now',
-      },
-      {
-        label: 'Total Sessions',
-        value: String(Number(overview.totalSessions) || 0),
-      },
-      {
-        label: 'Energy Delivered',
-        value: `${formatNumber(overview.totalEnergyKWh)} kWh`,
-      },
-      {
-        label: 'Avg. Session Time',
-        value: hasSessions ? `${Math.round(Number(overview.avgSessionMinutes) || 0)} min` : '—',
-      },
-      {
-        label: 'Point Filter',
-        value: String(pointId || '').trim() || 'All points',
-      },
-    ];
-  }, [dashboard, pointId, user, viewMode]);
-
-  const trendData = useMemo(() => {
-    if (viewMode === VIEW_MODE.SEMESTER) {
-      const previous = dashboard.previousSemester;
-      const current = dashboard.currentSemester;
-      return [
-        {
-          month: previous?.label || 'Previous',
-          rawMonth: previous?.key || 'previous',
-          kwh: Number(previous?.data?.overview?.totalEnergyKWh) || 0,
-        },
-        {
-          month: current?.label || 'Current',
-          rawMonth: current?.key || 'current',
-          kwh: Number(current?.data?.overview?.totalEnergyKWh) || 0,
-        },
-      ];
+  const fetchProviderData = useCallback(async () => {
+    if (!user?.providerName) return;
+    try {
+      const report = await getProviderReport(user.providerName);
+      setProviderReport(report);
+    } catch (err) {
+      console.error('Failed to fetch provider analytics', err);
+    } finally {
+      setLoading(false);
     }
+  }, [user?.providerName]);
 
-    return (Array.isArray(dashboard?.allTime?.trends) ? dashboard.allTime.trends : []).map((entry) => ({
-      month: toMonthLabel(entry.month),
-      rawMonth: entry.month,
-      kwh: Number(entry.energyKWh) || 0,
-    }));
-  }, [dashboard, viewMode]);
+  useEffect(() => {
+    if (!user) { navigate('/login', { replace: true }); return; }
+    if (isAdmin) {
+      fetchAdminData();
+    } else if (isProvider) {
+      fetchProviderData();
+    } else {
+      fetchUserData();
+    }
+  }, [user, isAdmin, isProvider, navigate, fetchAdminData, fetchProviderData, fetchUserData]);
 
-  const maxTrendValue = Math.max(1, ...trendData.map((m) => m.kwh));
+  const overview = useMemo(() => {
+    if (isAdmin || isProvider) return null;
+    const total = sessions.length;
+    const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const energy = sessions.reduce((acc, s) => {
+      const durationHrs = (s.duration || 0) / 3600;
+      const kw = s.capacityKw || 22;
+      return acc + (durationHrs * kw);
+    }, 0);
+    
+    return {
+      total,
+      totalSeconds,
+      avgSeconds: total > 0 ? Math.round(totalSeconds / total) : 0,
+      energy: energy.toFixed(2),
+      co2: (energy * 0.4).toFixed(2)
+    };
+  }, [sessions, isAdmin]);
 
-  const handleModeToggle = (mode) => {
-    if (mode === viewMode) return;
-    setViewMode(mode);
-    loadStats(mode);
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    loadStats(viewMode);
-  };
+  const dominantProvider = useMemo(() => {
+    if (isAdmin || isProvider || !sessions.length) return null;
+    const counts = sessions.reduce((acc, s) => {
+      const name = s.providerName || 'saasPlug';
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {});
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0];
+    return {
+      name: top[0],
+      percentage: Math.round((top[1] / sessions.length) * 100)
+    };
+  }, [sessions, isAdmin]);
 
   if (!user) return null;
 
   return (
-    <section className="sessions-stats-page">
-      <div className="sessions-background" aria-hidden="true" />
-      <div className="sessions-container">
-        <header className="sessions-header">
-          <h1>Statistics</h1>
-          <p>Statistics for your charging sessions. Data is fetched from the IonOS backend.</p>
-        </header>
-
-        <section className="sessions-section">
-          <h2>Filters</h2>
-          <p className="sessions-subtitle">
-            Pick the timeframe with toggle. Date selection is automatic and stats stay per logged-in user.
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={styles.container}
+    >
+      <header className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>
+            {isAdmin ? 'Network Ecosystem' : isProvider ? 'Fleet Intelligence' : 'Personal Insights'}
+          </span>
+          <h1>{isAdmin ? 'Global Analytics' : isProvider ? 'Provider Analytics' : 'Usage Analytics'}</h1>
+          <p className={styles.muted}>
+            {isAdmin
+              ? 'Real-time monitoring of global energy flow and network performance.'
+              : isProvider
+              ? "Your network's energy delivery and revenue performance."
+              : 'Detailed breakdown of your charging behavior and energy footprint.'}
           </p>
+        </div>
+      </header>
 
-          <form className="sessions-form" onSubmit={handleSubmit}>
-            <label className="form-field">
-              Point ID (optional)
-              <input
-                type="text"
-                value={pointId}
-                onChange={(event) => setPointId(event.target.value)}
-                placeholder="e.g., 12"
-              />
-            </label>
-            <div className="form-field">
-              <span>Timeframe</span>
-              <div className="view-toggle" role="group" aria-label="Statistics timeframe">
-                <button
-                  type="button"
-                  className={`view-toggle-btn ${viewMode === VIEW_MODE.SEMESTER ? 'active' : ''}`}
-                  onClick={() => handleModeToggle(VIEW_MODE.SEMESTER)}
+      <AnimatePresence mode="wait">
+        {isProvider ? (
+          <motion.div
+            key="provider-stats"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className={styles.statsGrid}>
+              <StatCard index={0} label="Total Revenue" value={providerReport?.totalRevenue?.toFixed(2) || '0.00'} unit="€" color="#00c853" />
+              <StatCard index={1} label="Energy Delivered" value={(providerReport?.totalEnergyKwh ?? providerReport?.totalEnergyKWh ?? 0).toFixed(1)} unit="kWh" color="#2979ff" />
+              <StatCard index={2} label="Sessions" value={providerReport?.totalReservations || '0'} unit="" color="#ffab00" />
+            </div>
+
+            <div className={styles.mainGrid}>
+              <section className={styles.historySection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Fleet Status</h2>
+                  <span className={styles.countBadge}>{providerReport?.totalChargers || 0} Stations</span>
+                </div>
+                <div className={styles.tableCard}>
+                  {loading ? (
+                    <div className={styles.loading}>
+                      <div className={styles.spinner} />
+                      <p>Loading fleet data...</p>
+                    </div>
+                  ) : providerReport ? (
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Status</th>
+                          <th>Count</th>
+                          <th>Share</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(providerReport.chargersByStatus || {})
+                          .filter(([, count]) => count > 0)
+                          .map(([status, count], idx) => {
+                            const pct = providerReport.totalChargers > 0
+                              ? Math.round(count / providerReport.totalChargers * 100)
+                              : 0;
+                            return (
+                              <motion.tr
+                                key={status}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1 + idx * 0.05 }}
+                              >
+                                <td><strong style={{ textTransform: 'capitalize' }}>{status}</strong></td>
+                                <td>{count}</td>
+                                <td>
+                                  <div className={styles.progressTrack} style={{ width: '80px', margin: 0 }}>
+                                    <div className={styles.progressBar} style={{ width: `${pct}%`, background: 'var(--primary)' }} />
+                                  </div>
+                                  <small style={{ fontSize: '0.7rem', opacity: 0.6 }}>{pct}%</small>
+                                </td>
+                              </motion.tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className={styles.emptyTable}><p>No fleet data available.</p></div>
+                  )}
+                </div>
+              </section>
+
+              <aside className={styles.sidebar}>
+                <div className={styles.impactCard} style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)' }}>
+                  <div className={styles.impactHeader}>
+                    <span className={styles.leafIcon}>⚡</span>
+                    <h3>Fleet Health</h3>
+                  </div>
+                  <div className={styles.impactValue}>
+                    {Math.round((providerReport?.utilizationRate || 0) * 100)}
+                    <span className={styles.impactUnit}>% utilized</span>
+                  </div>
+                  <p className={styles.impactDesc}>
+                    Live utilization across your registered charging fleet.
+                  </p>
+                  <div className={styles.impactMetric}>
+                    <div className={styles.metricItem}>
+                      <strong>{providerReport?.averageDurationMinutes?.toFixed(0) || 0}m</strong>
+                      <span>Avg Session</span>
+                    </div>
+                    <div className={styles.divider} />
+                    <div className={styles.metricItem}>
+                      <strong>€{providerReport?.averageKwhPrice?.toFixed(3) || '0.00'}</strong>
+                      <span>Avg kWh Price</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </motion.div>
+        ) : isAdmin ? (
+          <motion.div 
+            key="admin-stats"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className={styles.statsGrid}>
+              <StatCard index={0} label="Total Revenue" value={globalStats?.totalRevenue?.toFixed(2) || '0.00'} unit="€" color="#00c853" />
+              <StatCard index={1} label="Network Energy" value={globalStats?.totalEnergyKWh?.toFixed(1) || '0.0'} unit="kWh" color="#2979ff" />
+              <StatCard index={2} label="Global Sessions" value={globalStats?.totalSessions || '0'} unit="" color="#ffab00" />
+            </div>
+
+            <div className={styles.mainGrid}>
+              <section className={styles.historySection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Network Performance</h2>
+                  <span className={styles.countBadge}>{providerStats.length} Providers</span>
+                </div>
+                <div className={styles.tableCard}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Provider</th>
+                        <th>Fleet Size</th>
+                        <th>Operational</th>
+                        <th>Occupancy</th>
+                        <th>Energy Delivered</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {providerStats.map((p, idx) => (
+                        <motion.tr 
+                          key={p.providerId}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 + idx * 0.05 }}
+                        >
+                          <td><strong>{p.providerName}</strong></td>
+                          <td>{p.totalChargers} units</td>
+                          <td>
+                            {(() => {
+                              const s = p.chargersByStatus || {};
+                              const operational = (s.available || 0) + (s.charging || 0) + (s.reserved || 0);
+                              const offline = (s.offline || 0) + (s.malfunction || 0);
+                              return (
+                                <span>
+                                  {operational}/{p.totalChargers}
+                                  {offline > 0 && <small style={{ color: '#ff1744', marginLeft: '0.4rem' }}>({offline} down)</small>}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td>
+                             {(() => {
+                               const active = (p.chargersByStatus?.charging || 0) + (p.chargersByStatus?.reserved || 0);
+                               const pct = p.totalChargers > 0 ? Math.round(active / p.totalChargers * 100) : 0;
+                               return (
+                                 <>
+                                   <div className={styles.progressTrack} style={{ width: '80px', margin: 0 }}>
+                                     <div className={styles.progressBar} style={{ width: `${pct}%`, background: 'var(--primary)' }} />
+                                   </div>
+                                   <small style={{ fontSize: '0.7rem', opacity: 0.6 }}>{pct}% in use</small>
+                                 </>
+                               );
+                             })()}
+                          </td>
+                          <td><span className={styles.costBadge}>{p.totalEnergyKWh?.toFixed(1) || 0} kWh</span></td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <aside className={styles.sidebar}>
+                <div className={styles.impactCard} style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)' }}>
+                  <div className={styles.impactHeader}>
+                    <span className={styles.leafIcon}>🌐</span>
+                    <h3>Ecosystem Health</h3>
+                  </div>
+                  <div className={styles.impactValue}>
+                    {Math.round(((globalStats?.totalSessions || 0) / 1000) * 100) / 100} <span className={styles.impactUnit}>k-Sessions</span>
+                  </div>
+                  <p className={styles.impactDesc}>
+                    The saasPlug network is currently processing high-volume energy transactions across all regions.
+                  </p>
+                  <div className={styles.impactMetric}>
+                    <div className={styles.metricItem}>
+                      <strong>{globalStats?.avgSessionDuration || 0}m</strong>
+                      <span>Avg Duration</span>
+                    </div>
+                    <div className={styles.divider} />
+                    <div className={styles.metricItem}>
+                      <strong>{globalStats?.activeChargers || 0}</strong>
+                      <span>Active Units</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="user-stats"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className={styles.statsGrid}>
+              <StatCard index={0} label="Total Energy" value={overview?.energy} unit="kWh" color="#00c853" />
+              <StatCard index={1} label="Connection Time" value={formatDuration(overview?.totalSeconds)} unit="" color="#2979ff" />
+              <StatCard index={2} label="Avg Session" value={formatDuration(overview?.avgSeconds)} unit="" color="#ffab00" />
+            </div>
+
+            <div className={styles.mainGrid}>
+              <section className={styles.historySection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Session History</h2>
+                  <span className={styles.countBadge}>{sessions.length} Sessions</span>
+                </div>
+                <div className={styles.tableCard}>
+                   {loading ? (
+                     <div className={styles.loading}>
+                       <div className={styles.spinner} />
+                       <p>Loading records...</p>
+                     </div>
+                   ) : sessions.length > 0 ? (
+                     <table className={styles.table}>
+                       <thead>
+                         <tr>
+                           <th>Station</th>
+                           <th>Network</th>
+                           <th>Date</th>
+                           <th>Duration</th>
+                           <th>Cost</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {sessions.slice(0, 8).map((s, idx) => (
+                           <motion.tr 
+                             key={s.id}
+                             initial={{ opacity: 0, x: -10 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             transition={{ delay: 0.3 + idx * 0.05 }}
+                           >
+                             <td>
+                               <strong>{s.locationName || `Station #${s.chargerId}`}</strong>
+                               <small style={{ display: 'block', opacity: 0.6, fontSize: '0.7rem' }}>#{s.chargerId}</small>
+                             </td>
+                             <td>{s.providerName || 'saasPlug'}</td>
+                             <td>{new Date(s.createdAt).toLocaleDateString()}</td>
+                             <td>{formatDuration(s.duration)}</td>
+                             <td><span className={styles.costBadge}>€{((s.duration || 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
+                           </motion.tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   ) : (
+                     <div className={styles.emptyTable}>
+                       <p>No session data available yet.</p>
+                     </div>
+                   )}
+                </div>
+              </section>
+
+              <aside className={styles.sidebar}>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className={styles.impactCard}
                 >
-                  By Semester
-                </button>
-                <button
-                  type="button"
-                  className={`view-toggle-btn ${viewMode === VIEW_MODE.ALL_TIME ? 'active' : ''}`}
-                  onClick={() => handleModeToggle(VIEW_MODE.ALL_TIME)}
-                >
-                  From First Session
-                </button>
-              </div>
+                  <div className={styles.impactHeader}>
+                    <span className={styles.leafIcon}>🍃</span>
+                    <h3>CO2 Emissions Prevented</h3>
+                  </div>
+                  <div className={styles.impactValue}>
+                    {overview?.co2} <span className={styles.impactUnit}>kg CO₂</span>
+                  </div>
+                  <p className={styles.impactDesc}>
+                    By choosing electric, you've prevented this much CO₂ from entering the atmosphere.
+                  </p>
+                  <div className={styles.impactMetric}>
+                    <div className={styles.metricItem}>
+                      <strong>{Math.ceil((overview?.energy || 0) / 10)}</strong>
+                      <span>Trees Equivalent</span>
+                    </div>
+                    <div className={styles.divider} />
+                    <div className={styles.metricItem}>
+                      <strong>{Math.ceil((overview?.totalSeconds || 0) / 3600)}</strong>
+                      <span>Hours Connected</span>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                {dominantProvider && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className={styles.providerCard}
+                  >
+                    <h3>Network Affinity</h3>
+                    <div className={styles.providerInfo}>
+                       <div className={styles.providerLogo}>{dominantProvider.name.substring(0, 2).toUpperCase()}</div>
+                       <div>
+                          <p className={styles.providerName}>{dominantProvider.name}</p>
+                          <p className={styles.providerStat}>Dominant Provider ({dominantProvider.percentage}%)</p>
+                       </div>
+                    </div>
+                    <div className={styles.progressTrack}>
+                      <div className={styles.progressBar} style={{ width: `${dominantProvider.percentage}%` }} />
+                    </div>
+                  </motion.div>
+                )}
+              </aside>
             </div>
-            <button type="submit" className="apply-btn" disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
-          </form>
-
-          {error && <div className="sessions-results">{error}</div>}
-        </section>
-
-        <section className="sessions-section">
-          <h2>Statistics Overview</h2>
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <div className="stat-card" key={`${stat.label}-${index}`} style={{ '--delay': `${index * 0.05}s` }}>
-                <span className="stat-card-label">{stat.label}</span>
-                <span className="stat-card-value">{stat.value}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="sessions-section">
-          <h2>Energy Trends</h2>
-          <div className="trend-card">
-            <div className="trend-bars">
-              {trendData.length === 0 && !loading && (
-                <div className="sessions-results">No trend data available for this user.</div>
-              )}
-              {trendData.map((entry, index) => (
-                <div
-                  className="trend-bar"
-                  key={`${entry.rawMonth}-${index}`}
-                  style={{ height: `${(entry.kwh / maxTrendValue) * 100}%` }}
-                  title={`${entry.rawMonth}: ${entry.kwh} kWh`}
-                />
-              ))}
-            </div>
-            <div className="trend-caption">
-              {viewMode === VIEW_MODE.SEMESTER
-                ? 'Energy grouped by semester (kWh)'
-                : 'Energy delivered per month (kWh)'}
-            </div>
-          </div>
-        </section>
-      </div>
-    </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
-export default SessionsStatsPage;
-
-// Optional enhancements
-// - Animated number counters: use a hook (e.g., react-countup) to animate stat values after data loads.
-// - Mini line chart: replace the trend placeholder with Chart.js and feed it monthly energy data.
-// - Hover tooltips: add an info icon per card and show a tooltip component with metric definitions.
+export default StatsPage;

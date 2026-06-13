@@ -4,12 +4,12 @@ const Footer = () => (
   <footer className={styles.siteFooter}>
     <div className={styles.footerInner}>
       <div className={styles.footerBrand}>
-        <span className={styles.footerLogo}>IonOS</span>
-        <span className={styles.footerCopy}>2026 IonOS</span>
+        <span className={styles.footerLogo}>saasPlug</span>
+        <span className={styles.footerCopy}>2026 saasPlug</span>
       </div>
 
       <div className={styles.footerActions}>
-        <a className={styles.footerButton} href="mailto:contact@ionos.app">
+        <a className={styles.footerButton} href="mailto:contact@saasplug.app">
           Contact
         </a>
       </div>
