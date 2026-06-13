@@ -2,6 +2,7 @@ import AnalyticsService from "../services/analytics.service.js";
 import {
   USER_SERVICE_URL, CHARGER_SERVICE_URL, PROVIDER_SERVICE_URL,
   ANALYTICS_SERVICE_URL, AUTH_SERVICE_URL, RESERVATION_SERVICE_URL,
+  PLUG_SERVICE_URL, BLUE_PLUG_ADAPTER_URL, RED_PLUG_ADAPTER_URL, GREEN_PLUG_ADAPTER_URL,
 } from "../config/env.js";
 
 /**
@@ -39,6 +40,10 @@ const SERVICE_HEALTH_TARGETS = [
   { label: "Provider Network",   url: () => `${PROVIDER_SERVICE_URL}/health` },
   { label: "Reservation Engine", url: () => `${RESERVATION_SERVICE_URL}/health` },
   { label: "Energy Analytics",   url: () => `${ANALYTICS_SERVICE_URL}/health` },
+  { label: "Plug Orchestrator",  url: () => `${PLUG_SERVICE_URL}/health` },
+  { label: "bluePlug Adapter",   url: () => `${BLUE_PLUG_ADAPTER_URL}/health` },
+  { label: "redPlug Adapter",    url: () => `${RED_PLUG_ADAPTER_URL}/health` },
+  { label: "greenPlug Adapter",  url: () => `${GREEN_PLUG_ADAPTER_URL}/health` },
 ];
 
 export const getSystemHealth = async (_req, res) => {

@@ -24,19 +24,28 @@ class ReservationService {
    * @throws {AppError} If the repository or broker call fails unexpectedly
    */
   static async create(data) {
+    const existingReservation = await ReservationRepository.getActiveByUserId(data.userId);
+    if (existingReservation) {
+      throw new AppError(HttpCode.CONFLICT, "You already have an active reservation");
+    }
+
     let kwhPrice = 0;
     let locationName = data.locationName || `Station ${data.chargerId}`;
     try {
       const res = await fetch(`${CHARGER_SERVICE_URL}/charger/id/${data.chargerId}`);
       if (res.ok) {
         const charger = await res.json();
+        if (charger.status && charger.status !== "available") {
+          throw new AppError(HttpCode.CONFLICT, "Charger is not available");
+        }
         kwhPrice = charger.kwhPrice ?? 0;
         if (!data.locationName) {
           locationName = charger.locationName || locationName;
         }
       }
-    } catch {
-      // non-fatal — reservation proceeds with default values
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      // network failure — proceed with defaults
     }
 
     const reservationId = await ReservationRepository.getNextId();

@@ -11,12 +11,12 @@ class ProviderRepository {
    * @returns {Promise<number>} The next available provider id.
    */
   static async getNextId() {
-    const counter = await Counter.findOneAndUpdate(
-      { name: "providerId" },
-      { $inc: { value: 1 } },
+    const counter = await Counter.findByIdAndUpdate(
+      "providerId",
+      { $inc: { seq: 1 } },
       { new: true, upsert: true },
     );
-    return counter.value;
+    return counter.seq;
   }
 
   /**

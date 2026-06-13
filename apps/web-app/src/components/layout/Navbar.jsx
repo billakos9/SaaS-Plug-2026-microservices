@@ -52,7 +52,10 @@ const Navbar = () => {
                 {isAdmin ? (
                   <li><NavLink to="/admin" onClick={closeMenu}>Management</NavLink></li>
                 ) : isProvider ? (
-                  <li><NavLink to="/provider/profile" onClick={closeMenu}>Account</NavLink></li>
+                  <>
+                    <li><NavLink to="/provider/invoices" onClick={closeMenu}>Invoices</NavLink></li>
+                    <li><NavLink to="/provider/profile" onClick={closeMenu}>Account</NavLink></li>
+                  </>
                 ) : (
                   <li><NavLink to="/profile" onClick={closeMenu}>Profile</NavLink></li>
                 )}

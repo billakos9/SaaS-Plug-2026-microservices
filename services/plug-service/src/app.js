@@ -1,11 +1,21 @@
+import http from "node:http";
 import { PROVIDER_BASE_URLS } from "./constants/provider-base-url.js";
 import { startChargerQueueConsumer } from "./events/rabbitmq.consumer.js";
 import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import { startProviderPolling } from "./jobs/provider-polling.job.js";
+import { PORT } from "./config/env.js";
 
 setupMessaging();
 startChargerQueueConsumer();
-
 startProviderPolling(PROVIDER_BASE_URLS, 1);
 
-console.log("Plug Service running (event-driven)");
+const port = PORT ?? 3000;
+http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok" }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(port, () => console.log(`Plug Service running on port ${port} (event-driven)`));

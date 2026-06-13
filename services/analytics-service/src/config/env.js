@@ -34,4 +34,4 @@ for (const key of ["JWT_SECRET"]) {
   }
 }
 
-export const { PORT, MONGOOSE_URL, RABBITMQ_URL, CHARGER_SERVICE_URL, JWT_SECRET } = process.env;
+export const { PORT, MONGOOSE_URL, RABBITMQ_URL, CHARGER_SERVICE_URL, RESERVATION_SERVICE_URL, JWT_SECRET } = process.env;

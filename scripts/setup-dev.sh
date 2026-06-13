@@ -81,6 +81,10 @@ CHARGER_SERVICE_URL=http://charger-service:3000
 ANALYTICS_SERVICE_URL=http://analytics-service:3000
 AUTH_SERVICE_URL=http://auth-service:3000
 RESERVATION_SERVICE_URL=http://reservation-service:3000
+PLUG_SERVICE_URL=http://plug-service:3000
+BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000
+RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000
+GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000
 EOF
 
 # analytics-service

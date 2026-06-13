@@ -96,18 +96,21 @@ export async function startReservationQueueConsumer() {
       try {
         switch (routingKey) {
           case RoutingKeys.RESERVATION_CREATED:
-            await ChargerPointService.update({ id: reservationData.chargerId, status: "reserved" }, true);
+            await ChargerPointService.update({ id: reservationData.id, status: "reserved" }, true);
+            break;
+          case RoutingKeys.RESERVATION_COMPLETED:
+            await ChargerPointService.update({ id: reservationData.id, status: "available" }, true);
             break;
           case RoutingKeys.RESERVATION_CANCELLED:
-          case RoutingKeys.RESERVATION_COMPLETED:
-            await ChargerPointService.update({ id: reservationData.chargerId, status: "available" }, true);
+            // Do not reset to available — external provider still holds the slot.
+            // Plug-service polling will flip status back when the external API releases it.
             break;
           default:
             console.log("Unhandled reservation event:", routingKey);
         }
       } catch (error) {
         if (error.statusCode === 404) {
-          console.warn(`Reservation event ignored: Charger ${reservationData.chargerId} not found.`);
+          console.warn(`Reservation event ignored: Charger ${reservationData.id} not found.`);
         } else {
           throw error;
         }

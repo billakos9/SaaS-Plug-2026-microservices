@@ -6,10 +6,10 @@ import styles from './ProviderDashboardPage.module.css';
 
 const ProviderDashboardPage = () => {
   const { user } = useAuth();
-  const [report, setReport] = useState(null);
+  const [report, setReport]       = useState(null);
   const [myChargers, setMyChargers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,7 +21,6 @@ const ProviderDashboardPage = () => {
           getChargers(),
         ]);
         setReport(reportData);
-        // Filter chargers belonging to this provider
         setMyChargers(allChargers.filter(c => c.providerName === user.name));
       } catch (err) {
         setError(err.message || 'Failed to fetch provider dashboard data');
@@ -32,60 +31,58 @@ const ProviderDashboardPage = () => {
     fetchData();
   }, [user]);
 
-  if (loading) return <div className="card">Loading provider dashboard...</div>;
+  if (loading) return <div className={styles.card}><p className={styles.muted}>Loading provider dashboard...</p></div>;
 
   return (
-    <div className="card">
-      <p className="eyebrow">Provider Partner</p>
-      <h1>{user?.name || 'Provider'} Dashboard</h1>
+    <div className={styles.card}>
+      <p className={styles.eyebrow}>Provider Partner</p>
+      <h1 className={styles.heading}>{user?.name || 'Provider'} Dashboard</h1>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className={styles.alertError}>{error}</div>}
 
-      <div className={styles.statsGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div className="panel">
-          <h3>Total Energy Sold</h3>
-          <p className="big-number">{report?.totalEnergyKWh?.toFixed(1) || 0} kWh</p>
+      <div className={styles.grid}>
+        <div className={styles.panel}>
+          <span className={styles.label}>Total Energy Sold</span>
+          <p className={styles.bigNumber}>{report?.totalEnergyKWh?.toFixed(1) ?? 0} kWh</p>
         </div>
-        <div className="panel">
-          <h3>Total Sessions</h3>
-          <p className="big-number">{report?.totalSessions || 0}</p>
+        <div className={styles.panel}>
+          <span className={styles.label}>Total Sessions</span>
+          <p className={styles.bigNumber}>{report?.totalSessions ?? 0}</p>
         </div>
-        <div className="panel">
-          <h3>My Stations</h3>
-          <p className="big-number">{myChargers.length}</p>
+        <div className={styles.panel}>
+          <span className={styles.label}>My Stations</span>
+          <p className={styles.bigNumber}>{myChargers.length}</p>
         </div>
       </div>
 
-      <div className="panel">
-        <h3>My Charging Stations</h3>
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+      <div className={styles.tableWrap}>
+        <h3 className={styles.tableHeading}>My Charging Stations</h3>
+        <table className={styles.chargerTable}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #ddd' }}>
-              <th style={{ padding: '0.5rem' }}>Location</th>
-              <th style={{ padding: '0.5rem' }}>Address</th>
-              <th style={{ padding: '0.5rem' }}>Status</th>
-              <th style={{ padding: '0.5rem' }}>Price</th>
+            <tr>
+              <th>Location</th>
+              <th>Address</th>
+              <th>Status</th>
+              <th>Price</th>
             </tr>
           </thead>
           <tbody>
             {myChargers.length > 0 ? (
               myChargers.map(charger => (
-                <tr key={charger.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '0.5rem' }}>{charger.locationName}</td>
-                  <td style={{ padding: '0.5rem' }}>{charger.address}</td>
-                  <td style={{ padding: '0.5rem' }}>
-                    <span className={`badge badge-${charger.status === 'available' ? 'success' : 'warning'}`}>
+                <tr key={charger.id}>
+                  <td>{charger.locationName}</td>
+                  <td>{charger.address}</td>
+                  <td>
+                    <span className={charger.status === 'available' ? styles.badgeSuccess : styles.badgeWarning}>
                       {charger.status}
                     </span>
                   </td>
-                  <td style={{ padding: '0.5rem' }}>€{charger.kwhPrice?.toFixed(2)}/kWh</td>
+                  <td>{charger.kwhPrice != null ? `€${charger.kwhPrice.toFixed(2)}/kWh` : '—'}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="4" style={{ padding: '1rem', textAlign: 'center' }} className="muted">
-                  No chargers found for your account.
-                </td>
+                <td colSpan={4} className={styles.emptyRow}>No chargers found for your account.</td>
               </tr>
             )}
           </tbody>

@@ -32,3 +32,12 @@ export const postRegister = async (req, res, next) => {
     next(error);
   }
 };
+
+export const postRegisterProvider = async (req, res, next) => {
+  try {
+    const result = await AuthService.registerProvider(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};

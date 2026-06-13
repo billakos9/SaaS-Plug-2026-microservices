@@ -47,18 +47,8 @@ Stop with
 docker compose down
 ```
 
-Local dev/debug mode adds explicit host ports for modular testing and tools
-such as MongoDB Compass or the RabbitMQ management UI.
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-```
-
-Stop local dev mode with the same compose files:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-```
+Host ports are exposed for all services, enabling direct access via MongoDB Compass,
+the RabbitMQ management UI (http://localhost:15672), or tools like Postman.
 
 The canonical public API entrypoint is:
 

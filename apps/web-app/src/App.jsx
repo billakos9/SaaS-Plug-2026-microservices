@@ -14,6 +14,7 @@ import ChargingPage from './pages/user/ChargingPage';
 import StatsPage from './pages/user/StatsPage';
 import AdminPage from './pages/admin/AdminPage';
 import ProviderDashboardPage from './pages/provider/ProviderDashboardPage';
+import ProviderInvoicesPage from './pages/provider/ProviderInvoicesPage';
 import ProviderRegisterPage from './pages/provider/ProviderRegisterPage';
 import ProviderProfilePage from './pages/provider/ProviderProfilePage';
 import styles from './App.module.css';
@@ -90,6 +91,16 @@ const AppRoutes = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/provider/register" element={<ProviderRegisterPage />} />
           <Route path="/provider" element={<ProviderDashboardPage />} />
+          <Route
+            path="/provider/invoices"
+            element={
+              isProvider ? (
+                <ProviderInvoicesPage />
+              ) : (
+                <Navigate to={user ? "/" : "/login"} replace />
+              )
+            }
+          />
           <Route
             path="/profile"
             element={

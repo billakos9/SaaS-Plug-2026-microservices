@@ -1,4 +1,4 @@
-import { PROVIDER_SERVICE_URL, USER_SERVICE_URL, CHARGER_SERVICE_URL } from "../config/env.js";
+import { PROVIDER_SERVICE_URL, USER_SERVICE_URL, CHARGER_SERVICE_URL, AUTH_SERVICE_URL } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
 
@@ -82,8 +82,14 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the registered provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static registerProvider(body) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/register`, "POST", body);
+  static async registerProvider(body) {
+    const provider = await proxyRequest(`${PROVIDER_SERVICE_URL}/provider/register`, "POST", body);
+    await proxyRequest(`${AUTH_SERVICE_URL}/auth/internal/provider`, "POST", {
+      email: body.email,
+      password: body.password,
+      providerName: body.providerName,
+    });
+    return provider;
   }
 
   /**

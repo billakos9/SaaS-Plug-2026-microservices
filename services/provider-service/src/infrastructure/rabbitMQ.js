@@ -56,18 +56,7 @@ export async function getChannelWithRetry(retries = 5) {
  */
 export async function setupMessaging() {
   const channel = await getChannelWithRetry();
-
   await channel.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
-
-  await channel.assertQueue(MessageQueues.PROVIDER, {
-    durable: true,
-  });
-  await channel.bindQueue(
-    MessageQueues.PROVIDER,
-    Exchanges.PROVIDER,
-    "provider.*",
-  );
-
 }
 /**
  * Publishes an event to a RabbitMQ exchange using a routing key.

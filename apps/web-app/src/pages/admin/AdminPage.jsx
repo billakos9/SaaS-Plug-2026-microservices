@@ -5,6 +5,7 @@ import {
   deleteUser, deleteAdminAccount, deleteProvider,
   getProviderById, registerProvider, createAdminAccount, getSystemHealth,
 } from '../../services/admin';
+import { getAllInvoices, generateInvoice, markInvoicePaid } from '../../services/invoices';
 import styles from './AdminPage.module.css';
 
 // ── Health Panel ──────────────────────────────────────────────────────────────
@@ -101,6 +102,13 @@ const AdminPage = () => {
   const [pForm, setPForm] = useState({ providerName: '', email: '', password: '', apiBaseUrl: '', apiKey: '' });
   // Admin form state
   const [aForm, setAForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+
+  // Invoice state
+  const [invoices, setInvoices]                 = useState([]);
+  const [invoicesLoaded, setInvoicesLoaded]     = useState(false);
+  const [invoicesLoading, setInvoicesLoading]   = useState(false);
+  const [showGenerateInvoice, setShowGenerateInvoice] = useState(false);
+  const [genForm, setGenForm]                   = useState({ providerName: '', period: '' });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -213,10 +221,50 @@ const AdminPage = () => {
     }
   };
 
+  // ── Load invoices once when tab is first activated ────────────────────────
+  useEffect(() => {
+    if (activeTab !== 'invoices' || invoicesLoaded) return;
+    setInvoicesLoading(true);
+    getAllInvoices()
+      .then(data => { setInvoices(data); setInvoicesLoaded(true); })
+      .catch(console.error)
+      .finally(() => setInvoicesLoading(false));
+  }, [activeTab, invoicesLoaded]);
+
+  // ── Generate invoice ────────────────────────────────────────────────────────
+  const handleGenerateInvoice = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const created = await generateInvoice(genForm);
+      setInvoices(prev => [created, ...prev]);
+      setInvoicesLoaded(true);
+      setGenForm({ providerName: '', period: '' });
+      setShowGenerateInvoice(false);
+    } catch (err) {
+      setFormError(err.message || 'Failed to generate invoice');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // ── Mark invoice paid ───────────────────────────────────────────────────────
+  const handleMarkPaid = async (invoiceId) => {
+    if (!window.confirm(`Mark invoice #${invoiceId} as paid? This cannot be undone.`)) return;
+    try {
+      const updated = await markInvoicePaid(invoiceId);
+      setInvoices(prev => prev.map(inv => inv.invoiceId === invoiceId ? updated : inv));
+    } catch (err) {
+      alert('Failed to mark as paid: ' + err.message);
+    }
+  };
+
   const tabs = [
     { id: 'health',    label: 'System Health' },
     { id: 'users',     label: 'User Registry' },
     { id: 'providers', label: 'Provider Networks' },
+    { id: 'invoices',  label: 'Invoices' },
   ];
 
   return (
@@ -344,6 +392,61 @@ const AdminPage = () => {
             </motion.div>
           )}
 
+          {activeTab === 'invoices' && (
+            <motion.div key="invoices" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className={styles.tableActions}>
+                <button className={styles.createBtn} onClick={() => { setFormError(''); setShowGenerateInvoice(true); }}>
+                  + Generate Invoice
+                </button>
+              </div>
+              <div className={styles.managementCard}>
+                {invoicesLoading ? (
+                  <div className={styles.emptyState}><p>Loading invoices...</p></div>
+                ) : (
+                  <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>#</th><th>Provider</th><th>Period</th><th>Sessions</th>
+                          <th>Revenue (€)</th><th>Commission (€)</th><th>Session Fees (€)</th>
+                          <th>Total Due (€)</th><th>Status</th><th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.length === 0 ? (
+                          <tr><td colSpan={10} className={styles.emptyRow}>No invoices generated yet.</td></tr>
+                        ) : invoices.map(inv => (
+                          <tr key={inv.invoiceId}>
+                            <td>{inv.invoiceId}</td>
+                            <td>{inv.providerName}</td>
+                            <td>{inv.period}</td>
+                            <td>{inv.totalSessions}</td>
+                            <td>{inv.totalRevenue?.toFixed(2)}</td>
+                            <td>{inv.commissionAmount?.toFixed(2)}</td>
+                            <td>{inv.sessionFee?.toFixed(2)}</td>
+                            <td><strong>{inv.totalDue?.toFixed(2)}</strong></td>
+                            <td>
+                              <span className={inv.status === 'paid' ? styles.paidBadge : styles.pendingBadge}>
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td>
+                              {inv.status === 'pending' && (
+                                <button className={styles.inspectBtn} onClick={() => handleMarkPaid(inv.invoiceId)}>
+                                  Mark Paid
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
@@ -415,6 +518,41 @@ const AdminPage = () => {
               </label>
               <button className={styles.submitBtn} type="submit" disabled={formLoading}>
                 {formLoading ? 'Creating...' : 'Create Account'}
+              </button>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* ── Generate Invoice Modal ── */}
+      <AnimatePresence>
+        {showGenerateInvoice && (
+          <Modal title="Generate Invoice" onClose={() => setShowGenerateInvoice(false)}>
+            <form onSubmit={handleGenerateInvoice} className={styles.form}>
+              {formError && <p className={styles.formError}>{formError}</p>}
+              <label className={styles.formLabel}>Provider Name
+                <input
+                  className={styles.formInput}
+                  list="provider-names"
+                  value={genForm.providerName}
+                  onChange={e => setGenForm(f => ({ ...f, providerName: e.target.value }))}
+                  required
+                />
+                <datalist id="provider-names">
+                  {providers.map(p => <option key={p.providerId} value={p.providerName} />)}
+                </datalist>
+              </label>
+              <label className={styles.formLabel}>Period (YYYY-MM)
+                <input
+                  className={styles.formInput}
+                  type="month"
+                  value={genForm.period}
+                  onChange={e => setGenForm(f => ({ ...f, period: e.target.value }))}
+                  required
+                />
+              </label>
+              <button className={styles.submitBtn} type="submit" disabled={formLoading}>
+                {formLoading ? 'Generating...' : 'Generate Invoice'}
               </button>
             </form>
           </Modal>
