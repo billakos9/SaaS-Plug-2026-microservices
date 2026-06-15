@@ -1,802 +1,102 @@
 [
-  {
-    "userId": 1,
-    "email": "seed001@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 001",
-    "phoneNumber": "6900000001",
-    "role": "user"
-  },
-  {
-    "userId": 2,
-    "email": "seed002@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 002",
-    "phoneNumber": "6900000002",
-    "role": "user"
-  },
-  {
-    "userId": 3,
-    "email": "seed003@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 003",
-    "phoneNumber": "6900000003",
-    "role": "user"
-  },
-  {
-    "userId": 4,
-    "email": "seed004@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 004",
-    "phoneNumber": "6900000004",
-    "role": "user"
-  },
-  {
-    "userId": 5,
-    "email": "seed005@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 005",
-    "phoneNumber": "6900000005",
-    "role": "user"
-  },
-  {
-    "userId": 6,
-    "email": "seed006@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 006",
-    "phoneNumber": "6900000006",
-    "role": "user"
-  },
-  {
-    "userId": 7,
-    "email": "seed007@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 007",
-    "phoneNumber": "6900000007",
-    "role": "user"
-  },
-  {
-    "userId": 8,
-    "email": "seed008@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 008",
-    "phoneNumber": "6900000008",
-    "role": "user"
-  },
-  {
-    "userId": 9,
-    "email": "seed009@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 009",
-    "phoneNumber": "6900000009",
-    "role": "user"
-  },
-  {
-    "userId": 10,
-    "email": "seed010@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 010",
-    "phoneNumber": "6900000010",
-    "role": "user"
-  },
-  {
-    "userId": 11,
-    "email": "seed011@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 011",
-    "phoneNumber": "6900000011",
-    "role": "user"
-  },
-  {
-    "userId": 12,
-    "email": "seed012@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 012",
-    "phoneNumber": "6900000012",
-    "role": "user"
-  },
-  {
-    "userId": 13,
-    "email": "seed013@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 013",
-    "phoneNumber": "6900000013",
-    "role": "user"
-  },
-  {
-    "userId": 14,
-    "email": "seed014@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 014",
-    "phoneNumber": "6900000014",
-    "role": "user"
-  },
-  {
-    "userId": 15,
-    "email": "seed015@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 015",
-    "phoneNumber": "6900000015",
-    "role": "user"
-  },
-  {
-    "userId": 16,
-    "email": "seed016@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 016",
-    "phoneNumber": "6900000016",
-    "role": "user"
-  },
-  {
-    "userId": 17,
-    "email": "seed017@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 017",
-    "phoneNumber": "6900000017",
-    "role": "user"
-  },
-  {
-    "userId": 18,
-    "email": "seed018@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 018",
-    "phoneNumber": "6900000018",
-    "role": "user"
-  },
-  {
-    "userId": 19,
-    "email": "seed019@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 019",
-    "phoneNumber": "6900000019",
-    "role": "user"
-  },
-  {
-    "userId": 20,
-    "email": "seed020@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 020",
-    "phoneNumber": "6900000020",
-    "role": "user"
-  },
-  {
-    "userId": 21,
-    "email": "seed021@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 021",
-    "phoneNumber": "6900000021",
-    "role": "user"
-  },
-  {
-    "userId": 22,
-    "email": "seed022@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 022",
-    "phoneNumber": "6900000022",
-    "role": "user"
-  },
-  {
-    "userId": 23,
-    "email": "seed023@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 023",
-    "phoneNumber": "6900000023",
-    "role": "user"
-  },
-  {
-    "userId": 24,
-    "email": "seed024@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 024",
-    "phoneNumber": "6900000024",
-    "role": "user"
-  },
-  {
-    "userId": 25,
-    "email": "seed025@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 025",
-    "phoneNumber": "6900000025",
-    "role": "user"
-  },
-  {
-    "userId": 26,
-    "email": "seed026@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 026",
-    "phoneNumber": "6900000026",
-    "role": "user"
-  },
-  {
-    "userId": 27,
-    "email": "seed027@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 027",
-    "phoneNumber": "6900000027",
-    "role": "user"
-  },
-  {
-    "userId": 28,
-    "email": "seed028@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 028",
-    "phoneNumber": "6900000028",
-    "role": "user"
-  },
-  {
-    "userId": 29,
-    "email": "seed029@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 029",
-    "phoneNumber": "6900000029",
-    "role": "user"
-  },
-  {
-    "userId": 30,
-    "email": "seed030@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 030",
-    "phoneNumber": "6900000030",
-    "role": "user"
-  },
-  {
-    "userId": 31,
-    "email": "seed031@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 031",
-    "phoneNumber": "6900000031",
-    "role": "user"
-  },
-  {
-    "userId": 32,
-    "email": "seed032@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 032",
-    "phoneNumber": "6900000032",
-    "role": "user"
-  },
-  {
-    "userId": 33,
-    "email": "seed033@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 033",
-    "phoneNumber": "6900000033",
-    "role": "user"
-  },
-  {
-    "userId": 34,
-    "email": "seed034@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 034",
-    "phoneNumber": "6900000034",
-    "role": "user"
-  },
-  {
-    "userId": 35,
-    "email": "seed035@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 035",
-    "phoneNumber": "6900000035",
-    "role": "user"
-  },
-  {
-    "userId": 36,
-    "email": "seed036@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 036",
-    "phoneNumber": "6900000036",
-    "role": "user"
-  },
-  {
-    "userId": 37,
-    "email": "seed037@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 037",
-    "phoneNumber": "6900000037",
-    "role": "user"
-  },
-  {
-    "userId": 38,
-    "email": "seed038@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 038",
-    "phoneNumber": "6900000038",
-    "role": "user"
-  },
-  {
-    "userId": 39,
-    "email": "seed039@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 039",
-    "phoneNumber": "6900000039",
-    "role": "user"
-  },
-  {
-    "userId": 40,
-    "email": "seed040@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 040",
-    "phoneNumber": "6900000040",
-    "role": "user"
-  },
-  {
-    "userId": 41,
-    "email": "seed041@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 041",
-    "phoneNumber": "6900000041",
-    "role": "user"
-  },
-  {
-    "userId": 42,
-    "email": "seed042@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 042",
-    "phoneNumber": "6900000042",
-    "role": "user"
-  },
-  {
-    "userId": 43,
-    "email": "seed043@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 043",
-    "phoneNumber": "6900000043",
-    "role": "user"
-  },
-  {
-    "userId": 44,
-    "email": "seed044@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 044",
-    "phoneNumber": "6900000044",
-    "role": "user"
-  },
-  {
-    "userId": 45,
-    "email": "seed045@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 045",
-    "phoneNumber": "6900000045",
-    "role": "user"
-  },
-  {
-    "userId": 46,
-    "email": "seed046@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 046",
-    "phoneNumber": "6900000046",
-    "role": "user"
-  },
-  {
-    "userId": 47,
-    "email": "seed047@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 047",
-    "phoneNumber": "6900000047",
-    "role": "user"
-  },
-  {
-    "userId": 48,
-    "email": "seed048@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 048",
-    "phoneNumber": "6900000048",
-    "role": "user"
-  },
-  {
-    "userId": 49,
-    "email": "seed049@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 049",
-    "phoneNumber": "6900000049",
-    "role": "user"
-  },
-  {
-    "userId": 50,
-    "email": "seed050@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 050",
-    "phoneNumber": "6900000050",
-    "role": "user"
-  },
-  {
-    "userId": 51,
-    "email": "seed051@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 051",
-    "phoneNumber": "6900000051",
-    "role": "user"
-  },
-  {
-    "userId": 52,
-    "email": "seed052@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 052",
-    "phoneNumber": "6900000052",
-    "role": "user"
-  },
-  {
-    "userId": 53,
-    "email": "seed053@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 053",
-    "phoneNumber": "6900000053",
-    "role": "user"
-  },
-  {
-    "userId": 54,
-    "email": "seed054@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 054",
-    "phoneNumber": "6900000054",
-    "role": "user"
-  },
-  {
-    "userId": 55,
-    "email": "seed055@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 055",
-    "phoneNumber": "6900000055",
-    "role": "user"
-  },
-  {
-    "userId": 56,
-    "email": "seed056@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 056",
-    "phoneNumber": "6900000056",
-    "role": "user"
-  },
-  {
-    "userId": 57,
-    "email": "seed057@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 057",
-    "phoneNumber": "6900000057",
-    "role": "user"
-  },
-  {
-    "userId": 58,
-    "email": "seed058@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 058",
-    "phoneNumber": "6900000058",
-    "role": "user"
-  },
-  {
-    "userId": 59,
-    "email": "seed059@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 059",
-    "phoneNumber": "6900000059",
-    "role": "user"
-  },
-  {
-    "userId": 60,
-    "email": "seed060@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 060",
-    "phoneNumber": "6900000060",
-    "role": "user"
-  },
-  {
-    "userId": 61,
-    "email": "seed061@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 061",
-    "phoneNumber": "6900000061",
-    "role": "user"
-  },
-  {
-    "userId": 62,
-    "email": "seed062@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 062",
-    "phoneNumber": "6900000062",
-    "role": "user"
-  },
-  {
-    "userId": 63,
-    "email": "seed063@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 063",
-    "phoneNumber": "6900000063",
-    "role": "user"
-  },
-  {
-    "userId": 64,
-    "email": "seed064@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 064",
-    "phoneNumber": "6900000064",
-    "role": "user"
-  },
-  {
-    "userId": 65,
-    "email": "seed065@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 065",
-    "phoneNumber": "6900000065",
-    "role": "user"
-  },
-  {
-    "userId": 66,
-    "email": "seed066@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 066",
-    "phoneNumber": "6900000066",
-    "role": "user"
-  },
-  {
-    "userId": 67,
-    "email": "seed067@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 067",
-    "phoneNumber": "6900000067",
-    "role": "user"
-  },
-  {
-    "userId": 68,
-    "email": "seed068@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 068",
-    "phoneNumber": "6900000068",
-    "role": "user"
-  },
-  {
-    "userId": 69,
-    "email": "seed069@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 069",
-    "phoneNumber": "6900000069",
-    "role": "user"
-  },
-  {
-    "userId": 70,
-    "email": "seed070@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 070",
-    "phoneNumber": "6900000070",
-    "role": "user"
-  },
-  {
-    "userId": 71,
-    "email": "seed071@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 071",
-    "phoneNumber": "6900000071",
-    "role": "user"
-  },
-  {
-    "userId": 72,
-    "email": "seed072@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 072",
-    "phoneNumber": "6900000072",
-    "role": "user"
-  },
-  {
-    "userId": 73,
-    "email": "seed073@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 073",
-    "phoneNumber": "6900000073",
-    "role": "user"
-  },
-  {
-    "userId": 74,
-    "email": "seed074@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 074",
-    "phoneNumber": "6900000074",
-    "role": "user"
-  },
-  {
-    "userId": 75,
-    "email": "seed075@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 075",
-    "phoneNumber": "6900000075",
-    "role": "user"
-  },
-  {
-    "userId": 76,
-    "email": "seed076@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 076",
-    "phoneNumber": "6900000076",
-    "role": "user"
-  },
-  {
-    "userId": 77,
-    "email": "seed077@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 077",
-    "phoneNumber": "6900000077",
-    "role": "user"
-  },
-  {
-    "userId": 78,
-    "email": "seed078@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 078",
-    "phoneNumber": "6900000078",
-    "role": "user"
-  },
-  {
-    "userId": 79,
-    "email": "seed079@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 079",
-    "phoneNumber": "6900000079",
-    "role": "user"
-  },
-  {
-    "userId": 80,
-    "email": "seed080@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 080",
-    "phoneNumber": "6900000080",
-    "role": "user"
-  },
-  {
-    "userId": 81,
-    "email": "seed081@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 081",
-    "phoneNumber": "6900000081",
-    "role": "user"
-  },
-  {
-    "userId": 82,
-    "email": "seed082@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 082",
-    "phoneNumber": "6900000082",
-    "role": "user"
-  },
-  {
-    "userId": 83,
-    "email": "seed083@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 083",
-    "phoneNumber": "6900000083",
-    "role": "user"
-  },
-  {
-    "userId": 84,
-    "email": "seed084@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 084",
-    "phoneNumber": "6900000084",
-    "role": "user"
-  },
-  {
-    "userId": 85,
-    "email": "seed085@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 085",
-    "phoneNumber": "6900000085",
-    "role": "user"
-  },
-  {
-    "userId": 86,
-    "email": "seed086@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 086",
-    "phoneNumber": "6900000086",
-    "role": "user"
-  },
-  {
-    "userId": 87,
-    "email": "seed087@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 087",
-    "phoneNumber": "6900000087",
-    "role": "user"
-  },
-  {
-    "userId": 88,
-    "email": "seed088@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 088",
-    "phoneNumber": "6900000088",
-    "role": "user"
-  },
-  {
-    "userId": 89,
-    "email": "seed089@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 089",
-    "phoneNumber": "6900000089",
-    "role": "user"
-  },
-  {
-    "userId": 90,
-    "email": "seed090@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 090",
-    "phoneNumber": "6900000090",
-    "role": "user"
-  },
-  {
-    "userId": 91,
-    "email": "seed091@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 091",
-    "phoneNumber": "6900000091",
-    "role": "user"
-  },
-  {
-    "userId": 92,
-    "email": "seed092@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 092",
-    "phoneNumber": "6900000092",
-    "role": "user"
-  },
-  {
-    "userId": 93,
-    "email": "seed093@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 093",
-    "phoneNumber": "6900000093",
-    "role": "user"
-  },
-  {
-    "userId": 94,
-    "email": "seed094@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 094",
-    "phoneNumber": "6900000094",
-    "role": "user"
-  },
-  {
-    "userId": 95,
-    "email": "seed095@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 095",
-    "phoneNumber": "6900000095",
-    "role": "user"
-  },
-  {
-    "userId": 96,
-    "email": "seed096@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 096",
-    "phoneNumber": "6900000096",
-    "role": "user"
-  },
-  {
-    "userId": 97,
-    "email": "seed097@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 097",
-    "phoneNumber": "6900000097",
-    "role": "user"
-  },
-  {
-    "userId": 98,
-    "email": "seed098@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 098",
-    "phoneNumber": "6900000098",
-    "role": "user"
-  },
-  {
-    "userId": 99,
-    "email": "seed099@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 099",
-    "phoneNumber": "6900000099",
-    "role": "user"
-  },
-  {
-    "userId": 100,
-    "email": "seed100@saasplug.app",
-    "password": "123456",
-    "name": "Seed User 100",
-    "phoneNumber": "6900000100",
-    "role": "user"
-  }
+  { "userId": 1,   "email": "giorgos.papadopoulos@gmail.com",      "password": "123456", "name": "Giorgos Papadopoulos",    "phoneNumber": "6900001001", "role": "user" },
+  { "userId": 2,   "email": "maria.georgiou@hotmail.com",          "password": "123456", "name": "Maria Georgiou",          "phoneNumber": "6900001002", "role": "user" },
+  { "userId": 3,   "email": "nikos.nikolaou@yahoo.com",            "password": "123456", "name": "Nikos Nikolaou",          "phoneNumber": "6900001003", "role": "user" },
+  { "userId": 4,   "email": "eleni.alexiou@outlook.com",           "password": "123456", "name": "Eleni Alexiou",           "phoneNumber": "6900001004", "role": "user" },
+  { "userId": 5,   "email": "kostas.stavros@icloud.com",           "password": "123456", "name": "Kostas Stavros",          "phoneNumber": "6900001005", "role": "user" },
+  { "userId": 6,   "email": "dimitra.dimitriou@gmail.com",         "password": "123456", "name": "Dimitra Dimitriou",       "phoneNumber": "6900001006", "role": "user" },
+  { "userId": 7,   "email": "alexandros.papageorgiou@hotmail.com", "password": "123456", "name": "Alexandros Papageorgiou", "phoneNumber": "6900001007", "role": "user" },
+  { "userId": 8,   "email": "katerina.vasiliou@yahoo.com",         "password": "123456", "name": "Katerina Vasiliou",       "phoneNumber": "6900001008", "role": "user" },
+  { "userId": 9,   "email": "stavros.antoniou@outlook.com",        "password": "123456", "name": "Stavros Antoniou",        "phoneNumber": "6900001009", "role": "user" },
+  { "userId": 10,  "email": "anastasia.christodoulou@icloud.com",  "password": "123456", "name": "Anastasia Christodoulou", "phoneNumber": "6900001010", "role": "user" },
+  { "userId": 11,  "email": "panagiotis.ioannou@gmail.com",        "password": "123456", "name": "Panagiotis Ioannou",      "phoneNumber": "6900001011", "role": "user" },
+  { "userId": 12,  "email": "vasia.petrou@hotmail.com",            "password": "123456", "name": "Vasia Petrou",            "phoneNumber": "6900001012", "role": "user" },
+  { "userId": 13,  "email": "petros.evangelou@yahoo.com",          "password": "123456", "name": "Petros Evangelou",        "phoneNumber": "6900001013", "role": "user" },
+  { "userId": 14,  "email": "sophia.theodorou@outlook.com",        "password": "123456", "name": "Sophia Theodorou",        "phoneNumber": "6900001014", "role": "user" },
+  { "userId": 15,  "email": "christos.karamanlis@icloud.com",      "password": "123456", "name": "Christos Karamanlis",     "phoneNumber": "6900001015", "role": "user" },
+  { "userId": 16,  "email": "ioanna.oikonomou@gmail.com",          "password": "123456", "name": "Ioanna Oikonomou",        "phoneNumber": "6900001016", "role": "user" },
+  { "userId": 17,  "email": "michalis.papakonstantinou@hotmail.com","password": "123456", "name": "Michalis Papakonstantinou","phoneNumber": "6900001017", "role": "user" },
+  { "userId": 18,  "email": "despina.papadimitriou@yahoo.com",     "password": "123456", "name": "Despina Papadimitriou",   "phoneNumber": "6900001018", "role": "user" },
+  { "userId": 19,  "email": "vasilis.andreou@outlook.com",         "password": "123456", "name": "Vasilis Andreou",         "phoneNumber": "6900001019", "role": "user" },
+  { "userId": 20,  "email": "antonia.mavroudis@icloud.com",        "password": "123456", "name": "Antonia Mavroudis",       "phoneNumber": "6900001020", "role": "user" },
+  { "userId": 21,  "email": "stratos.kontos@gmail.com",            "password": "123456", "name": "Stratos Kontos",          "phoneNumber": "6900001021", "role": "user" },
+  { "userId": 22,  "email": "niki.papaioannou@hotmail.com",        "password": "123456", "name": "Niki Papaioannou",        "phoneNumber": "6900001022", "role": "user" },
+  { "userId": 23,  "email": "giannis.tsakalidis@yahoo.com",        "password": "123456", "name": "Giannis Tsakalidis",      "phoneNumber": "6900001023", "role": "user" },
+  { "userId": 24,  "email": "foteini.dimos@outlook.com",           "password": "123456", "name": "Foteini Dimos",           "phoneNumber": "6900001024", "role": "user" },
+  { "userId": 25,  "email": "takis.voulgaris@icloud.com",          "password": "123456", "name": "Takis Voulgaris",         "phoneNumber": "6900001025", "role": "user" },
+  { "userId": 26,  "email": "james.smith@gmail.com",               "password": "123456", "name": "James Smith",             "phoneNumber": "6900001026", "role": "user" },
+  { "userId": 27,  "email": "emma.johnson@hotmail.com",            "password": "123456", "name": "Emma Johnson",            "phoneNumber": "6900001027", "role": "user" },
+  { "userId": 28,  "email": "oliver.williams@yahoo.com",           "password": "123456", "name": "Oliver Williams",         "phoneNumber": "6900001028", "role": "user" },
+  { "userId": 29,  "email": "isabella.brown@outlook.com",          "password": "123456", "name": "Isabella Brown",          "phoneNumber": "6900001029", "role": "user" },
+  { "userId": 30,  "email": "william.jones@icloud.com",            "password": "123456", "name": "William Jones",           "phoneNumber": "6900001030", "role": "user" },
+  { "userId": 31,  "email": "charlotte.miller@gmail.com",          "password": "123456", "name": "Charlotte Miller",        "phoneNumber": "6900001031", "role": "user" },
+  { "userId": 32,  "email": "benjamin.wilson@hotmail.com",         "password": "123456", "name": "Benjamin Wilson",         "phoneNumber": "6900001032", "role": "user" },
+  { "userId": 33,  "email": "amelia.moore@yahoo.com",              "password": "123456", "name": "Amelia Moore",            "phoneNumber": "6900001033", "role": "user" },
+  { "userId": 34,  "email": "elijah.taylor@outlook.com",           "password": "123456", "name": "Elijah Taylor",           "phoneNumber": "6900001034", "role": "user" },
+  { "userId": 35,  "email": "mia.anderson@icloud.com",             "password": "123456", "name": "Mia Anderson",            "phoneNumber": "6900001035", "role": "user" },
+  { "userId": 36,  "email": "mason.thomas@gmail.com",              "password": "123456", "name": "Mason Thomas",            "phoneNumber": "6900001036", "role": "user" },
+  { "userId": 37,  "email": "harper.jackson@hotmail.com",          "password": "123456", "name": "Harper Jackson",          "phoneNumber": "6900001037", "role": "user" },
+  { "userId": 38,  "email": "lucas.white@yahoo.com",               "password": "123456", "name": "Lucas White",             "phoneNumber": "6900001038", "role": "user" },
+  { "userId": 39,  "email": "evelyn.harris@outlook.com",           "password": "123456", "name": "Evelyn Harris",           "phoneNumber": "6900001039", "role": "user" },
+  { "userId": 40,  "email": "logan.martin@icloud.com",             "password": "123456", "name": "Logan Martin",            "phoneNumber": "6900001040", "role": "user" },
+  { "userId": 41,  "email": "carlos.rodriguez@gmail.com",          "password": "123456", "name": "Carlos Rodriguez",        "phoneNumber": "6900001041", "role": "user" },
+  { "userId": 42,  "email": "sofia.garcia@hotmail.com",            "password": "123456", "name": "Sofia Garcia",            "phoneNumber": "6900001042", "role": "user" },
+  { "userId": 43,  "email": "miguel.martinez@yahoo.com",           "password": "123456", "name": "Miguel Martinez",         "phoneNumber": "6900001043", "role": "user" },
+  { "userId": 44,  "email": "isabella.lopez@outlook.com",          "password": "123456", "name": "Isabella Lopez",          "phoneNumber": "6900001044", "role": "user" },
+  { "userId": 45,  "email": "alejandro.hernandez@icloud.com",      "password": "123456", "name": "Alejandro Hernandez",     "phoneNumber": "6900001045", "role": "user" },
+  { "userId": 46,  "email": "valentina.gonzalez@gmail.com",        "password": "123456", "name": "Valentina Gonzalez",      "phoneNumber": "6900001046", "role": "user" },
+  { "userId": 47,  "email": "diego.torres@hotmail.com",            "password": "123456", "name": "Diego Torres",            "phoneNumber": "6900001047", "role": "user" },
+  { "userId": 48,  "email": "camila.ramirez@yahoo.com",            "password": "123456", "name": "Camila Ramirez",          "phoneNumber": "6900001048", "role": "user" },
+  { "userId": 49,  "email": "sebastian.morales@outlook.com",       "password": "123456", "name": "Sebastian Morales",       "phoneNumber": "6900001049", "role": "user" },
+  { "userId": 50,  "email": "lucia.jimenez@icloud.com",            "password": "123456", "name": "Lucia Jimenez",           "phoneNumber": "6900001050", "role": "user" },
+  { "userId": 51,  "email": "marco.rossi@gmail.com",               "password": "123456", "name": "Marco Rossi",             "phoneNumber": "6900001051", "role": "user" },
+  { "userId": 52,  "email": "giulia.ferrari@hotmail.com",          "password": "123456", "name": "Giulia Ferrari",          "phoneNumber": "6900001052", "role": "user" },
+  { "userId": 53,  "email": "luca.bianchi@yahoo.com",              "password": "123456", "name": "Luca Bianchi",            "phoneNumber": "6900001053", "role": "user" },
+  { "userId": 54,  "email": "valentina.esposito@outlook.com",      "password": "123456", "name": "Valentina Esposito",      "phoneNumber": "6900001054", "role": "user" },
+  { "userId": 55,  "email": "andrea.romano@icloud.com",            "password": "123456", "name": "Andrea Romano",           "phoneNumber": "6900001055", "role": "user" },
+  { "userId": 56,  "email": "chiara.colombo@gmail.com",            "password": "123456", "name": "Chiara Colombo",          "phoneNumber": "6900001056", "role": "user" },
+  { "userId": 57,  "email": "matteo.ricci@hotmail.com",            "password": "123456", "name": "Matteo Ricci",            "phoneNumber": "6900001057", "role": "user" },
+  { "userId": 58,  "email": "sara.marino@yahoo.com",               "password": "123456", "name": "Sara Marino",             "phoneNumber": "6900001058", "role": "user" },
+  { "userId": 59,  "email": "alessandro.greco@outlook.com",        "password": "123456", "name": "Alessandro Greco",        "phoneNumber": "6900001059", "role": "user" },
+  { "userId": 60,  "email": "elena.conti@icloud.com",              "password": "123456", "name": "Elena Conti",             "phoneNumber": "6900001060", "role": "user" },
+  { "userId": 61,  "email": "hans.mueller@gmail.com",              "password": "123456", "name": "Hans Mueller",            "phoneNumber": "6900001061", "role": "user" },
+  { "userId": 62,  "email": "lena.schmidt@hotmail.com",            "password": "123456", "name": "Lena Schmidt",            "phoneNumber": "6900001062", "role": "user" },
+  { "userId": 63,  "email": "klaus.fischer@yahoo.com",             "password": "123456", "name": "Klaus Fischer",           "phoneNumber": "6900001063", "role": "user" },
+  { "userId": 64,  "email": "anna.wagner@outlook.com",             "password": "123456", "name": "Anna Wagner",             "phoneNumber": "6900001064", "role": "user" },
+  { "userId": 65,  "email": "thomas.becker@icloud.com",            "password": "123456", "name": "Thomas Becker",           "phoneNumber": "6900001065", "role": "user" },
+  { "userId": 66,  "email": "sabrina.koch@gmail.com",              "password": "123456", "name": "Sabrina Koch",            "phoneNumber": "6900001066", "role": "user" },
+  { "userId": 67,  "email": "felix.hoffmann@hotmail.com",          "password": "123456", "name": "Felix Hoffmann",          "phoneNumber": "6900001067", "role": "user" },
+  { "userId": 68,  "email": "jana.weber@yahoo.com",                "password": "123456", "name": "Jana Weber",              "phoneNumber": "6900001068", "role": "user" },
+  { "userId": 69,  "email": "markus.meyer@outlook.com",            "password": "123456", "name": "Markus Meyer",            "phoneNumber": "6900001069", "role": "user" },
+  { "userId": 70,  "email": "laura.schulz@icloud.com",             "password": "123456", "name": "Laura Schulz",            "phoneNumber": "6900001070", "role": "user" },
+  { "userId": 71,  "email": "jean.dubois@gmail.com",               "password": "123456", "name": "Jean Dubois",             "phoneNumber": "6900001071", "role": "user" },
+  { "userId": 72,  "email": "marie.martin@hotmail.com",            "password": "123456", "name": "Marie Martin",            "phoneNumber": "6900001072", "role": "user" },
+  { "userId": 73,  "email": "pierre.bernard@yahoo.com",            "password": "123456", "name": "Pierre Bernard",          "phoneNumber": "6900001073", "role": "user" },
+  { "userId": 74,  "email": "claire.leroy@outlook.com",            "password": "123456", "name": "Claire Leroy",            "phoneNumber": "6900001074", "role": "user" },
+  { "userId": 75,  "email": "antoine.moreau@icloud.com",           "password": "123456", "name": "Antoine Moreau",          "phoneNumber": "6900001075", "role": "user" },
+  { "userId": 76,  "email": "amelie.simon@gmail.com",              "password": "123456", "name": "Amelie Simon",            "phoneNumber": "6900001076", "role": "user" },
+  { "userId": 77,  "email": "nicolas.laurent@hotmail.com",         "password": "123456", "name": "Nicolas Laurent",         "phoneNumber": "6900001077", "role": "user" },
+  { "userId": 78,  "email": "julie.petit@yahoo.com",               "password": "123456", "name": "Julie Petit",             "phoneNumber": "6900001078", "role": "user" },
+  { "userId": 79,  "email": "alexis.rousseau@outlook.com",         "password": "123456", "name": "Alexis Rousseau",         "phoneNumber": "6900001079", "role": "user" },
+  { "userId": 80,  "email": "camille.dupont@icloud.com",           "password": "123456", "name": "Camille Dupont",          "phoneNumber": "6900001080", "role": "user" },
+  { "userId": 81,  "email": "nikos.papadakis@gmail.com",           "password": "123456", "name": "Nikos Papadakis",         "phoneNumber": "6900001081", "role": "user" },
+  { "userId": 82,  "email": "elena.triantafyllou@hotmail.com",     "password": "123456", "name": "Elena Triantafyllou",     "phoneNumber": "6900001082", "role": "user" },
+  { "userId": 83,  "email": "apostolos.makris@yahoo.com",          "password": "123456", "name": "Apostolos Makris",        "phoneNumber": "6900001083", "role": "user" },
+  { "userId": 84,  "email": "theodosia.lamprou@outlook.com",       "password": "123456", "name": "Theodosia Lamprou",       "phoneNumber": "6900001084", "role": "user" },
+  { "userId": 85,  "email": "manolis.giannakis@icloud.com",        "password": "123456", "name": "Manolis Giannakis",       "phoneNumber": "6900001085", "role": "user" },
+  { "userId": 86,  "email": "irini.katsaros@gmail.com",            "password": "123456", "name": "Irini Katsaros",          "phoneNumber": "6900001086", "role": "user" },
+  { "userId": 87,  "email": "stelios.diamantis@hotmail.com",       "password": "123456", "name": "Stelios Diamantis",       "phoneNumber": "6900001087", "role": "user" },
+  { "userId": 88,  "email": "marika.anagnostopoulou@yahoo.com",    "password": "123456", "name": "Marika Anagnostopoulou",  "phoneNumber": "6900001088", "role": "user" },
+  { "userId": 89,  "email": "thanasis.vlachos@outlook.com",        "password": "123456", "name": "Thanasis Vlachos",        "phoneNumber": "6900001089", "role": "user" },
+  { "userId": 90,  "email": "eirini.chatzigeorgiou@icloud.com",    "password": "123456", "name": "Eirini Chatzigeorgiou",   "phoneNumber": "6900001090", "role": "user" },
+  { "userId": 91,  "email": "ryan.thompson@gmail.com",             "password": "123456", "name": "Ryan Thompson",           "phoneNumber": "6900001091", "role": "user" },
+  { "userId": 92,  "email": "ashley.davis@hotmail.com",            "password": "123456", "name": "Ashley Davis",            "phoneNumber": "6900001092", "role": "user" },
+  { "userId": 93,  "email": "tyler.robinson@yahoo.com",            "password": "123456", "name": "Tyler Robinson",          "phoneNumber": "6900001093", "role": "user" },
+  { "userId": 94,  "email": "madison.clark@outlook.com",           "password": "123456", "name": "Madison Clark",           "phoneNumber": "6900001094", "role": "user" },
+  { "userId": 95,  "email": "nathan.lewis@icloud.com",             "password": "123456", "name": "Nathan Lewis",            "phoneNumber": "6900001095", "role": "user" },
+  { "userId": 96,  "email": "samantha.lee@gmail.com",              "password": "123456", "name": "Samantha Lee",            "phoneNumber": "6900001096", "role": "user" },
+  { "userId": 97,  "email": "andrew.walker@hotmail.com",           "password": "123456", "name": "Andrew Walker",           "phoneNumber": "6900001097", "role": "user" },
+  { "userId": 98,  "email": "brittany.hall@yahoo.com",             "password": "123456", "name": "Brittany Hall",           "phoneNumber": "6900001098", "role": "user" },
+  { "userId": 99,  "email": "joshua.allen@outlook.com",            "password": "123456", "name": "Joshua Allen",            "phoneNumber": "6900001099", "role": "user" },
+  { "userId": 100, "email": "megan.young@icloud.com",              "password": "123456", "name": "Megan Young",             "phoneNumber": "6900001100", "role": "user" }
 ]
