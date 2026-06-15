@@ -26,6 +26,25 @@ export async function getAllProvidersReport(req, res, next) {
   }
 }
 
+export async function getProviderHistory(req, res, next) {
+  try {
+    const { providerName } = req.params;
+    const data = await AnalyticsService.getProviderHistory(providerName);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getGlobalHistory(req, res, next) {
+  try {
+    const data = await AnalyticsService.getGlobalHistory();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getGlobalReport(req, res, next) {
   try {
     const period = req.query.period ?? new Date().toISOString().slice(0, 7);

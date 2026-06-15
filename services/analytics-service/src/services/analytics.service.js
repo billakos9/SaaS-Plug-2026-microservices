@@ -95,6 +95,35 @@ class AnalyticsService {
     };
   }
 
+  static async getProviderHistory(providerName) {
+    const stats = await AnalyticStatRepository.getAllByProvider(providerName);
+    return stats.map(s => ({
+      period:            s.period,
+      totalReservations: s.totalReservations,
+      totalEnergyKwh:    Math.round((s.totalEnergyKwh ?? 0) * 100) / 100,
+      totalRevenue:      Math.round((s.totalRevenue ?? 0) * 100) / 100,
+    }));
+  }
+
+  static async getGlobalHistory() {
+    const stats = await AnalyticStatRepository.getAll();
+    const acc = {};
+    for (const s of stats) {
+      if (!acc[s.period]) acc[s.period] = { period: s.period, totalReservations: 0, totalEnergyKwh: 0, totalRevenue: 0 };
+      acc[s.period].totalReservations += s.totalReservations ?? 0;
+      acc[s.period].totalEnergyKwh    += s.totalEnergyKwh ?? 0;
+      acc[s.period].totalRevenue      += s.totalRevenue ?? 0;
+    }
+    return Object.values(acc)
+      .sort((a, b) => a.period.localeCompare(b.period))
+      .map(s => ({
+        period:            s.period,
+        totalReservations: s.totalReservations,
+        totalEnergyKwh:    Math.round(s.totalEnergyKwh * 100) / 100,
+        totalRevenue:      Math.round(s.totalRevenue * 100) / 100,
+      }));
+  }
+
   static async getGlobalReport(period) {
     const [stats, allChargers] = await Promise.all([
       AnalyticStatRepository.getAllByPeriod(period),

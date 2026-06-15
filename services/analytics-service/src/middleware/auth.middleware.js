@@ -27,7 +27,8 @@ export function requireProviderAuth(req, res, next) {
 }
 
 export function requireSelfProvider(req, res, next) {
-  if (req.provider.providerName !== req.params.providerName) {
+  if (req.user?.role === "admin") return next();
+  if (!req.provider || req.provider.providerName !== req.params.providerName) {
     return next(new AppError(HttpCode.FORBIDDEN, "Access denied: token does not match requested provider"));
   }
   next();
