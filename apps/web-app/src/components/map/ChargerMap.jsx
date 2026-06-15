@@ -8,9 +8,11 @@ import styles from './ChargerMap.module.css';
 const MAX_SAFE_ZOOM = 19;
 const CLUSTER_ZOOM = 15; // Threshold where bubbles disperse
 
-// Professional Pins with saasPlug aesthetic
-const createStationIcon = (status) => {
-  const color = status === 'available' ? '#00c853' : (status === 'occupied' ? '#ffab00' : '#ff1744');
+// Pins: status colours for admin/provider, uniform blue for regular users
+const createStationIcon = (status, colorByStatus = false) => {
+  const color = colorByStatus
+    ? (status === 'available' ? '#00c853' : status === 'occupied' ? '#ffab00' : '#ff1744')
+    : '#00a7b5';
   return divIcon({
     html: `
       <div class="${styles.customMarker}" style="--marker-color: ${color}">
@@ -133,9 +135,9 @@ const MultiStationPopup = ({ chargers, onReserve, isAdmin }) => {
  */
 const SmartMarker = ({ charger, position, onReserve, isAdmin }) => {
   return (
-    <Marker 
-      position={position} 
-      icon={createStationIcon(charger.status)}
+    <Marker
+      position={position}
+      icon={createStationIcon(charger.status, isAdmin)}
     >
       <Popup className={styles.customPopup}>
         <SmartPopup charger={charger} onReserve={onReserve} isAdmin={isAdmin} />
@@ -197,18 +199,16 @@ const ClusterMarkers = ({ items, onReserve, isAdmin }) => {
   }, [items, zoom]);
 
   return clusters.map((c, i) => {
-    // Only highlight as "problematic" if there's an actual hardware/network issue.
-    // 'reserved' and 'occupied' are normal operational states.
-    const hasProblem = c.points.some(p => ['outOfOrder', 'malfunctioning', 'offline', 'out_of_order'].includes(p.status));
+    const hasProblem = isAdmin && c.points.some(p => ['outOfOrder', 'malfunctioning', 'offline', 'out_of_order'].includes(p.status));
 
     if (c.isMulti) {
       return (
-        <Marker 
-          key={`multi-${c.lat}-${c.lon}`} 
-          position={[c.lat, c.lon]} 
+        <Marker
+          key={`multi-${c.lat}-${c.lon}`}
+          position={[c.lat, c.lon]}
           icon={divIcon({
             html: `
-              <div class="${styles.multiMarker}" style="${hasProblem ? 'background: #ff1744; border-color: #ffcdd2;' : ''}">
+              <div class="${styles.multiMarker}" style="${hasProblem ? 'background:#ff1744;border-color:#ffcdd2;box-shadow:0 4px 10px rgba(255,23,68,0.4);' : ''}">
                 <span>${c.points.length}</span>
               </div>
             `,
@@ -239,13 +239,13 @@ const ClusterMarkers = ({ items, onReserve, isAdmin }) => {
     }
 
     return (
-      <Marker 
-        key={`cluster-${i}`} 
-        position={[c.lat, c.lon]} 
+      <Marker
+        key={`cluster-${i}`}
+        position={[c.lat, c.lon]}
         icon={divIcon({
           html: `
-            <div class="${styles.clusterMarker}" style="${hasProblem ? 'background: #ff1744; box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4);' : ''}">
-              <div class="${styles.clusterPulse}" style="${hasProblem ? 'border-color: #ff1744;' : ''}"></div>
+            <div class="${styles.clusterMarker}" style="${hasProblem ? 'background:#ff1744;box-shadow:0 4px 15px rgba(255,23,68,0.4);' : ''}">
+              <div class="${styles.clusterPulse}" style="${hasProblem ? 'border-color:#ff1744;' : ''}"></div>
               <span>${c.points.length}</span>
             </div>
           `,
