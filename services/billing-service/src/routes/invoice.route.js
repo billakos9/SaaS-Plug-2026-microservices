@@ -21,15 +21,15 @@ function requireProvider(req, res, next) {
 }
 
 // Admin-only routes
-invoiceRouter.post(  "/generate",             requireProviderAuth, requireAdmin,    postGenerate);
-invoiceRouter.get(   "/",                     requireProviderAuth, requireAdmin,    getAll);
-invoiceRouter.patch( "/:invoiceId/paid",      requireProviderAuth, requireAdmin,    patchMarkPaid);
+invoiceRouter.post(  "/generate",           requireProviderAuth, requireAdmin,    postGenerate);
+invoiceRouter.get(   "/",                   requireProviderAuth, requireAdmin,    getAll);
+invoiceRouter.patch( "/:invoiceId/paid",    requireProviderAuth, requireAdmin,    patchMarkPaid);
 
 // Provider self-access routes
-invoiceRouter.get(   "/my",                   requireProviderAuth, requireProvider, getByProvider);
-invoiceRouter.patch( "/:invoiceId/pay",       requireProviderAuth, requireProvider, patchPayAsProvider);
+invoiceRouter.get(   "/my",                 requireProviderAuth, requireProvider, getByProvider);
+invoiceRouter.patch( "/:invoiceId/pay",     requireProviderAuth, requireProvider, patchPayAsProvider);
 
 // Accessible by admin OR the owning provider
-invoiceRouter.get(   "/:invoiceId/detail",    requireProviderAuth, getDetail);
+invoiceRouter.get(   "/:invoiceId/detail",  requireProviderAuth, getDetail);
 
 export default invoiceRouter;

@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import AnalyticStatRepository from "../repositories/analytic-stat.repository.js";
+import BilledReservationRepository from "../repositories/billed-reservation.repository.js";
 import InvoiceService from "../services/invoice.service.js";
 
 function previousMonthPeriod() {
@@ -15,24 +15,24 @@ async function generateMonthlyInvoices() {
   const period = previousMonthPeriod();
   console.log(`[invoice-job] Generating invoices for period ${period}`);
 
-  const stats = await AnalyticStatRepository.getAllByPeriod(period);
-  if (!stats.length) {
-    console.log(`[invoice-job] No analytics data for ${period}, skipping`);
+  const providers = await BilledReservationRepository.distinctProvidersForPeriod(period);
+  if (!providers.length) {
+    console.log(`[invoice-job] No billing data for ${period}, skipping`);
     return;
   }
 
   let created = 0;
   let skipped = 0;
 
-  for (const stat of stats) {
+  for (const providerName of providers) {
     try {
-      await InvoiceService.generate({ providerName: stat.providerName, period });
+      await InvoiceService.generate({ providerName, period });
       created++;
     } catch (err) {
       if (err.statusCode === 409) {
         skipped++;
       } else {
-        console.error(`[invoice-job] Failed for ${stat.providerName}: ${err.message}`);
+        console.error(`[invoice-job] Failed for ${providerName}: ${err.message}`);
       }
     }
   }
@@ -41,7 +41,6 @@ async function generateMonthlyInvoices() {
 }
 
 export function startInvoiceGenerationJob() {
-  // Run at 00:00 on the 1st of every month
   cron.schedule("0 0 1 * *", () => {
     generateMonthlyInvoices().catch(err =>
       console.error("[invoice-job] Unhandled error:", err.message)

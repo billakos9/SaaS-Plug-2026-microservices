@@ -16,6 +16,7 @@ services:
       - provider-service
       - admin-service
       - analytics-service
+      - billing-service
       - blueplug-adapter
       - redplug-adapter
       - greenplug-adapter
@@ -51,6 +52,7 @@ services:
       - MONGOOSE_URL=mongodb://auth-db:27017/auth
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+      - PROVIDER_REGISTRATION_CODE=saasplug-provider-2024
     depends_on:
       auth-db:
         condition: service_started
@@ -118,6 +120,24 @@ services:
         condition: service_healthy
       charger-service:
         condition: service_started
+    networks:
+      - backend
+
+  billing-service:
+    build: ./services/billing-service
+    container_name: billing_service
+    ports:
+      - "3012:3000"
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://billing-db:27017/billing
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      billing-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - backend
 
@@ -352,6 +372,16 @@ services:
     networks:
       - backend
 
+  billing-db:
+    image: mongo:8
+    container_name: billing_db
+    ports:
+      - "27022:27017"
+    volumes:
+      - billing_data:/data/db
+    networks:
+      - backend
+
   blueplug-db:
     container_name: bluePlug_db
     image: mongo:8
@@ -391,6 +421,7 @@ volumes:
   analytics_data:
   provider_data:
   admin_data:
+  billing_data:
   blueplug_data:
   redplug_data:
   greenplug_data:

@@ -1,8 +1,7 @@
 import InvoiceRepository from "../repositories/invoice.repository.js";
-import AnalyticStatRepository from "../repositories/analytic-stat.repository.js";
+import BilledReservationRepository from "../repositories/billed-reservation.repository.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
-import { RESERVATION_SERVICE_URL } from "../config/env.js";
 
 class InvoiceService {
   static async generate({ providerName, period }) {
@@ -12,18 +11,17 @@ class InvoiceService {
 
     const invoices  = await InvoiceRepository.findByProviderName(providerName);
     const duplicate = invoices.find((inv) => inv.period === period) ?? null;
-
     if (duplicate) {
       throw new AppError(HttpCode.CONFLICT, "Invoice already exists for this provider and period");
     }
 
-    const stat = await AnalyticStatRepository.getByProviderAndPeriod(providerName, period);
-    if (!stat) {
-      throw new AppError(HttpCode.NOT_FOUND, "No analytics data found for this provider and period");
+    const stats = await BilledReservationRepository.aggregateForPeriod(providerName, period);
+    if (!stats) {
+      throw new AppError(HttpCode.NOT_FOUND, "No billing data found for this provider and period");
     }
 
-    const totalSessions = stat.totalReservations ?? 0;
-    const totalRevenue  = stat.totalRevenue ?? 0;
+    const totalSessions = stats.totalSessions ?? 0;
+    const totalRevenue  = stats.totalRevenue  ?? 0;
 
     const commissionRate   = 0.10;
     const feePerSession    = 0.30;
@@ -71,6 +69,9 @@ class InvoiceService {
     if (!existing) {
       throw new AppError(HttpCode.NOT_FOUND, `Invoice ${numericId} not found`);
     }
+    if (existing.status === "paid") {
+      throw new AppError(HttpCode.CONFLICT, "Invoice is already paid");
+    }
     return InvoiceRepository.markPaid(numericId);
   }
 
@@ -84,24 +85,18 @@ class InvoiceService {
       throw new AppError(HttpCode.FORBIDDEN, "This invoice does not belong to your account");
     }
 
-    const url = `${RESERVATION_SERVICE_URL}/internal/by-provider?providerName=${encodeURIComponent(invoice.providerName)}&period=${invoice.period}`;
-    let reservations = [];
-    try {
-      const res = await fetch(url);
-      if (res.ok) reservations = await res.json();
-    } catch {
-      // reservation-service unreachable — return invoice with empty lines
-    }
+    const raws = await BilledReservationRepository.getForPeriod(invoice.providerName, invoice.period);
 
-    const lines = reservations.map(r => {
-      const durationHrs = (r.duration || 0) / 3600;
-      const energyKwh   = parseFloat((durationHrs * (r.capacityKw || 22)).toFixed(3));
-      const cost        = parseFloat((energyKwh * (r.kwhPrice || 0)).toFixed(2));
+    const lines = raws.map((r) => {
+      const secs       = r.actualDurationSeconds ?? 0;
+      const durationHrs = secs / 3600;
+      const energyKwh  = parseFloat((durationHrs * (r.capacityKw || 22)).toFixed(3));
+      const cost       = parseFloat((energyKwh * (r.kwhPrice || 0)).toFixed(2));
       return {
         reservationId: r.reservationId,
         locationName:  r.locationName || `Charger ${r.chargerId}`,
         date:          r.createdAt,
-        durationMin:   Math.round((r.duration || 0) / 60),
+        durationMin:   Math.round(secs / 60),
         energyKwh,
         kwhPrice:      r.kwhPrice || 0,
         cost,
