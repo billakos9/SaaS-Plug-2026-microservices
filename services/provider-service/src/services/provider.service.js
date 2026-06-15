@@ -43,9 +43,6 @@ class ProviderService {
     if (!providerData.providerName || !providerData.email) {
       throw new AppError(HttpCode.BAD_REQUEST, "Name and email are required");
     }
-    if (!providerData.password) {
-      throw new AppError(HttpCode.BAD_REQUEST, "Password is required");
-    }
     if (!providerData.apiBaseUrl) {
       throw new AppError(HttpCode.BAD_REQUEST, "API base URL is required");
     }

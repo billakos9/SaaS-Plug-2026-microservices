@@ -24,12 +24,15 @@ app.use(unmatchedRouteMiddleware);
 
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startProviderQueueConsumer();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
 
-connectMongoDB();
-setupMessaging();
-startProviderQueueConsumer();
+bootstrap().catch(err => { console.error("Bootstrap failed:", err); process.exit(1); });
 
 export default app;
