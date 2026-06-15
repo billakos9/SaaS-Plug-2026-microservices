@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import { Exchanges, MessageQueues } from "../constants/messaging.js";
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
 let connection = null;
 let channel = null;
@@ -55,4 +55,6 @@ export async function setupMessaging() {
   await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
   await ch.assertQueue(MessageQueues.CHARGER, { durable: true });
   await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
+
+  await ch.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
 }

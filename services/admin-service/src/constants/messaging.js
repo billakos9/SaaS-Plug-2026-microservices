@@ -1,11 +1,13 @@
 export const MessageQueues = Object.freeze({
-  PROVIDER: "admin.provider.events.queue",
-  CHARGER:  "admin.charger.events.queue",
+  PROVIDER:           "admin.provider.events.queue",
+  CHARGER:            "admin.charger.events.queue",
+  ADMIN_REGISTRATION: "admin.registration.queue",
 });
 
 export const Exchanges = Object.freeze({
   PROVIDER: "provider",
   CHARGER:  "charger",
+  ADMIN:    "admin",
 });
 
 export const RoutingKeys = Object.freeze({
@@ -15,4 +17,5 @@ export const RoutingKeys = Object.freeze({
   CHARGER_ADD:     "charger.add",
   CHARGER_UPDATE:  "charger.update",
   CHARGER_DELETE:  "charger.delete",
+  ADMIN_CREATED:   "admin.created",
 });

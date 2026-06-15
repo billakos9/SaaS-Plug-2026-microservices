@@ -51,7 +51,7 @@ export async function deleteUser(id) {
 }
 
 export async function createAdminAccount(data) {
-  const res = await http.post("/admin/accounts", data);
+  const res = await http.post("/auth/admin/register", data);
   return res.data;
 }
 

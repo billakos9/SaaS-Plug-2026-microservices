@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { JWT_SECRET, JWT_EXPIRY, ADMIN_REGISTRATION_KEY } from "../config/env.js";
+import { ADMIN_REGISTRATION_KEY } from "../config/env.js";
 import { HttpCode } from "../constants/http-codes.js";
 import AppError from "../errors/app-error.js";
 import AdminRepository from "../repositories/admin.repository.js";
@@ -50,37 +49,6 @@ class AdminService {
   }
 
   /**
-   * Authenticates an admin using their email and password. If successful, returns a JWT token along with basic admin info. The password is compared using bcrypt, and the token is signed with the JWT_SECRET. The token expiry is determined by JWT_EXPIRY.
-   * @param {string} email - The admin's email address.
-   * @param {string} password - The admin's plaintext password to be verified against the stored hash.
-   * @returns {Promise<Object>} An object containing the JWT token and basic admin info (adminId, email, firstName, lastName).
-   * @throws {AppError} If the email is not found or if the password is incorrect, an AppError with status UNAUTHORIZED is thrown. If there is an issue accessing the database, an AppError with status SERVER_ERROR is thrown.
-   */
-  static async login(email, password) {
-    const admin = await AdminRepository.getByEmail(email);
-    if (!admin) {
-      throw new AppError(HttpCode.UNAUTHORIZED, "Invalid email or password");
-    }
-
-    const match = await bcrypt.compare(password, admin.password);
-    if (!match) {
-      throw new AppError(HttpCode.UNAUTHORIZED, "Invalid email or password");
-    }
-
-    const token = jwt.sign(
-      {
-        adminId: admin.adminId,
-        email: admin.email,
-        role: "admin",
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRY || "24h" },
-    );
-
-    return { token, adminId: admin.adminId, email: admin.email, firstName: admin.firstName, lastName: admin.lastName };
-  }
-
-  /**
    * Retrieves an admin record by their ID. If the admin is not found, an AppError with status NOT_FOUND is thrown. If there is an issue accessing the database, an AppError with status SERVER_ERROR is thrown.
    * @param {number} adminId - The unique identifier of the admin to retrieve.
    * @returns {Promise<Object>} The admin record as a plain JavaScript object.
@@ -88,6 +56,12 @@ class AdminService {
    */
   static async getById(adminId) {
     const admin = await AdminRepository.getById(adminId);
+    if (!admin) throw new AppError(HttpCode.NOT_FOUND, "Admin not found");
+    return admin;
+  }
+
+  static async getByEmail(email) {
+    const admin = await AdminRepository.getByEmail(email);
     if (!admin) throw new AppError(HttpCode.NOT_FOUND, "Admin not found");
     return admin;
   }

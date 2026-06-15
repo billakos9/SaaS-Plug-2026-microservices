@@ -50,9 +50,9 @@ export async function getChannelWithRetry(retries = 5) {
 export async function setupMessaging() {
   const channel = await getChannelWithRetry();
 
-  await channel.assertExchange(Exchanges.USER, "topic", { 
-    durable: true,
-  });
+  await channel.assertExchange(Exchanges.USER, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
 
   await setupAuthConsumers();
 }

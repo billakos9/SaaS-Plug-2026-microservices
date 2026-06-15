@@ -1,50 +1,17 @@
 import AdminService from "../services/admin.service.js";
 import {
-  toAdminRegistrationRequestDTO,
-  toAdminLoginRequestDTO,
   toAdminUpdateRequestDTO,
   toAdminResponseDTO,
   toAdminListDTO,
 } from "../dto/admin.dto.js";
 
 /**
- * Handles POST /admin/auth/register
- * Validates the request body and creates a new admin account.
- *
- * @param {import("express").Request} req
- * @param {import("express").Response} res
- * @returns {Promise<void>} Sends JSON with the created admin profile (201)
- */
-export const register = async (req, res) => {
-  const data = toAdminRegistrationRequestDTO(req.body);
-  const admin = await AdminService.register(data);
-  res.status(201).json(toAdminResponseDTO(admin));
-};
-
-/**
- * Handles POST /admin/auth/login
- * Validates credentials and returns a signed JWT on success.
- *
- * @param {import("express").Request} req
- * @param {import("express").Response} res
- * @returns {Promise<void>} Sends JSON with token and admin details
- */
-export const login = async (req, res) => {
-  const { email, password } = toAdminLoginRequestDTO(req.body);
-  const result = await AdminService.login(email, password);
-  res.json(result);
-};
-
-/**
- * Handles GET /admin/auth/profile
+ * Handles GET /admin/profile
  * Returns the profile of the currently authenticated admin.
- *
- * @param {import("express").Request} req
- * @param {import("express").Response} res
- * @returns {Promise<void>} Sends JSON with the admin's public profile fields
+ * Looks up by email (always in JWT) to support both old adminId tokens and new userId tokens.
  */
 export const getProfile = async (req, res) => {
-  const admin = await AdminService.getById(req.admin.adminId);
+  const admin = await AdminService.getByEmail(req.admin.email);
   res.json(toAdminResponseDTO(admin));
 };
 

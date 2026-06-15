@@ -83,13 +83,15 @@ class ManagementService {
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
   static async registerProvider(body) {
-    const provider = await proxyRequest(`${PROVIDER_SERVICE_URL}/provider/register`, "POST", body);
-    await proxyRequest(`${AUTH_SERVICE_URL}/auth/internal/provider`, "POST", {
+    // auth-service creates the credential and publishes provider.registered event;
+    // provider-service creates its record autonomously via RabbitMQ consumer
+    return proxyRequest(`${AUTH_SERVICE_URL}/auth/internal/provider`, "POST", {
       email: body.email,
       password: body.password,
       providerName: body.providerName,
+      apiBaseUrl: body.apiBaseUrl,
+      apiKey: body.apiKey,
     });
-    return provider;
   }
 
   /**

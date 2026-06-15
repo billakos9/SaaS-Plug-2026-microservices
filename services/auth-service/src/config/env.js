@@ -38,5 +38,6 @@ export const {
     PORT,
     MONGOOSE_URL,
     RABBITMQ_URL,
-    JWT_SECRET
+    JWT_SECRET,
+    PROVIDER_REGISTRATION_CODE,
 } = process.env;

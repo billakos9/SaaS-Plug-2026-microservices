@@ -113,21 +113,12 @@ export async function login(email, password) {
 
   let token = null;
 
-  // Try user auth-service first, then fall back to admin-service
+  // All roles (user, provider, admin) authenticate through auth-service
   try {
     const res = await http.post("/auth/login", { email, password });
     token = res.data?.accessToken || res.data?.token;
   } catch {
-    // auth-service rejected — try admin-service
-  }
-
-  if (!token) {
-    try {
-      const res = await http.post("/admin/login", { email, password });
-      token = res.data?.accessToken || res.data?.token;
-    } catch {
-      // admin-service also rejected
-    }
+    // auth-service rejected
   }
 
   if (!token) {

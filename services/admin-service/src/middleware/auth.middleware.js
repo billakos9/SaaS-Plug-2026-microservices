@@ -21,7 +21,8 @@ export default function authMiddleware(req, res, next) {
       return next(new AppError(HttpCode.FORBIDDEN, "Admin access only"));
     }
 
-    req.admin = decoded;
+    // Support both old tokens (adminId) and new auth-service tokens (userId)
+    req.admin = { ...decoded, adminId: decoded.adminId ?? decoded.userId };
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {

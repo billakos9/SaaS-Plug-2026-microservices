@@ -1,5 +1,6 @@
 import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
+import AdminRepository from "../repositories/admin.repository.js";
 
 /**
  * Registers consumers on the provider and charger queues for observability.
@@ -55,6 +56,31 @@ export async function startEventConsumers() {
       }
 
       channel.ack(message);
+    });
+
+    await channel.assertQueue(MessageQueues.ADMIN_REGISTRATION, { durable: true });
+    await channel.bindQueue(MessageQueues.ADMIN_REGISTRATION, "admin", RoutingKeys.ADMIN_CREATED);
+    await channel.consume(MessageQueues.ADMIN_REGISTRATION, async (message) => {
+      if (!message) return;
+      try {
+        const { userId, email, firstName, lastName } = JSON.parse(message.content.toString());
+        const existing = await AdminRepository.getByEmail(email);
+        if (!existing) {
+          const adminId = await AdminRepository.getNextId();
+          await AdminRepository.create({
+            adminId,
+            firstName: firstName || "Admin",
+            lastName: lastName || "User",
+            email,
+            password: null,
+          });
+          console.log(`[event] admin.created — created profile for ${email} (adminId=${adminId})`);
+        }
+        channel.ack(message);
+      } catch (err) {
+        console.error("[event] admin.created handler error:", err.message);
+        channel.nack(message, false, false);
+      }
     });
 
     console.log("Admin event consumers started.");
