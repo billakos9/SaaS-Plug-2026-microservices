@@ -222,12 +222,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
-    depends_on:
-      - blueplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -241,12 +236,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://redplug-db:27017/redplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
-    depends_on:
-      - redplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -260,12 +250,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
-    depends_on:
-      - greenplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -384,35 +369,6 @@ services:
     networks:
       - backend
 
-  blueplug-db:
-    container_name: bluePlug_db
-    image: mongo:8
-    ports:
-      - "27018:27017"
-    volumes:
-      - blueplug_data:/data/db
-    networks:
-      - backend
-
-  redplug-db:
-    container_name: redPlug_db
-    image: mongo:8
-    ports:
-      - "27019:27017"
-    volumes:
-      - redplug_data:/data/db
-    networks:
-      - backend
-
-  greenplug-db:
-    container_name: greenPlug_db
-    image: mongo:8
-    ports:
-      - "27020:27017"
-    volumes:
-      - greenplug_data:/data/db
-    networks:
-      - backend
 
 # ---------- Volumes ----------
 volumes:
@@ -424,9 +380,6 @@ volumes:
   provider_data:
   admin_data:
   billing_data:
-  blueplug_data:
-  redplug_data:
-  greenplug_data:
 
 # ---------- Network ----------
 networks:
