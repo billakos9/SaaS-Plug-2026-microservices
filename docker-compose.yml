@@ -150,6 +150,7 @@ services:
       - PORT=3000
       - MONGOOSE_URL=mongodb://provider-db:27017/provider
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -180,6 +181,7 @@ services:
       - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000
       - RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000
       - GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000
+      - BILLING_SERVICE_URL=http://billing-service:3000
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
