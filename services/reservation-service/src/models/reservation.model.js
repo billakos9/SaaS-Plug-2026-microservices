@@ -30,6 +30,10 @@ const ReservationSchema = new mongoose.Schema(
       type:    Number,
       default: 30,
     },
+    actualDurationSeconds: {
+      type:    Number,
+      default: null,
+    },
     kwhPrice: {
       type:    Number,
       default: 0,
@@ -42,6 +46,10 @@ const ReservationSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+ReservationSchema.index({ userId: 1, status: 1 });
+ReservationSchema.index({ status: 1, createdAt: 1 });
+ReservationSchema.index({ providerName: 1, status: 1, createdAt: 1 });
 
 const Reservation = mongoose.model("Reservation", ReservationSchema);
 

@@ -117,7 +117,7 @@ class ReservationService {
 
     const updated = await ReservationRepository.updateIfActive(reservationId, {
       status: "cancelled",
-      duration: actualDuration,
+      actualDurationSeconds: actualDuration,
     });
 
     if (!updated) {
@@ -153,7 +153,7 @@ class ReservationService {
 
     const updated = await ReservationRepository.updateIfActive(reservationId, {
       status: "completed",
-      duration: actualDuration,
+      actualDurationSeconds: actualDuration,
     });
 
     if (!updated) {
