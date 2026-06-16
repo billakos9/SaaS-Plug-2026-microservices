@@ -28,3 +28,11 @@ export default function authMiddleware(req, res, next) {
     return next(new AppError(HttpCode.UNAUTHORIZED, "Invalid token"));
   }
 }
+
+export function requireRole(role) {
+  return (req, res, next) => {
+    if (req.user?.role !== role)
+      return next(new AppError(HttpCode.FORBIDDEN, `${role} access only`));
+    next();
+  };
+}
