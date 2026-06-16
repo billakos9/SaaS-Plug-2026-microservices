@@ -34,7 +34,11 @@ class SessionMonitorService {
       
       if (now > expirationTime) {
         console.log(`Reservation ${res.reservationId} expired. Completing...`);
-        await ReservationService.complete(res.reservationId);
+        try {
+          await ReservationService.complete(res.reservationId);
+        } catch (error) {
+          console.error(`Failed to complete reservation ${res.reservationId}:`, error.message);
+        }
       }
     }
   }

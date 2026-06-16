@@ -115,13 +115,17 @@ class ReservationService {
     const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
     const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
-    await ReservationRepository.update(reservationId, { 
-      status: "cancelled", 
-      duration: actualDuration 
+    const updated = await ReservationRepository.updateIfActive(reservationId, {
+      status: "cancelled",
+      duration: actualDuration,
     });
 
+    if (!updated) {
+      throw new AppError(HttpCode.CONFLICT, "Reservation already finalized");
+    }
+
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
-      reservationId: reservation.reservationId,
+      reservationId: updated.reservationId,
       id:            reservation.chargerId,
       status:        "available",
       actualDuration,
@@ -130,7 +134,7 @@ class ReservationService {
       providerName:  reservation.providerName,
     });
 
-    return reservation;
+    return updated;
   }
 
   /**
@@ -147,13 +151,17 @@ class ReservationService {
     const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
     const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
-    await ReservationRepository.update(reservationId, { 
-      status: "completed", 
-      duration: actualDuration 
+    const updated = await ReservationRepository.updateIfActive(reservationId, {
+      status: "completed",
+      duration: actualDuration,
     });
 
+    if (!updated) {
+      throw new AppError(HttpCode.CONFLICT, "Reservation already finalized");
+    }
+
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_COMPLETED, {
-      reservationId: reservation.reservationId,
+      reservationId: updated.reservationId,
       id:            reservation.chargerId,
       status:        "available",
       actualDuration,
@@ -162,7 +170,7 @@ class ReservationService {
       providerName:  reservation.providerName,
     });
 
-    return reservation;
+    return updated;
   }
 }
 
