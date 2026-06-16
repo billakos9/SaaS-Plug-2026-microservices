@@ -2,6 +2,8 @@ import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
+const DLX = "saasplug.dlx";
+
 let connection = null;
 let channel = null;
 
@@ -53,16 +55,10 @@ export async function setupMessaging() {
   await channel.assertExchange(Exchanges.RESERVATION, "topic", {
     durable: true,
   });
+  await channel.assertExchange(DLX, "fanout", { durable: true });
 
-  await channel.assertQueue(MessageQueues.RESERVATION, { durable: true });
+  await channel.assertQueue(MessageQueues.RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await channel.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED);
-
-  await channel.assertQueue(MessageQueues.CHARGER, { durable: true });
-  await channel.bindQueue(
-    MessageQueues.CHARGER,
-    Exchanges.CHARGER,
-    "charger.*",
-  );
 }
 
 /**

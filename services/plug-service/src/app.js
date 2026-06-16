@@ -5,9 +5,14 @@ import { setupMessaging } from "./infrastructure/rabbitMQ.js";
 import { startProviderPolling } from "./jobs/provider-polling.job.js";
 import { PORT } from "./config/env.js";
 
-setupMessaging();
-startChargerQueueConsumer();
-startProviderPolling(PROVIDER_BASE_URLS, 1);
+(async () => {
+  await setupMessaging();
+  await startChargerQueueConsumer();
+  startProviderPolling(PROVIDER_BASE_URLS, 1);
+})().catch((err) => {
+  console.error("[Plug Service] Bootstrap failed:", err.message);
+  process.exit(1);
+});
 
 const port = PORT ?? 3000;
 http.createServer((req, res) => {
