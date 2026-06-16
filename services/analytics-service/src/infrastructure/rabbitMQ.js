@@ -2,6 +2,8 @@ import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
+const DLX = "saasplug.dlx";
+
 let connection = null;
 let channel    = null;
 
@@ -29,7 +31,8 @@ export async function startConsuming(handler) {
   const ch = await getChannelWithRetry();
 
   await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.ANALYTICS_RESERVATION, { durable: true });
+  await ch.assertExchange(DLX, "fanout", { durable: true });
+  await ch.assertQueue(MessageQueues.ANALYTICS_RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await ch.bindQueue(
     MessageQueues.ANALYTICS_RESERVATION,
     Exchanges.RESERVATION,
@@ -48,8 +51,13 @@ export async function startConsuming(handler) {
 
   ch.consume(MessageQueues.ANALYTICS_RESERVATION, async (msg) => {
     if (!msg) return;
-    await handler(msg);
-    ch.ack(msg);
+    try {
+      await handler(msg);
+      ch.ack(msg);
+    } catch (err) {
+      console.error("[analytics-consumer] Error processing message:", err.message);
+      ch.nack(msg, false, false);
+    }
   });
 
   console.log(`Analytics service consuming from ${MessageQueues.ANALYTICS_RESERVATION}`);
