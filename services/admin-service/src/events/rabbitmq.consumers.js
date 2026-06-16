@@ -17,49 +17,59 @@ export async function startEventConsumers() {
     await channel.assertExchange(DLX, "fanout", { durable: true });
 
     await channel.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
-    await channel.consume(MessageQueues.PROVIDER, (message) => {
+    await channel.consume(MessageQueues.PROVIDER, async (message) => {
       if (!message) return;
-      const routingKey = message.fields.routingKey;
-      const data = JSON.parse(message.content.toString());
+      try {
+        const routingKey = message.fields.routingKey;
+        const data = JSON.parse(message.content.toString());
 
-      switch (routingKey) {
-        case RoutingKeys.PROVIDER_ADD:
-          console.log(`[event] provider.add — providerId=${data.providerId} name=${data.providerName}`);
-          break;
-        case RoutingKeys.PROVIDER_UPDATE:
-          console.log(`[event] provider.update — providerId=${data.providerId}`);
-          break;
-        case RoutingKeys.PROVIDER_DELETE:
-          console.log(`[event] provider.delete — providerId=${data.providerId}`);
-          break;
-        default:
-          console.log(`[event] unhandled provider event: ${routingKey}`);
+        switch (routingKey) {
+          case RoutingKeys.PROVIDER_ADD:
+            console.log(`[event] provider.add — providerId=${data.providerId} name=${data.providerName}`);
+            break;
+          case RoutingKeys.PROVIDER_UPDATE:
+            console.log(`[event] provider.update — providerId=${data.providerId}`);
+            break;
+          case RoutingKeys.PROVIDER_DELETE:
+            console.log(`[event] provider.delete — providerId=${data.providerId}`);
+            break;
+          default:
+            console.log(`[event] unhandled provider event: ${routingKey}`);
+        }
+
+        channel.ack(message);
+      } catch (err) {
+        console.error("[event] provider consumer error:", err.message);
+        channel.nack(message, false, false);
       }
-
-      channel.ack(message);
     });
 
     await channel.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
-    await channel.consume(MessageQueues.CHARGER, (message) => {
+    await channel.consume(MessageQueues.CHARGER, async (message) => {
       if (!message) return;
-      const routingKey = message.fields.routingKey;
-      const data = JSON.parse(message.content.toString());
+      try {
+        const routingKey = message.fields.routingKey;
+        const data = JSON.parse(message.content.toString());
 
-      switch (routingKey) {
-        case RoutingKeys.CHARGER_ADD:
-          console.log(`[event] charger.add — chargerId=${data.id} provider=${data.ProviderName}`);
-          break;
-        case RoutingKeys.CHARGER_UPDATE:
-          console.log(`[event] charger.update — chargerId=${data.id}`);
-          break;
-        case RoutingKeys.CHARGER_DELETE:
-          console.log(`[event] charger.delete — chargerId=${data.id}`);
-          break;
-        default:
-          console.log(`[event] unhandled charger event: ${routingKey}`);
+        switch (routingKey) {
+          case RoutingKeys.CHARGER_ADD:
+            console.log(`[event] charger.add — chargerId=${data.id} provider=${data.ProviderName}`);
+            break;
+          case RoutingKeys.CHARGER_UPDATE:
+            console.log(`[event] charger.update — chargerId=${data.id}`);
+            break;
+          case RoutingKeys.CHARGER_DELETE:
+            console.log(`[event] charger.delete — chargerId=${data.id}`);
+            break;
+          default:
+            console.log(`[event] unhandled charger event: ${routingKey}`);
+        }
+
+        channel.ack(message);
+      } catch (err) {
+        console.error("[event] charger consumer error:", err.message);
+        channel.nack(message, false, false);
       }
-
-      channel.ack(message);
     });
 
     await channel.assertQueue(MessageQueues.ADMIN_REGISTRATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
