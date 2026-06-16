@@ -2,7 +2,7 @@ import express from "express";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import chargerPointRouter from "./routes/charger.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -29,5 +29,10 @@ connectMongoDB();
 setupMessaging();
 startChargerQueueConsumer();
 startReservationQueueConsumer();
+
+onReconnect(async () => {
+  await startChargerQueueConsumer();
+  await startReservationQueueConsumer();
+});
 
 export default app;

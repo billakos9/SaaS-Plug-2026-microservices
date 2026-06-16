@@ -1,13 +1,14 @@
 import http from "node:http";
 import { PROVIDER_BASE_URLS } from "./constants/provider-base-url.js";
 import { startChargerQueueConsumer } from "./events/rabbitmq.consumer.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import { startProviderPolling } from "./jobs/provider-polling.job.js";
 import { PORT } from "./config/env.js";
 
 (async () => {
   await setupMessaging();
   await startChargerQueueConsumer();
+  onReconnect(startChargerQueueConsumer);
   startProviderPolling(PROVIDER_BASE_URLS, 1);
 })().catch((err) => {
   console.error("[Plug Service] Bootstrap failed:", err.message);

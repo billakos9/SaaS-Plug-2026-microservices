@@ -8,7 +8,7 @@ import express from "express";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import providerRouter from "./routes/provider.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -28,6 +28,7 @@ async function bootstrap() {
   await connectMongoDB();
   await setupMessaging();
   await startProviderQueueConsumer();
+  onReconnect(startProviderQueueConsumer);
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

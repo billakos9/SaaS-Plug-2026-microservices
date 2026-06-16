@@ -2,8 +2,9 @@ import express from "express";
 import bcrypt from "bcrypt";
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import AuthUserRepository from "./repositories/auth-user.repository.js";
+import { setupAuthConsumers } from "./events/rabbitmq.consumers.js";
 import authRouter from "./routes/auth.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -39,6 +40,7 @@ async function bootstrap() {
   await connectMongoDB();
   await migrateAdminAccounts();
   await setupMessaging();
+  onReconnect(setupAuthConsumers);
   app.listen(PORT, () => {
     console.log(`Auth service running on http://localhost:${PORT}`);
   });

@@ -3,6 +3,7 @@ import express from "express";
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
 import { startConsumers } from "./events/rabbitmq.consumers.js";
+import { onReconnect } from "./infrastructure/rabbitMQ.js";
 import analyticsRouter from "./routes/analytics.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -23,6 +24,7 @@ app.listen(PORT, () => {
 async function bootstrap() {
   await connectMongoDB();
   await startConsumers();
+  onReconnect(startConsumers);
 }
 
 bootstrap().catch(console.error);
