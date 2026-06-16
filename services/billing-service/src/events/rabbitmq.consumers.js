@@ -2,11 +2,14 @@ import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import BilledReservationRepository from "../repositories/billed-reservation.repository.js";
 
+const DLX = "saasplug.dlx";
+
 export async function startBillingConsumers() {
   const channel = await getChannelWithRetry();
 
   await channel.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
-  await channel.assertQueue(MessageQueues.BILLING_RESERVATION, { durable: true });
+  await channel.assertExchange(DLX, "fanout", { durable: true });
+  await channel.assertQueue(MessageQueues.BILLING_RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED);
   await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED);
   await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_COMPLETED);

@@ -2,6 +2,8 @@ import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
+const DLX = "saasplug.dlx";
+
 let connection = null;
 let channel = null;
 
@@ -48,12 +50,14 @@ export async function getChannelWithRetry(retries = 5) {
 export async function setupMessaging() {
   const ch = await getChannelWithRetry();
 
+  await ch.assertExchange(DLX, "fanout", { durable: true });
+
   await ch.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.PROVIDER, { durable: true });
+  await ch.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.*");
 
   await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.CHARGER, { durable: true });
+  await ch.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
 
   await ch.assertExchange(Exchanges.ADMIN, "topic", { durable: true });

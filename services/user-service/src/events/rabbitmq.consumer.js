@@ -2,11 +2,14 @@ import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import UserService from "../services/user.service.js";
 
+const DLX = "saasplug.dlx";
+
 export async function startUserQueueConsumer() {
   const channel = await getChannelWithRetry();
 
   await channel.assertQueue(MessageQueues.USER_PROFILE, {
     durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
   });
 
   await channel.consume(MessageQueues.USER_PROFILE, async (message) => {

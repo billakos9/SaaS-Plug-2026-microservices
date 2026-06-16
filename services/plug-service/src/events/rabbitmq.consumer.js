@@ -3,6 +3,8 @@ import { PlugAdapterHttpClient } from "../http-client.js";
 import { PROVIDER_BASE_URLS } from "../constants/provider-base-url.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 
+const DLX = "saasplug.dlx";
+
 /**
  * Starts a RabbitMQ consumer for the Plug Service.
  *
@@ -30,6 +32,7 @@ export async function startChargerQueueConsumer() {
 
     await channel.assertQueue(MessageQueues.RESERVATION, {
       durable: true,
+      arguments: { "x-dead-letter-exchange": DLX },
     });
 
     await channel.consume(MessageQueues.RESERVATION, async (message) => {

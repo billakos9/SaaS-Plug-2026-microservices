@@ -2,6 +2,8 @@ import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import AdminRepository from "../repositories/admin.repository.js";
 
+const DLX = "saasplug.dlx";
+
 /**
  * Registers consumers on the provider and charger queues for observability.
  * Admin-service is passive — it logs received events but does not mutate other services.
@@ -12,7 +14,9 @@ export async function startEventConsumers() {
   try {
     const channel = await getChannelWithRetry();
 
-    await channel.assertQueue(MessageQueues.PROVIDER, { durable: true });
+    await channel.assertExchange(DLX, "fanout", { durable: true });
+
+    await channel.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
     await channel.consume(MessageQueues.PROVIDER, (message) => {
       if (!message) return;
       const routingKey = message.fields.routingKey;
@@ -35,7 +39,7 @@ export async function startEventConsumers() {
       channel.ack(message);
     });
 
-    await channel.assertQueue(MessageQueues.CHARGER, { durable: true });
+    await channel.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
     await channel.consume(MessageQueues.CHARGER, (message) => {
       if (!message) return;
       const routingKey = message.fields.routingKey;
@@ -58,7 +62,7 @@ export async function startEventConsumers() {
       channel.ack(message);
     });
 
-    await channel.assertQueue(MessageQueues.ADMIN_REGISTRATION, { durable: true });
+    await channel.assertQueue(MessageQueues.ADMIN_REGISTRATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
     await channel.bindQueue(MessageQueues.ADMIN_REGISTRATION, "admin", RoutingKeys.ADMIN_CREATED);
     await channel.consume(MessageQueues.ADMIN_REGISTRATION, async (message) => {
       if (!message) return;

@@ -2,10 +2,13 @@ import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import ProviderService from "../services/provider.service.js";
 
+const DLX = "saasplug.dlx";
+
 export async function startProviderQueueConsumer() {
   const ch = await getChannelWithRetry();
 
-  await ch.assertQueue(MessageQueues.PROVIDER_REGISTRATION, { durable: true });
+  await ch.assertExchange(DLX, "fanout", { durable: true });
+  await ch.assertQueue(MessageQueues.PROVIDER_REGISTRATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await ch.bindQueue(MessageQueues.PROVIDER_REGISTRATION, Exchanges.PROVIDER, RoutingKeys.PROVIDER_REGISTERED);
 
   ch.consume(MessageQueues.PROVIDER_REGISTRATION, async (msg) => {
