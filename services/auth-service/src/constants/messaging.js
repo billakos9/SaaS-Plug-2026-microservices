@@ -9,5 +9,6 @@ export const RoutingKeys = Object.freeze({
   USER_UPDATED: "user.updated",
   USER_DELETED: "user.deleted",
   PROVIDER_REGISTERED: "provider.registered",
+  PROVIDER_DELETE: "provider.delete",
   ADMIN_CREATED: "admin.created",
 });

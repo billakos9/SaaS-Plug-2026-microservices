@@ -101,12 +101,21 @@ class ProviderService {
       throw new AppError(HttpCode.BAD_REQUEST, "Provider ID is required for deletion");
     }
 
-    const result = await ProviderRepository.delete(providerId);
-    if (result.deletedCount === 0) {
+    const existing = await ProviderRepository.getById(providerId);
+    if (!existing) {
       throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
     }
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, { providerId });
+    const result = await ProviderRepository.delete(providerId);
+
+    if (!result?.deletedCount) {
+      throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
+    }
+
+    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, {
+      providerName: existing.providerName,
+      email: existing.email,
+    });
 
     return result;
   }

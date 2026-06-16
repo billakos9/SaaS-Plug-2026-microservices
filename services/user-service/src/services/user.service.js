@@ -63,7 +63,14 @@ class UserService {
       throw new AppError(HttpCode.NOT_FOUND, "User not found");
     }
 
-    return UserRepository.delete(userId);
+    const result = await UserRepository.delete(userId);
+
+    await publishEvent(Exchanges.USER, RoutingKeys.USER_DELETED, {
+      userId: existing.userId,
+      email: existing.email,
+    });
+
+    return result;
   }
 
   static async syncCreatedUser(userData) {

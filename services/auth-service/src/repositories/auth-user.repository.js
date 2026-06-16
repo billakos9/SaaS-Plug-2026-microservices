@@ -32,6 +32,10 @@ class AuthUserRepository {
       { new: true, runValidators: true }
     ).lean();
   }
+
+  static async deleteByEmail(email) {
+    return AuthUser.findOneAndDelete({ email: email.toLowerCase() }).lean();
+  }
 }
 
 export default AuthUserRepository;
