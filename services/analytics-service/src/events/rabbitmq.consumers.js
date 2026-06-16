@@ -1,7 +1,27 @@
-import { startConsuming } from "../infrastructure/rabbitMQ.js";
+import { startConsuming, getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import AnalyticStatRepository from "../repositories/analytic-stat.repository.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
+
+const DLX = "saasplug.dlx";
 
 export async function startConsumers() {
+  const ch = await getChannelWithRetry();
+  const TOKEN_REVOKED_QUEUE = "analytics.token.revoked.queue";
+  await ch.assertExchange("auth", "topic", { durable: true });
+  await ch.assertQueue(TOKEN_REVOKED_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await ch.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+  ch.consume(TOKEN_REVOKED_QUEUE, async (msg) => {
+    if (!msg) return;
+    try {
+      const { email } = JSON.parse(msg.content.toString());
+      if (email) addRevoked(email);
+      ch.ack(msg);
+    } catch (err) {
+      console.error("[revocation] error:", err.message);
+      ch.nack(msg, false, false);
+    }
+  });
+
   await startConsuming(async (msg) => {
     const routingKey = msg.fields.routingKey;
     const payload = JSON.parse(msg.content.toString());

@@ -1,6 +1,7 @@
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import BilledReservationRepository from "../repositories/billed-reservation.repository.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
 
 const DLX = "saasplug.dlx";
 
@@ -58,4 +59,20 @@ export async function startBillingConsumers() {
   });
 
   console.log(`Billing consumers started on ${MessageQueues.BILLING_RESERVATION}`);
+
+  const TOKEN_REVOKED_QUEUE = "billing.token.revoked.queue";
+  await channel.assertExchange("auth", "topic", { durable: true });
+  await channel.assertQueue(TOKEN_REVOKED_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+  await channel.consume(TOKEN_REVOKED_QUEUE, async (msg) => {
+    if (!msg) return;
+    try {
+      const { email } = JSON.parse(msg.content.toString());
+      if (email) addRevoked(email);
+      channel.ack(msg);
+    } catch (err) {
+      console.error("[revocation] error:", err.message);
+      channel.nack(msg, false, false);
+    }
+  });
 }

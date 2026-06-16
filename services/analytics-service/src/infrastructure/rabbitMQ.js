@@ -57,7 +57,7 @@ async function getChannel() {
   return channelPromise;
 }
 
-async function getChannelWithRetry(retries = 5) {
+export async function getChannelWithRetry(retries = 5) {
   while (retries) {
     try {
       return await getChannel();

@@ -94,6 +94,7 @@ export async function setupMessaging() {
   await channel.assertExchange(Exchanges.USER, "topic", { durable: true });
   await channel.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
   await channel.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.AUTH, "topic", { durable: true });
 
   await setupAuthConsumers();
 }

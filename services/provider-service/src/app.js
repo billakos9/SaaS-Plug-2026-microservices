@@ -12,7 +12,7 @@ import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import providerRouter from "./routes/provider.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
-import { startProviderQueueConsumer } from "./events/rabbitmq.consumers.js";
+import { startProviderQueueConsumer, startTokenRevocationConsumer } from "./events/rabbitmq.consumers.js";
 
 const app = express();
 app.use(express.json());
@@ -28,7 +28,11 @@ async function bootstrap() {
   await connectMongoDB();
   await setupMessaging();
   await startProviderQueueConsumer();
-  onReconnect(startProviderQueueConsumer);
+  await startTokenRevocationConsumer();
+  onReconnect(async () => {
+    await startProviderQueueConsumer();
+    await startTokenRevocationConsumer();
+  });
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

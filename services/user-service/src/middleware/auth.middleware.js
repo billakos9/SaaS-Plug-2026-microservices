@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import { HttpCode } from "../constants/http-codes.js";
 import AppError from "../errors/app-error.js";
+import { revokedEmails } from "../lib/revoked-tokens.js";
 
 export default function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -18,6 +19,9 @@ export default function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    if (revokedEmails.has(decoded.email)) {
+      return next(new AppError(HttpCode.UNAUTHORIZED, "Token revoked"));
+    }
     req.user = decoded;
     next();
   } catch (error) {

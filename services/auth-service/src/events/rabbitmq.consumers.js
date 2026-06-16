@@ -1,6 +1,7 @@
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AuthUserRepository from "../repositories/auth-user.repository.js";
-import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
+import { getChannelWithRetry, publishEvent } from "../infrastructure/rabbitMQ.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
 
 const DLX = "saasplug.dlx";
 
@@ -12,6 +13,7 @@ export async function setupAuthConsumers() {
   const channel = await getChannelWithRetry();
 
   await channel.assertExchange(DLX, "fanout", { durable: true });
+  await channel.assertExchange(Exchanges.AUTH, "topic", { durable: true });
 
   // --- user.updated consumer ---
   await channel.assertExchange(Exchanges.USER, "topic", { durable: true });
@@ -61,6 +63,8 @@ export async function setupAuthConsumers() {
       }
 
       await AuthUserRepository.deleteByEmail(email);
+      addRevoked(email);
+      await publishEvent(Exchanges.AUTH, RoutingKeys.TOKEN_REVOKED, { email });
       console.log(`[Auth Service] Deleted auth credentials for user with email ${email}`);
       channel.ack(msg);
     } catch (err) {
@@ -90,6 +94,8 @@ export async function setupAuthConsumers() {
       }
 
       await AuthUserRepository.deleteByEmail(email);
+      addRevoked(email);
+      await publishEvent(Exchanges.AUTH, RoutingKeys.TOKEN_REVOKED, { email });
       console.log(`[Auth Service] Deleted auth credentials for provider with email ${email}`);
       channel.ack(msg);
     } catch (err) {

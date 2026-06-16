@@ -1,6 +1,7 @@
 import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import AdminRepository from "../repositories/admin.repository.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
 
 const DLX = "saasplug.dlx";
 
@@ -93,6 +94,22 @@ export async function startEventConsumers() {
         channel.ack(message);
       } catch (err) {
         console.error("[event] admin.created handler error:", err.message);
+        channel.nack(message, false, false);
+      }
+    });
+
+    const TOKEN_REVOKED_QUEUE = "admin.token.revoked.queue";
+    await channel.assertExchange("auth", "topic", { durable: true });
+    await channel.assertQueue(TOKEN_REVOKED_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+    await channel.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+    await channel.consume(TOKEN_REVOKED_QUEUE, async (message) => {
+      if (!message) return;
+      try {
+        const { email } = JSON.parse(message.content.toString());
+        if (email) addRevoked(email);
+        channel.ack(message);
+      } catch (err) {
+        console.error("[revocation] error:", err.message);
         channel.nack(message, false, false);
       }
     });

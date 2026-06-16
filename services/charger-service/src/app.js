@@ -9,6 +9,7 @@ import errorMiddleware from "./middleware/error.middleware.js";
 import {
   startChargerQueueConsumer,
   startReservationQueueConsumer,
+  startTokenRevocationConsumer,
 } from "./events/rabbitmq.consumers.js";
 
 const app = express();
@@ -29,10 +30,12 @@ connectMongoDB();
 setupMessaging();
 startChargerQueueConsumer();
 startReservationQueueConsumer();
+startTokenRevocationConsumer();
 
 onReconnect(async () => {
   await startChargerQueueConsumer();
   await startReservationQueueConsumer();
+  await startTokenRevocationConsumer();
 });
 
 export default app;

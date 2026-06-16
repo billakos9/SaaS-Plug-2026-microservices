@@ -8,7 +8,7 @@ let channelPromise = null;
 
 const reconnectHandlers = [];
 
-function onReconnect(fn) {
+export function onReconnect(fn) {
   reconnectHandlers.push(fn);
 }
 
