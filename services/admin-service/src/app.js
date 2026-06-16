@@ -19,14 +19,16 @@ app.use("/admin", adminRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Admin service running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startEventConsumers();
+  onReconnect(startEventConsumers);
+  app.listen(PORT, () => {
+    console.log(`Admin service running on http://localhost:${PORT}`);
+  });
+}
 
-connectMongoDB();
-setupMessaging();
-startEventConsumers();
-
-onReconnect(startEventConsumers);
+bootstrap();
 
 export default app;
