@@ -11,7 +11,7 @@ import ManagementService from "../services/management.service.js";
  * @returns {Promise<void>} Sends JSON array of provider objects
  */
 export const getAllProviders = async (req, res) => {
-  res.json(await ManagementService.getAllProviders());
+  res.json(await ManagementService.getAllProviders(req.headers["authorization"]));
 };
 
 /**
@@ -23,7 +23,7 @@ export const getAllProviders = async (req, res) => {
  * @returns {Promise<void>} Sends JSON object of the matching provider
  */
 export const getProviderById = async (req, res) => {
-  res.json(await ManagementService.getProviderById(req.params.id));
+  res.json(await ManagementService.getProviderById(req.params.id, req.headers["authorization"]));
 };
 
 /**
@@ -48,7 +48,7 @@ export const registerProvider = async (req, res) => {
  * @returns {Promise<void>} Sends JSON of the updated provider
  */
 export const updateProvider = async (req, res) => {
-  res.json(await ManagementService.updateProvider(req.params.id, req.body));
+  res.json(await ManagementService.updateProvider(req.params.id, req.body, req.headers["authorization"]));
 };
 
 /**
@@ -60,7 +60,7 @@ export const updateProvider = async (req, res) => {
  * @returns {Promise<void>} Sends JSON with the deletion result
  */
 export const deleteProvider = async (req, res) => {
-  res.json(await ManagementService.deleteProvider(req.params.id));
+  res.json(await ManagementService.deleteProvider(req.params.id, req.headers["authorization"]));
 };
 
 // ── Users ─────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ export const deleteProvider = async (req, res) => {
  * @returns {Promise<void>} Sends JSON array of user objects
  */
 export const getAllUsers = async (req, res) => {
-  res.json(await ManagementService.getAllUsers());
+  res.json(await ManagementService.getAllUsers(req.headers["authorization"]));
 };
 
 /**
@@ -86,7 +86,7 @@ export const getAllUsers = async (req, res) => {
  * @returns {Promise<void>} Sends JSON object of the matching user
  */
 export const getUserById = async (req, res) => {
-  res.json(await ManagementService.getUserById(req.params.id));
+  res.json(await ManagementService.getUserById(req.params.id, req.headers["authorization"]));
 };
 
 /**
@@ -98,7 +98,7 @@ export const getUserById = async (req, res) => {
  * @returns {Promise<void>} Sends JSON with the deletion result
  */
 export const deleteUser = async (req, res) => {
-  res.json(await ManagementService.deleteUser(req.params.id));
+  res.json(await ManagementService.deleteUser(req.params.id, req.headers["authorization"]));
 };
 
 // ── Chargers ──────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import { authMiddleware, requireRole } from "../middleware/auth.middleware.js";
 import {
   getAllProviders,
   getProviderById,
@@ -10,10 +10,11 @@ import {
 
 const providerRouter = Router();
 
-providerRouter.get("/",           getAllProviders);
-providerRouter.get("/:id",        getProviderById);
-providerRouter.post("/register",  registerProvider);
-providerRouter.put("/update/:id", updateProvider);
-providerRouter.delete("/delete/:id", deleteProvider);
+providerRouter.use(authMiddleware);
+providerRouter.get("/",              getAllProviders);
+providerRouter.get("/:id",           getProviderById);
+providerRouter.post("/register",     requireRole("admin"), registerProvider);
+providerRouter.put("/update/:id",    requireRole("admin"), updateProvider);
+providerRouter.delete("/delete/:id", requireRole("admin"), deleteProvider);
 
 export default providerRouter;

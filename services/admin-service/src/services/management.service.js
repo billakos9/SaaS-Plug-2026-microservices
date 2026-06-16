@@ -11,12 +11,13 @@ import { HttpCode } from "../constants/http-codes.js";
  * @returns {Promise<Object>} The parsed JSON response from the downstream service.
  * @throws {AppError} If the downstream service returns a non-OK status or if there is a network error.
  */
-async function proxyRequest(url, method = "GET", body = null) {
+async function proxyRequest(url, method = "GET", body = null, token = null) {
   const options = {
     method,
     headers: { "Content-Type": "application/json" },
   };
 
+  if (token) options.headers["Authorization"] = token;
   if (body) options.body = JSON.stringify(body);
 
   let res;
@@ -62,8 +63,8 @@ class ManagementService {
    * @returns {Promise<Array>} A promise resolving to an array of provider objects.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getAllProviders() {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/`);
+  static getAllProviders(token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/`, "GET", null, token);
   }
 
   /**
@@ -72,8 +73,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getProviderById(id) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/${id}`);
+  static getProviderById(id, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/${id}`, "GET", null, token);
   }
 
   /**
@@ -101,8 +102,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the updated provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static updateProvider(id, body) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/update/${id}`, "PUT", body);
+  static updateProvider(id, body, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/update/${id}`, "PUT", body, token);
   }
 
   /**
@@ -111,8 +112,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the deleted provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static deleteProvider(id) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/delete/${id}`, "DELETE");
+  static deleteProvider(id, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/delete/${id}`, "DELETE", null, token);
   }
 
   // ── Users ─────────────────────────────────────────────────────────────────
@@ -122,8 +123,8 @@ class ManagementService {
    * @returns {Promise<Array>} A promise resolving to an array of user objects.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getAllUsers() {
-    return proxyRequest(`${USER_SERVICE_URL}/user/`);
+  static getAllUsers(token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/`, "GET", null, token);
   }
 
   /**
@@ -132,8 +133,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the user object.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getUserById(id) {
-    return proxyRequest(`${USER_SERVICE_URL}/user/${id}`);
+  static getUserById(id, token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/${id}`, "GET", null, token);
   }
 
   /**
@@ -142,8 +143,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the deleted user object.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static deleteUser(id) {
-    return proxyRequest(`${USER_SERVICE_URL}/user/delete/${id}`, "DELETE");
+  static deleteUser(id, token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/delete/${id}`, "DELETE", null, token);
   }
 
   // ── Chargers ──────────────────────────────────────────────────────────────
