@@ -1,4 +1,4 @@
-import { PROVIDER_SERVICE_URL, CHARGER_SERVICE_URL, ANALYTICS_SERVICE_URL } from "../config/env.js";
+import { PROVIDER_SERVICE_URL, ANALYTICS_SERVICE_URL } from "../config/env.js";
 
 /**
  * Fetches data from a downstream service.
@@ -34,9 +34,8 @@ class AnalyticsService {
    * @returns {Promise<Object>} Aggregated stats snapshot
    */
   static async getGlobalStats(token = null) {
-    const [providers, chargers, globalReport] = await Promise.all([
+    const [providers, globalReport] = await Promise.all([
       safeFetch(`${PROVIDER_SERVICE_URL}/provider`, token),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`, token),
       safeFetch(`${ANALYTICS_SERVICE_URL}/analytics/global`, token),
     ]);
 
@@ -44,20 +43,9 @@ class AnalyticsService {
       total: providers?.length ?? "unavailable",
     };
 
-    let chargerStats = { total: "unavailable" };
-
-    if (Array.isArray(chargers)) {
-      const byStatus = chargers.reduce((acc, c) => {
-        const s = c.status ?? "unknown";
-        acc[s] = (acc[s] ?? 0) + 1;
-        return acc;
-      }, {});
-
-      chargerStats = {
-        total: chargers.length,
-        byStatus,
-      };
-    }
+    const chargerStats = globalReport?.chargersByStatus
+      ? { total: globalReport.totalChargers ?? 0, byStatus: globalReport.chargersByStatus }
+      : { total: "unavailable" };
 
     return {
       providers:   providerStats,
@@ -77,13 +65,12 @@ class AnalyticsService {
    * @returns {Promise<Object>} The breakdown data or an error indicator.
    */
   static async getProviderChargerBreakdown(token = null) {
-    const [providers, chargers, providersReport] = await Promise.all([
+    const [providers, providersReport] = await Promise.all([
       safeFetch(`${PROVIDER_SERVICE_URL}/provider`, token),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`, token),
       safeFetch(`${ANALYTICS_SERVICE_URL}/analytics/providers`, token),
     ]);
 
-    if (!Array.isArray(providers) || !Array.isArray(chargers)) {
+    if (!Array.isArray(providers)) {
       return { available: false };
     }
 
@@ -96,23 +83,13 @@ class AnalyticsService {
 
     const breakdown = providers.map((p) => {
       const report = providerReportMap[p.providerName];
-      const providerChargers = chargers.filter(
-        (c) => c.ProviderName === p.providerName,
-      );
-
-      const byStatus = providerChargers.reduce((acc, c) => {
-        const s = c.status ?? "unknown";
-        acc[s] = (acc[s] ?? 0) + 1;
-        return acc;
-      }, {});
-
       return {
-        providerId:   p.providerId,
-        providerName: p.providerName,
-        totalChargers: providerChargers.length,
-        chargersByStatus: byStatus,
-        totalRevenue: report?.totalRevenue ?? 0,
-        totalEnergyKWh: report?.totalEnergyKwh ?? 0,
+        providerId:       p.providerId,
+        providerName:     p.providerName,
+        totalChargers:    report?.totalChargers ?? 0,
+        chargersByStatus: report?.chargersByStatus ?? {},
+        totalRevenue:     report?.totalRevenue ?? 0,
+        totalEnergyKWh:   report?.totalEnergyKwh ?? 0,
       };
     });
 
