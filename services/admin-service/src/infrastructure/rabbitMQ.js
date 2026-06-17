@@ -106,7 +106,9 @@ export async function setupMessaging() {
 
   await ch.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
   await ch.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
-  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.*");
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.add");
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.update");
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.delete");
 
   await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
   await ch.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
