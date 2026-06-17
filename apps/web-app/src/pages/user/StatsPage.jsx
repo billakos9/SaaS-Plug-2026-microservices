@@ -75,6 +75,7 @@ const StatsPage = () => {
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showCount, setShowCount] = useState(8);
 
   const isAllTime = period === 'all';
   const [curYear, curMon] = useMemo(() => currentPeriod.split('-').map(Number), [currentPeriod]);
@@ -192,9 +193,9 @@ const StatsPage = () => {
   const overview = useMemo(() => {
     if (isAdmin || isProvider) return null;
     const total = sessions.length;
-    const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const totalSeconds = sessions.reduce((acc, s) => acc + (s.actualDurationSeconds || s.durationSeconds || 0), 0);
     const energy = sessions.reduce((acc, s) => {
-      const durationHrs = (s.duration || 0) / 3600;
+      const durationHrs = (s.actualDurationSeconds || s.durationSeconds || 0) / 3600;
       const kw = s.capacityKw || 22;
       return acc + (durationHrs * kw);
     }, 0);
@@ -240,6 +241,11 @@ const StatsPage = () => {
       .slice(-12)
       .map(([month, count]) => ({ label: formatPeriodLabel(month), count }));
   }, [sessions, isAdmin, isProvider]);
+
+  const sortedSessions = useMemo(
+    () => [...sessions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [sessions],
+  );
 
   if (!user) return null;
 
@@ -609,36 +615,46 @@ const StatsPage = () => {
                        <p>Loading records...</p>
                      </div>
                    ) : sessions.length > 0 ? (
-                     <table className={styles.table}>
-                       <thead>
-                         <tr>
-                           <th>Station</th>
-                           <th>Network</th>
-                           <th>Date</th>
-                           <th>Duration</th>
-                           <th>Cost</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         {sessions.slice(0, 8).map((s, idx) => (
-                           <motion.tr 
-                             key={s.id}
-                             initial={{ opacity: 0, x: -10 }}
-                             animate={{ opacity: 1, x: 0 }}
-                             transition={{ delay: 0.3 + idx * 0.05 }}
-                           >
-                             <td>
-                               <strong>{s.locationName || `Station #${s.chargerId}`}</strong>
-                               <small className={styles.smallMutedBlock}>#{s.chargerId}</small>
-                             </td>
-                             <td>{s.providerName || 'saasPlug'}</td>
-                             <td>{new Date(s.createdAt).toLocaleDateString()}</td>
-                             <td>{formatDuration(s.duration)}</td>
-                             <td><span className={styles.costBadge}>€{((s.duration || 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
-                           </motion.tr>
-                         ))}
-                       </tbody>
-                     </table>
+                     <>
+                       <table className={styles.table}>
+                         <thead>
+                           <tr>
+                             <th>Station</th>
+                             <th>Network</th>
+                             <th>Date</th>
+                             <th>Duration</th>
+                             <th>Cost</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {sortedSessions.slice(0, showCount).map((s, idx) => (
+                             <motion.tr
+                               key={s.id}
+                               initial={{ opacity: 0, x: -10 }}
+                               animate={{ opacity: 1, x: 0 }}
+                               transition={{ delay: 0.3 + idx * 0.05 }}
+                             >
+                               <td>
+                                 <strong>{s.locationName || `Station #${s.chargerId}`}</strong>
+                                 <small className={styles.smallMutedBlock}>#{s.chargerId}</small>
+                               </td>
+                               <td>{s.providerName || 'saasPlug'}</td>
+                               <td>{new Date(s.createdAt).toLocaleDateString()}</td>
+                               <td>{formatDuration(s.actualDurationSeconds || s.durationSeconds)}</td>
+                               <td><span className={styles.costBadge}>€{((s.actualDurationSeconds || s.durationSeconds || 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
+                             </motion.tr>
+                           ))}
+                         </tbody>
+                       </table>
+                       {sortedSessions.length > showCount && (
+                         <button
+                           className={styles.showMoreBtn}
+                           onClick={() => setShowCount(c => c + 8)}
+                         >
+                           Show More ({sortedSessions.length - showCount} remaining)
+                         </button>
+                       )}
+                     </>
                    ) : (
                      <div className={styles.emptyTable}>
                        <p>No session data available yet.</p>

@@ -5,6 +5,7 @@
  * messaging infrastructure, and starts the provider queue consumer.
  */
 import express from "express";
+import mongoose from "mongoose";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
@@ -17,7 +18,10 @@ import { startProviderQueueConsumer, startTokenRevocationConsumer } from "./even
 const app = express();
 app.use(express.json());
 
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  res.status(dbOk ? 200 : 503).json({ status: dbOk ? "operational" : "degraded" });
+});
 
 app.use("/provider", providerRouter);
 app.use(unmatchedRouteMiddleware);

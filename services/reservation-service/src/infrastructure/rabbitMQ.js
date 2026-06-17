@@ -39,7 +39,7 @@ async function handleDisconnect(reason) {
 
 async function getConnection() {
   if (connection) return connection;
-  connection = await amqp.connect(RABBITMQ_URL);
+  connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "reservation-service" } });
   connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
   connection.on("close", () => {
     channelPromise   = null;

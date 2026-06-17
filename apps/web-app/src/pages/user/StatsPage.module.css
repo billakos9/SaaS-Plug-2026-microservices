@@ -414,3 +414,22 @@
   color: var(--muted);
   margin-bottom: 1.25rem;
 }
+
+.showMoreBtn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  background: transparent;
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.showMoreBtn:hover {
+  background: var(--panel);
+  color: var(--secondary);
+}

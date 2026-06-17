@@ -131,7 +131,7 @@ const ChargingPage = ({ user }) => {
       completionTriggered.current = false;
       return;
     }
-    const durationSeconds = (activeSession.duration || 30) * 60;
+    const durationSeconds = activeSession.durationSeconds || 30 * 60;
     if (elapsed < durationSeconds || completionTriggered.current) return;
 
     completionTriggered.current = true;
@@ -226,7 +226,7 @@ const ChargingPage = ({ user }) => {
               <ProgressRing 
                 elapsed={elapsed} 
                 label="REMAINING" 
-                durationSeconds={(activeSession.duration || 30) * 60} 
+                durationSeconds={activeSession.durationSeconds || 30 * 60}
               />
             </div>
 
@@ -308,7 +308,7 @@ const ChargingPage = ({ user }) => {
                 </div>
                 <div className={styles.historyMetrics}>
                   <span className={styles.historyBadge}>{s.status}</span>
-                  <p className={styles.historyDuration}>{formatDurationPrecise(s.duration)}</p>
+                  <p className={styles.historyDuration}>{formatDurationPrecise(s.actualDurationSeconds || s.durationSeconds)}</p>
                 </div>
               </motion.div>
             ))}

@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
+import { revokedEmails } from "../lib/revoked-tokens.js";
 
 export function authMiddleware(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -9,7 +10,11 @@ export function authMiddleware(req, res, next) {
     return next(new AppError(HttpCode.UNAUTHORIZED, "Missing or malformed Authorization header"));
   const token = authHeader.slice(7);
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (revokedEmails.has(decoded.email)) {
+      return next(new AppError(HttpCode.UNAUTHORIZED, "Token revoked"));
+    }
+    req.user = decoded;
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError")
