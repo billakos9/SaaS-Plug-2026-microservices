@@ -61,3 +61,22 @@ export const cancelReservation = async (req, res) => {
   const updated = await ReservationService.cancel(reservationId);
   res.json(toReservationResponseDTO(updated));
 };
+
+export const completeReservation = async (req, res) => {
+  const reservationId = Number(req.params.id);
+
+  if (!Number.isFinite(reservationId)) {
+    throw new AppError(HttpCode.BAD_REQUEST, "reservationId must be a valid number");
+  }
+
+  const reservation = await ReservationService.getById(reservationId);
+  assertOwnReservation(reservation, req.user.userId);
+
+  const expiresAt = new Date(reservation.createdAt).getTime() + reservation.duration * 60000;
+  if (Date.now() < expiresAt) {
+    throw new AppError(HttpCode.BAD_REQUEST, "Session has not yet expired");
+  }
+
+  const updated = await ReservationService.complete(reservationId);
+  res.json(toReservationResponseDTO(updated));
+};

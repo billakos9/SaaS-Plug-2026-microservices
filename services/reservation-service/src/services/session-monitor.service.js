@@ -4,7 +4,7 @@ import ReservationService from "./reservation.service.js";
 class SessionMonitorService {
   /**
    * Periodically checks for expired reservations and completes them.
-   * Runs every 30 seconds.
+   * Runs every 60 seconds as a fallback for browser-close and network-failure cases.
    */
   static start() {
     console.log("Session Monitor Service started");
@@ -14,7 +14,7 @@ class SessionMonitorService {
       } catch (error) {
         console.error("Error in Session Monitor:", error);
       }
-    }, 5000); // Check every 5 seconds
+    }, 60000); // Check every 60 seconds
   }
 
   static async checkExpiredReservations() {
