@@ -205,6 +205,7 @@ services:
       - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000/bluePlugAdapter
       - RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000/redPlugAdapter
       - GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000/greenPlugAdapter
+      - POLL_INTERVAL_MINUTES=15
     depends_on:
       rabbitmq:
         condition: service_healthy
