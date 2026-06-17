@@ -125,6 +125,7 @@ export async function setupMessaging() {
 
   await channel.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
   await channel.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
+  await channel.assertExchange("provider", "topic", { durable: true });
   await channel.assertExchange(DLX, "fanout", { durable: true });
 
   await channel.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
@@ -132,6 +133,9 @@ export async function setupMessaging() {
 
   await channel.assertQueue(MessageQueues.RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await channel.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, "reservation.*");
+
+  await channel.assertQueue("charger.provider.delete.queue", { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue("charger.provider.delete.queue", "provider", "provider.delete");
 }
 
 /**

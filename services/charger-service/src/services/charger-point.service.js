@@ -97,6 +97,16 @@ class ChargerPointService {
   static async delete(chargerId) {
     return ChargerPointRepository.delete(chargerId);
   }
+
+  /**
+   * Marks all charger points belonging to a provider as "offline".
+   *
+   * @param {string} providerName - Provider whose chargers should be set offline
+   * @returns {Promise<import("mongoose").UpdateWriteOpResult>}
+   */
+  static async markOfflineByProvider(providerName) {
+    return ChargerPointRepository.markOfflineByProvider(providerName);
+  }
 }
 
 export default ChargerPointService;

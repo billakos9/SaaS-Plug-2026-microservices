@@ -50,6 +50,10 @@ class ReservationRepository {
     return Reservation.findOne({ userId, status: "active" }).lean();
   }
 
+  static async findActiveByUserId(userId) {
+    return Reservation.find({ userId, status: "active" }).lean();
+  }
+
   static async getActiveByChargerId(chargerId) {
     return Reservation.findOne({ chargerId, status: "active" }).lean();
   }

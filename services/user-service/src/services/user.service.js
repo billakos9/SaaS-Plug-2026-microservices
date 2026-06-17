@@ -2,6 +2,7 @@ import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
+import { writeOutbox } from "../infrastructure/outbox.js";
 import UserRepository from "../repositories/user.repository.js";
 
 class UserService {
@@ -63,12 +64,30 @@ class UserService {
       throw new AppError(HttpCode.NOT_FOUND, "User not found");
     }
 
+    const eventPayload = { userId: existing.userId, email: existing.email };
+
+    // 1. Persist publish intent BEFORE deleting so the event is never lost
+    const outboxEntry = await writeOutbox(Exchanges.USER, RoutingKeys.USER_DELETED, eventPayload);
+
+    // 2. Delete from DB
     const result = await UserRepository.delete(userId);
 
-    await publishEvent(Exchanges.USER, RoutingKeys.USER_DELETED, {
-      userId: existing.userId,
-      email: existing.email,
-    });
+    // 3. Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.USER, RoutingKeys.USER_DELETED, eventPayload);
+    } catch (err) {
+      console.warn("[user-service] outbox: immediate publish failed, relay will retry:", err.message);
+      return result; // stop here — don't try to save, let relay handle it
+    }
+
+    // publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      // relay will find this entry and republish — downstream consumers must be idempotent
+      console.error("[user-service] outbox: failed to mark entry as published:", saveErr.message);
+    }
 
     return result;
   }

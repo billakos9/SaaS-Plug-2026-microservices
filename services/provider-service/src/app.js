@@ -9,7 +9,8 @@ import mongoose from "mongoose";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect, publishEvent } from "./infrastructure/rabbitMQ.js";
+import { startOutboxRelay } from "./infrastructure/outbox.js";
 import providerRouter from "./routes/provider.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -37,6 +38,7 @@ async function bootstrap() {
     await startProviderQueueConsumer();
     await startTokenRevocationConsumer();
   });
+  startOutboxRelay(publishEvent);
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

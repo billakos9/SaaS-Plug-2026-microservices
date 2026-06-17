@@ -2,6 +2,7 @@ import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
+import { writeOutbox } from "../infrastructure/outbox.js";
 import ProviderRepository from "../repositories/provider.repository.js";
 
 class ProviderService {
@@ -106,16 +107,36 @@ class ProviderService {
       throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
     }
 
+    const eventPayload = { providerName: existing.providerName, email: existing.email };
+
+    // 1. Persist publish intent BEFORE deleting so the event is never lost
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, eventPayload);
+
+    // 2. Delete from DB
     const result = await ProviderRepository.delete(providerId);
 
     if (!result?.deletedCount) {
+      // Undo the outbox entry to avoid a phantom event
+      await outboxEntry.deleteOne();
       throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
     }
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, {
-      providerName: existing.providerName,
-      email: existing.email,
-    });
+    // 3. Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed, relay will retry:", err.message);
+      return result; // stop here — don't try to save, let relay handle it
+    }
+
+    // publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      // relay will find this entry and republish — downstream consumers must be idempotent
+      console.error("[provider-service] outbox: failed to mark entry as published:", saveErr.message);
+    }
 
     return result;
   }

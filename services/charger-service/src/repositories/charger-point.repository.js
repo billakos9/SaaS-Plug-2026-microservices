@@ -76,6 +76,19 @@ class ChargerPointRepository {
   static async delete(chargerId) {
     return ChargerPoint.deleteOne({ id: chargerId });
   }
+
+  /**
+   * Sets all charger points belonging to a provider to "offline".
+   *
+   * Called when a provider.delete event is received so that orphaned chargers
+   * are no longer shown as available.
+   *
+   * @param {string} providerName - The provider whose chargers should be marked offline
+   * @returns {Promise<import("mongoose").UpdateWriteOpResult>} Mongoose updateMany result
+   */
+  static async markOfflineByProvider(providerName) {
+    return ChargerPoint.updateMany({ ProviderName: providerName }, { $set: { status: "offline" } });
+  }
 }
 
 export default ChargerPointRepository;

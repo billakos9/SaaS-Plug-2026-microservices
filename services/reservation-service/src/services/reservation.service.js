@@ -138,6 +138,45 @@ class ReservationService {
   }
 
   /**
+   * Cancels all active reservations belonging to a user.
+   *
+   * Called when a `user.deleted` event is received. For each active reservation
+   * found, it atomically claims it via `updateIfActive` (to prevent races with
+   * concurrent cancels) and then publishes a `reservation.cancelled` event.
+   *
+   * @param {number} userId - The numeric user identifier whose reservations should be cancelled
+   * @returns {Promise<void>}
+   */
+  static async cancelAllForUser(userId) {
+    const activeReservations = await ReservationRepository.findActiveByUserId(userId);
+
+    for (const r of activeReservations) {
+      const actualDuration = Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 1000);
+      const totalCost = (actualDuration / 3600) * (r.capacityKw || 22) * r.kwhPrice;
+
+      const updated = await ReservationRepository.updateIfActive(r.reservationId, {
+        status: "cancelled",
+        actualDurationSeconds: actualDuration,
+      });
+
+      if (!updated) {
+        // A racing writer already finalized this reservation; skip publishing
+        continue;
+      }
+
+      await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
+        reservationId: updated.reservationId,
+        id:            r.chargerId,
+        status:        "available",
+        actualDuration,
+        totalCost,
+        capacityKw:    r.capacityKw,
+        providerName:  r.providerName,
+      });
+    }
+  }
+
+  /**
    * Completes a reservation by its ID.
    *
    * @param {number} reservationId - The unique numeric reservation identifier

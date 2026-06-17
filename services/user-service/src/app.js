@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect, publishEvent } from "./infrastructure/rabbitMQ.js";
+import { startOutboxRelay } from "./infrastructure/outbox.js";
 import userRouter from "./routes/user.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -32,6 +33,7 @@ setupMessaging()
   .then(startUserQueueConsumer)
   .then(() => {
     onReconnect(startUserQueueConsumer);
+    startOutboxRelay(publishEvent);
   })
   .catch((error) => {
     console.error("User service messaging bootstrap failed:", error);

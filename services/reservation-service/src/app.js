@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
 import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
-import { startTokenRevocationConsumer } from "./events/rabbitmq.consumers.js";
+import { startEventConsumers } from "./events/rabbitmq.consumers.js";
 import SessionMonitorService from "./services/session-monitor.service.js";
 import reservationRouter from "./routes/reservation.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
@@ -27,9 +27,14 @@ app.listen(PORT, () => {
 });
 
 connectMongoDB();
-setupMessaging();
-startTokenRevocationConsumer();
-onReconnect(startTokenRevocationConsumer);
+setupMessaging()
+  .then(startEventConsumers)
+  .then(() => {
+    onReconnect(startEventConsumers);
+  })
+  .catch((err) => {
+    console.error("[reservation-service] messaging bootstrap failed:", err);
+  });
 SessionMonitorService.start();
 
 export default app;
