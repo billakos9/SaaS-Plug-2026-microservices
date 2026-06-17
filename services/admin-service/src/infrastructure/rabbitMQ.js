@@ -1,12 +1,14 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
+import { Exchanges, MessageQueues } from "../constants/messaging.js";
 
 const DLX = "saasplug.dlx";
 
-let connection = null;
-let channel = null;
-let channelPromise = null;
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
 
 const reconnectHandlers = [];
 
@@ -16,9 +18,11 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection = null;
-  channel = null;
-  channelPromise = null;
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
 
   while (true) {
     try {
@@ -35,26 +39,31 @@ async function handleDisconnect(reason) {
   }
 }
 
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL);
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
+
 /**
- * Returns the singleton RabbitMQ channel, creating the connection and channel
+ * Returns the singleton RabbitMQ consume channel, creating the connection and channel
  * on first call. Subsequent calls return the cached channel instance.
  *
  * @returns {Promise<import("amqplib").Channel>} Active RabbitMQ channel
  */
 export async function getChannel() {
-  if (channel) return channel;
+  if (consumeChannel) return consumeChannel;
   if (!channelPromise) {
     channelPromise = (async () => {
-      connection = await amqp.connect(RABBITMQ_URL);
-      channel = await connection.createChannel();
-
-      connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
-      connection.on("close", () => {
-        channelPromise = null;
-        handleDisconnect("connection closed");
-      });
-
-      return channel;
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
     })().catch((err) => {
       channelPromise = null;
       throw err;

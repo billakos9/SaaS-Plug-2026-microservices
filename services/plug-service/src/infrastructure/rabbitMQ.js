@@ -4,9 +4,11 @@ import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js
 
 const DLX = "saasplug.dlx";
 
-let connection = null;
-let channel = null;
-let channelPromise = null;
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
 
 const reconnectHandlers = [];
 
@@ -16,9 +18,11 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection = null;
-  channel = null;
-  channelPromise = null;
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
 
   while (true) {
     try {
@@ -35,28 +39,25 @@ async function handleDisconnect(reason) {
   }
 }
 
-/**
- * Creates or returns a singleton RabbitMQ channel.
- *
- * Ensures only one connection/channel exists for the entire application
- * to prevent resource exhaustion and multiple competing consumers.
- *
- * @returns {Promise<import("amqplib").Channel>} RabbitMQ channel instance
- */
-export async function getChannel() {
-  if (channel) return channel;
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL);
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
+
+async function getChannel() {
+  if (consumeChannel) return consumeChannel;
   if (!channelPromise) {
     channelPromise = (async () => {
-      connection = await amqp.connect(RABBITMQ_URL);
-      channel = await connection.createChannel();
-
-      connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
-      connection.on("close", () => {
-        channelPromise = null;
-        handleDisconnect("connection closed");
-      });
-
-      return channel;
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
     })().catch((err) => {
       channelPromise = null;
       throw err;
@@ -65,12 +66,6 @@ export async function getChannel() {
   return channelPromise;
 }
 
-/**
- *  A function that attempts to establish a RabbitMQ channel connection with retries.
- * @param {Number} retries - The number of retry attempts before giving up (default: 5)
- *
- * @returns {Promise<import("amqplib").Channel>} RabbitMQ channel instance
- */
 export async function getChannelWithRetry(retries = 5) {
   while (retries) {
     try {
@@ -81,7 +76,6 @@ export async function getChannelWithRetry(retries = 5) {
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
-
   throw new Error("RabbitMQ connection failed");
 }
 
@@ -105,10 +99,8 @@ export async function setupMessaging() {
 /**
  * Publishes an event to a RabbitMQ exchange using a routing key.
  *
- * This function is used for emitting domain events (e.g. "reservation.created",
- * "charger.status.updated") to other services via a topic exchange.
- *
- * Messages are sent as JSON and marked as persistent to survive broker restarts.
+ * Uses a dedicated publish channel separate from the consume channel to
+ * avoid head-of-line blocking between publishing and consuming.
  *
  * @param {string} exchange - The name of the exchange (e.g. "charger", "reservation")
  * @param {string} routingKey - The routing key describing the event (e.g. "charger.status.updated")
@@ -126,9 +118,24 @@ export async function setupMessaging() {
  * );
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const ch = await getChannelWithRetry();
+  const ch = await getPublishChannel();
 
   ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
   });
+}
+
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
 }

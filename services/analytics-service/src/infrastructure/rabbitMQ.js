@@ -4,8 +4,8 @@ import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js
 
 const DLX = "saasplug.dlx";
 
-let connection = null;
-let channel    = null;
+let connection     = null;
+let consumeChannel = null;
 let channelPromise = null;
 
 const reconnectHandlers = [];
@@ -16,8 +16,8 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection = null;
-  channel = null;
+  connection     = null;
+  consumeChannel = null;
   channelPromise = null;
 
   while (true) {
@@ -35,20 +35,24 @@ async function handleDisconnect(reason) {
   }
 }
 
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL);
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
+
 async function getChannel() {
-  if (channel) return channel;
+  if (consumeChannel) return consumeChannel;
   if (!channelPromise) {
     channelPromise = (async () => {
-      connection = await amqp.connect(RABBITMQ_URL);
-      channel = await connection.createChannel();
-
-      connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
-      connection.on("close", () => {
-        channelPromise = null;
-        handleDisconnect("connection closed");
-      });
-
-      return channel;
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
     })().catch((err) => {
       channelPromise = null;
       throw err;

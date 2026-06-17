@@ -4,9 +4,11 @@ import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js
 
 const DLX = "saasplug.dlx";
 
-let connection = null;
-let channel = null;
-let channelPromise = null;
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
 
 const reconnectHandlers = [];
 
@@ -16,9 +18,11 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection = null;
-  channel = null;
-  channelPromise = null;
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
 
   while (true) {
     try {
@@ -35,26 +39,46 @@ async function handleDisconnect(reason) {
   }
 }
 
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL);
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
+
 export async function getChannel() {
-  if (channel) return channel;
+  if (consumeChannel) return consumeChannel;
   if (!channelPromise) {
     channelPromise = (async () => {
-      connection = await amqp.connect(RABBITMQ_URL);
-      channel = await connection.createChannel();
-
-      connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
-      connection.on("close", () => {
-        channelPromise = null;
-        handleDisconnect("connection closed");
-      });
-
-      return channel;
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
     })().catch((err) => {
       channelPromise = null;
       throw err;
     });
   }
   return channelPromise;
+}
+
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
 }
 
 export async function getChannelWithRetry(retries = 5) {
@@ -92,9 +116,9 @@ export async function setupMessaging() {
 }
 
 export async function publishEvent(exchange, routingKey, payload) {
-  const channel = await getChannelWithRetry();
+  const ch = await getPublishChannel();
 
-  channel.publish(
+  ch.publish(
     exchange,
     routingKey,
     Buffer.from(JSON.stringify(payload)),

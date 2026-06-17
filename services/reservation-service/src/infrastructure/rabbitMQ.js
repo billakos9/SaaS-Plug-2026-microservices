@@ -2,9 +2,11 @@ import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges, MessageQueues } from "../constants/messaging.js";
 
-let connection = null;
-let channel    = null;
-let channelPromise = null;
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
 
 const reconnectHandlers = [];
 
@@ -14,9 +16,11 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection = null;
-  channel = null;
-  channelPromise = null;
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
 
   while (true) {
     try {
@@ -33,34 +37,54 @@ async function handleDisconnect(reason) {
   }
 }
 
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL);
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
+
 /**
- * Returns a singleton RabbitMQ channel, creating the connection and channel on first call.
+ * Returns a singleton RabbitMQ consume channel, creating the connection and channel on first call.
  *
- * Reuses the module-level `connection` and `channel` variables so that only one
+ * Reuses the module-level `connection` and `consumeChannel` variables so that only one
  * channel exists for the lifetime of the process, preventing resource exhaustion.
  *
- * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ channel instance
+ * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ consume channel instance
  */
 export async function getChannel() {
-  if (channel) return channel;
+  if (consumeChannel) return consumeChannel;
   if (!channelPromise) {
     channelPromise = (async () => {
-      connection = await amqp.connect(RABBITMQ_URL);
-      channel = await connection.createChannel();
-
-      connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
-      connection.on("close", () => {
-        channelPromise = null;
-        handleDisconnect("connection closed");
-      });
-
-      return channel;
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
     })().catch((err) => {
       channelPromise = null;
       throw err;
     });
   }
   return channelPromise;
+}
+
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
 }
 
 /**
@@ -70,7 +94,7 @@ export async function getChannel() {
  * are exhausted without a successful connection.
  *
  * @param {number} [retries=5] - Maximum number of connection attempts before giving up
- * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ channel instance
+ * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ consume channel instance
  * @throws {Error} If a channel cannot be obtained after all retries are exhausted
  */
 export async function getChannelWithRetry(retries = 5) {
@@ -102,9 +126,9 @@ export async function setupMessaging() {
 /**
  * Publishes a domain event to a RabbitMQ topic exchange.
  *
- * The payload is JSON-stringified and sent as a persistent message so it survives
- * broker restarts. Consumers bound to the exchange with a matching routing key
- * (e.g. "reservation.*") will receive the event.
+ * Uses a dedicated publish channel separate from the consume channel to
+ * avoid head-of-line blocking. The payload is JSON-stringified and sent as a
+ * persistent message so it survives broker restarts.
  *
  * @param {string} exchange - Name of the target exchange (e.g. Exchanges.RESERVATION)
  * @param {string} routingKey - Routing key describing the event (e.g. "reservation.created")
@@ -113,7 +137,7 @@ export async function setupMessaging() {
  * @throws {Error} If the channel is unavailable or the publish call fails
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const ch = await getChannelWithRetry();
+  const ch = await getPublishChannel();
   ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
   });
