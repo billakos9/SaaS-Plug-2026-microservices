@@ -87,7 +87,7 @@ class UserService {
     const user = await UserRepository.upsert({
       userId,
       email: userData.email,
-      username: userData.username ?? null,
+      ...(userData.username != null ? { username: userData.username } : {}),
       name: userData.name,
       firstName: userData.firstName ?? null,
       lastName: userData.lastName ?? null,
