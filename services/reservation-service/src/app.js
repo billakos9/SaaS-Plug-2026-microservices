@@ -22,19 +22,20 @@ app.use("/reservation", reservationRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Reservation service running on http://localhost:${PORT}`);
-});
-
-connectMongoDB();
-setupMessaging()
-  .then(startEventConsumers)
-  .then(() => {
-    onReconnect(startEventConsumers);
-  })
-  .catch((err) => {
-    console.error("[reservation-service] messaging bootstrap failed:", err);
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startEventConsumers();
+  onReconnect(startEventConsumers);
+  SessionMonitorService.start();
+  app.listen(PORT, () => {
+    console.log(`Reservation service running on http://localhost:${PORT}`);
   });
-SessionMonitorService.start();
+}
+
+bootstrap().catch((err) => {
+  console.error("[reservation-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;

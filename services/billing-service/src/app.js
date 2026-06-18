@@ -21,17 +21,19 @@ app.use("/billing/invoices", invoiceRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Billing service running on http://localhost:${PORT}`);
-});
-
 async function bootstrap() {
   await connectMongoDB();
   await startBillingConsumers();
   onReconnect(startBillingConsumers);
   startInvoiceGenerationJob();
+  app.listen(PORT, () => {
+    console.log(`Billing service running on http://localhost:${PORT}`);
+  });
 }
 
-bootstrap().catch(console.error);
+bootstrap().catch((err) => {
+  console.error("[billing-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;

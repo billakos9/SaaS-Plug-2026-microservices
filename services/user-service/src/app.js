@@ -24,19 +24,20 @@ app.use("/user", userRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`User service running on http://localhost:${PORT}`);
-});
-
-connectMongoDB();
-setupMessaging()
-  .then(startUserQueueConsumer)
-  .then(() => {
-    onReconnect(startUserQueueConsumer);
-    startOutboxRelay(publishEvent);
-  })
-  .catch((error) => {
-    console.error("User service messaging bootstrap failed:", error);
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startUserQueueConsumer();
+  onReconnect(startUserQueueConsumer);
+  startOutboxRelay(publishEvent);
+  app.listen(PORT, () => {
+    console.log(`User service running on http://localhost:${PORT}`);
   });
+}
+
+bootstrap().catch((err) => {
+  console.error("[user-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;
