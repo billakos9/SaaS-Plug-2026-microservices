@@ -36,17 +36,24 @@ class UserService {
       throw new AppError(HttpCode.NOT_FOUND, "User not found");
     }
 
-    // Don't allow updating sensitive fields directly here if needed
-    delete updateData.userId;
-    delete updateData.role;
+    // Whitelist: only allow updating these profile fields
+    const { name, firstName, lastName, birthdate, phoneNumber } = updateData;
+    const allowedUpdate = {};
+    if (name !== undefined) allowedUpdate.name = name;
+    if (firstName !== undefined) allowedUpdate.firstName = firstName;
+    if (lastName !== undefined) allowedUpdate.lastName = lastName;
+    if (birthdate !== undefined) allowedUpdate.birthdate = birthdate;
+    if (phoneNumber !== undefined) allowedUpdate.phoneNumber = phoneNumber;
 
-    const updated = await UserRepository.update({
-      userId,
-      ...updateData
-    });
+    // Nothing updatable was sent — return existing profile unchanged
+    if (Object.keys(allowedUpdate).length === 0) {
+      return existing;
+    }
 
-    // Notify other services if critical fields changed
-    if (updateData.email || updateData.name) {
+    const updated = await UserRepository.update(userId, allowedUpdate);
+
+    // Notify other services if name changed
+    if (allowedUpdate.name) {
       await publishEvent(Exchanges.USER, RoutingKeys.USER_UPDATED, {
         userId,
         email: updated.email,
