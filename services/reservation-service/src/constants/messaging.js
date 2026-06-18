@@ -1,6 +1,5 @@
 export const MessageQueues = Object.freeze({
-  RESERVATION: "reservation.management.queue",
-  USER_DELETE:  "reservation.user.delete.queue",
+  USER_DELETE: "reservation.user.delete.queue",
 });
 
 export const Exchanges = Object.freeze({

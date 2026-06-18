@@ -14,7 +14,7 @@ class ProviderRepository {
     const counter = await Counter.findByIdAndUpdate(
       "providerId",
       { $inc: { seq: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     return counter.seq;
   }
@@ -80,7 +80,7 @@ class ProviderRepository {
     const result = await Provider.findOneAndUpdate(
       { providerId },
       { $set: updateData },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
     return result;
   }

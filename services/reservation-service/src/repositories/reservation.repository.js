@@ -21,7 +21,7 @@ class ReservationRepository {
     const counter = await Counter.findOneAndUpdate(
       { name: "reservationId" },
       { $inc: { value: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     return counter.value;
   }
@@ -80,21 +80,6 @@ class ReservationRepository {
   }
 
   /**
-   * Updates fields of an existing reservation and returns the updated document.
-   *
-   * @param {number} reservationId - The unique numeric reservation identifier
-   * @param {Object} fields - The fields to update
-   * @returns {Promise<Object|null>} The updated lean reservation document, or null if not found
-   */
-  static async update(reservationId, fields) {
-    return Reservation.findOneAndUpdate(
-      { reservationId },
-      { $set: fields },
-      { new: true },
-    ).lean();
-  }
-
-  /**
    * Atomically updates a reservation only if it is currently "active".
    *
    * Used as a concurrency guard so that two racing writers (e.g. a user's
@@ -111,7 +96,7 @@ class ReservationRepository {
     return Reservation.findOneAndUpdate(
       { reservationId, status: "active" },
       { $set: fields },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
   }
 }

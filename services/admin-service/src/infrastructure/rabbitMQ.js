@@ -4,11 +4,9 @@ import { Exchanges, MessageQueues } from "../constants/messaging.js";
 
 const DLX = "saasplug.dlx";
 
-let connection       = null;
-let consumeChannel   = null;
-let publishChannel   = null;
-let channelPromise   = null;
-let publishChPromise = null;
+let connection     = null;
+let consumeChannel = null;
+let channelPromise = null;
 
 const reconnectHandlers = [];
 
@@ -18,11 +16,9 @@ export function onReconnect(fn) {
 
 async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
-  connection       = null;
-  consumeChannel   = null;
-  publishChannel   = null;
-  channelPromise   = null;
-  publishChPromise = null;
+  connection     = null;
+  consumeChannel = null;
+  channelPromise = null;
 
   while (true) {
     try {
@@ -44,8 +40,7 @@ async function getConnection() {
   connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "admin-service" } });
   connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
   connection.on("close", () => {
-    channelPromise   = null;
-    publishChPromise = null;
+    channelPromise = null;
     handleDisconnect("connection closed");
   });
   return connection;

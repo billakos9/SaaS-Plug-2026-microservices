@@ -6,7 +6,7 @@ class InvoiceRepository {
     const counter = await Counter.findByIdAndUpdate(
       "invoiceId",
       { $inc: { seq: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     return counter.seq;
   }
@@ -31,7 +31,7 @@ class InvoiceRepository {
     return Invoice.findOneAndUpdate(
       { invoiceId },
       { $set: { status: "paid" } },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
   }
 }

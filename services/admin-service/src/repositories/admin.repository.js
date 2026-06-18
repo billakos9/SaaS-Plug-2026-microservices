@@ -18,7 +18,7 @@ class AdminRepository {
     const counter = await Counter.findOneAndUpdate(
       { name: "adminId" },
       { $inc: { value: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     return counter.value;
   }
@@ -74,7 +74,7 @@ class AdminRepository {
    */
   static async update(updatedData) {
     const { adminId, ...updateData } = updatedData;
-    return Admin.findOneAndUpdate({ adminId }, { $set: updateData }, { new: true }).lean();
+    return Admin.findOneAndUpdate({ adminId }, { $set: updateData }, { returnDocument: "after" }).lean();
   }
 
   /**

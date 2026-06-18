@@ -24,7 +24,7 @@ class BilledReservationRepository {
     return BilledReservation.findOneAndUpdate(
       { reservationId },
       { $set: updates },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
   }
 
