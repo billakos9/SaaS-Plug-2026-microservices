@@ -9,7 +9,7 @@ export function requireAdminAuth(req, res, next) {
   }
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
     if (revokedEmails.has(decoded.email)) {
       return res.status(401).json({ message: "Token revoked" });
     }
