@@ -10,14 +10,23 @@ import authRouter from "./routes/auth.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 
-const KNOWN_ADMINS = [
-  { email: "admin@saas.com",        password: "123456" },
-  { email: "admin@saasplug.app",    password: "123456" },
-  { email: "agrinios@saasplug.app", password: "123456" },
-];
+function parseAdminSeeds() {
+  const raw = process.env.SEED_ADMIN_CREDENTIALS;
+  if (!raw || !raw.trim()) return [];
+  return raw.split(",").map((entry) => {
+    const idx = entry.indexOf(":");
+    if (idx === -1) return null;
+    return { email: entry.slice(0, idx).trim(), password: entry.slice(idx + 1).trim() };
+  }).filter(Boolean);
+}
 
 async function migrateAdminAccounts() {
-  for (const a of KNOWN_ADMINS) {
+  const admins = parseAdminSeeds();
+  if (admins.length === 0) {
+    console.warn("[migration] SEED_ADMIN_CREDENTIALS not set — skipping admin seed.");
+    return;
+  }
+  for (const a of admins) {
     const existing = await AuthUserRepository.findByEmail(a.email);
     if (!existing) {
       const userId = await AuthUserRepository.getNextId();
