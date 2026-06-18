@@ -54,11 +54,30 @@ class ProviderService {
     const providerId = await ProviderRepository.getNextId();
     const newProvider = await ProviderRepository.create({ ...providerData, providerId });
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, {
+    const eventPayload = {
       providerId: newProvider.providerId,
       providerName: newProvider.providerName,
       apiBaseUrl: newProvider.apiBaseUrl,
-    });
+    };
+
+    // Persist publish intent so the relay retries if RabbitMQ is down
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, eventPayload);
+
+    // Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed (provider.add), relay will retry:", err.message);
+      return newProvider;
+    }
+
+    // Publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      console.error("[provider-service] outbox: failed to mark provider.add entry as published:", saveErr.message);
+    }
 
     return newProvider;
   }
@@ -80,11 +99,30 @@ class ProviderService {
     const updated = await ProviderRepository.update(providerData);
     if (!updated) throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, {
+    const eventPayload = {
       providerId: updated.providerId,
       providerName: updated.providerName,
       apiBaseUrl: updated.apiBaseUrl,
-    });
+    };
+
+    // Persist publish intent so the relay retries if RabbitMQ is down
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, eventPayload);
+
+    // Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed (provider.update), relay will retry:", err.message);
+      return updated;
+    }
+
+    // Publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      console.error("[provider-service] outbox: failed to mark provider.update entry as published:", saveErr.message);
+    }
 
     return updated;
   }

@@ -16,9 +16,13 @@ import {
  * @param {import("express").Response} res - The outgoing HTTP response.
  * @returns {Promise<void>} Responds with an array of provider summary objects.
  */
-export const getAllProviders = async (req, res) => {
-  const providers = await ProviderService.getAll();
-  res.json(toProviderListDTO(providers));
+export const getAllProviders = async (req, res, next) => {
+  try {
+    const providers = await ProviderService.getAll();
+    res.json(toProviderListDTO(providers));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -29,10 +33,14 @@ export const getAllProviders = async (req, res) => {
  * @param {import("express").Response} res - The outgoing HTTP response.
  * @returns {Promise<void>} Responds with the matched provider document.
  */
-export const getProviderById = async (req, res) => {
-  const id = Number(req.params.id);
-  const provider = await ProviderService.getById(id);
-  res.json(toProviderDetailDTO(provider));
+export const getProviderById = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const provider = await ProviderService.getById(id);
+    res.json(toProviderDetailDTO(provider));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -43,10 +51,14 @@ export const getProviderById = async (req, res) => {
  * @param {import("express").Response} res - The outgoing HTTP response.
  * @returns {Promise<void>} Responds with the registration confirmation DTO.
  */
-export const registerProvider = async (req, res) => {
-  const providerData = toProviderRegistrationRequestDTO(req.body);
-  const newProvider = await ProviderService.registerProvider(providerData);
-  res.status(201).json(toProviderRegisteredDTO(newProvider));
+export const registerProvider = async (req, res, next) => {
+  try {
+    const providerData = toProviderRegistrationRequestDTO(req.body);
+    const newProvider = await ProviderService.registerProvider(providerData);
+    res.status(201).json(toProviderRegisteredDTO(newProvider));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -57,10 +69,14 @@ export const registerProvider = async (req, res) => {
  * @param {import("express").Response} res - The outgoing HTTP response.
  * @returns {Promise<void>} Responds with the updated provider DTO.
  */
-export const updateProvider = async (req, res) => {
-  const providerData = toProviderUpdateRequestDTO(req.params.id, req.body);
-  const updatedProvider = await ProviderService.updateProvider(providerData);
-  res.json(toProviderUpdatedDTO(updatedProvider));
+export const updateProvider = async (req, res, next) => {
+  try {
+    const providerData = toProviderUpdateRequestDTO(req.params.id, req.body);
+    const updatedProvider = await ProviderService.updateProvider(providerData);
+    res.json(toProviderUpdatedDTO(updatedProvider));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -71,8 +87,12 @@ export const updateProvider = async (req, res) => {
  * @param {import("express").Response} res - The outgoing HTTP response.
  * @returns {Promise<void>} Responds with the deletion result object.
  */
-export const deleteProvider = async (req, res) => {
-  const providerId = Number(req.params.id);
-  const result = await ProviderService.deleteProvider(providerId);
-  res.json(result);
+export const deleteProvider = async (req, res, next) => {
+  try {
+    const providerId = Number(req.params.id);
+    const result = await ProviderService.deleteProvider(providerId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
 };

@@ -1,6 +1,7 @@
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import ProviderService from "../services/provider.service.js";
+import ProviderRepository from "../repositories/provider.repository.js";
 import { addRevoked } from "../lib/revoked-tokens.js";
 
 const DLX = "saasplug.dlx";
@@ -35,6 +36,21 @@ export async function startProviderQueueConsumer() {
     if (!msg) return;
     try {
       const { providerName, email, apiBaseUrl, apiKey } = JSON.parse(msg.content.toString());
+
+      // Idempotency guard: skip insert if a provider with the same name or email already exists.
+      // A DLX retry or outbox relay double-fire must not create duplicate records.
+      const existing =
+        (providerName && (await ProviderRepository.findByName(providerName))) ||
+        (email && (await ProviderRepository.findByEmail(email)));
+
+      if (existing) {
+        console.warn(
+          `[provider consumer] provider.registered: duplicate detected (providerName=${providerName}, email=${email}) — acking as no-op`,
+        );
+        ch.ack(msg);
+        return;
+      }
+
       await ProviderService.registerProvider({ providerName, email, apiBaseUrl, apiKey });
       ch.ack(msg);
     } catch (err) {

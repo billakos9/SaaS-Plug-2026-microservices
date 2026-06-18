@@ -39,6 +39,26 @@ class ProviderRepository {
   }
 
   /**
+   * Finds a single provider by name (case-sensitive).
+   *
+   * @param {string} providerName - The name to search for.
+   * @returns {Promise<Object|null>} The matching provider object, or null if not found.
+   */
+  static async findByName(providerName) {
+    return Provider.findOne({ providerName }).lean();
+  }
+
+  /**
+   * Finds a single provider by email address.
+   *
+   * @param {string} email - The email to search for.
+   * @returns {Promise<Object|null>} The matching provider object, or null if not found.
+   */
+  static async findByEmail(email) {
+    return Provider.findOne({ email }).lean();
+  }
+
+  /**
    * Persists a new provider document to the database.
    *
    * @param {Object} providerData - The provider data object including the assigned providerId.
