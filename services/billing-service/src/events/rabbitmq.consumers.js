@@ -39,16 +39,23 @@ export async function startBillingConsumers() {
         routingKey === RoutingKeys.RESERVATION_COMPLETED ||
         routingKey === RoutingKeys.RESERVATION_CANCELLED
       ) {
-        const { reservationId, actualDuration, totalCost } = payload;
+        const { reservationId, userId, actualDuration, totalCost, id, capacityKw, providerName, createdAt } = payload;
         const newStatus = routingKey === RoutingKeys.RESERVATION_COMPLETED ? "completed" : "cancelled";
-        const updated = await BilledReservationRepository.updateOnFinalise(reservationId, {
-          actualDurationSeconds: actualDuration,
-          totalCost,
-          status: newStatus,
-        });
-        if (!updated) {
-          console.warn(`[billing-consumer] No BilledReservation found for reservationId=${reservationId} on ${routingKey} — snapshot may have been missed`);
-        }
+        await BilledReservationRepository.upsertOnFinalise(
+          reservationId,
+          { actualDurationSeconds: actualDuration, totalCost, status: newStatus },
+          {
+            reservationId,
+            userId:                  userId ?? 0,
+            chargerId:               id ?? 0,
+            locationName:            "",
+            capacityKw:              capacityKw ?? 22,
+            providerName:            providerName ?? "",
+            kwhPrice:                0,
+            originalDurationMinutes: 0,
+            createdAt:               createdAt ? new Date(createdAt) : new Date(),
+          },
+        );
       }
 
       channel.ack(msg);

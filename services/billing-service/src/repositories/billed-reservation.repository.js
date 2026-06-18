@@ -20,11 +20,11 @@ class BilledReservationRepository {
     ).lean();
   }
 
-  static async updateOnFinalise(reservationId, updates) {
+  static async upsertOnFinalise(reservationId, setFields, setOnInsertFields) {
     return BilledReservation.findOneAndUpdate(
       { reservationId },
-      { $set: updates },
-      { returnDocument: "after" },
+      { $set: setFields, $setOnInsert: setOnInsertFields },
+      { upsert: true, returnDocument: "after" },
     ).lean();
   }
 

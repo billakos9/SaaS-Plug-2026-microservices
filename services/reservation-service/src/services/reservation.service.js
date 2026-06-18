@@ -128,6 +128,7 @@ class ReservationService {
 
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
       reservationId: updated.reservationId,
+      userId:        reservation.userId,
       id:            reservation.chargerId,
       // status omitted: charger stays "reserved"; plug-service polling releases it
       actualDuration,
@@ -169,6 +170,7 @@ class ReservationService {
 
       await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
         reservationId: updated.reservationId,
+        userId:        r.userId,
         id:            r.chargerId,
         // status omitted: charger stays "reserved"; plug-service polling releases it
         actualDuration,
@@ -205,6 +207,7 @@ class ReservationService {
 
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_COMPLETED, {
       reservationId: updated.reservationId,
+      userId:        reservation.userId,
       id:            reservation.chargerId,
       status:        "available",
       actualDuration,
