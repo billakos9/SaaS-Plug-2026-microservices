@@ -53,6 +53,7 @@ services:
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
       - PROVIDER_REGISTRATION_CODE=saasplug-provider-2024
+      - SEED_ADMIN_CREDENTIALS=${SEED_ADMIN_CREDENTIALS}
     depends_on:
       auth-db:
         condition: service_started
@@ -92,6 +93,7 @@ services:
       - PORT=3000
       - MONGOOSE_URL=mongodb://charger-db:27017/charger
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       charger-db:
         condition: service_started
