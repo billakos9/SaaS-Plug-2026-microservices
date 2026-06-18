@@ -70,6 +70,18 @@ def post(url, body, token=None, timeout=10):
     return _request("POST", url, body=body, token=token, timeout=timeout)
 
 
+def put(url, body, token=None, timeout=10):
+    return _request("PUT", url, body=body, token=token, timeout=timeout)
+
+
+def patch(url, body, token=None, timeout=10):
+    return _request("PATCH", url, body=body, token=token, timeout=timeout)
+
+
+def delete(url, token=None, timeout=10):
+    return _request("DELETE", url, token=token, timeout=timeout)
+
+
 def shell(cmd):
     r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return r.returncode, r.stdout.strip(), r.stderr.strip()
