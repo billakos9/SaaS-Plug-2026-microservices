@@ -105,7 +105,12 @@ class AuthService {
   }
 
   static async login(email, password) {
-    if (!email || !password) {
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      email.trim() === "" ||
+      password.trim() === ""
+    ) {
       throw new AppError(HttpCode.BAD_REQUEST, "Email & Password are required");
     }
 

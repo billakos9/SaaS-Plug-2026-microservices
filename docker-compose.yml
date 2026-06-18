@@ -52,7 +52,7 @@ services:
       - MONGOOSE_URL=mongodb://auth-db:27017/auth
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
-      - PROVIDER_REGISTRATION_CODE=saasplug-provider-2024
+      - PROVIDER_REGISTRATION_CODE=${PROVIDER_REGISTRATION_CODE}
       - SEED_ADMIN_CREDENTIALS=${SEED_ADMIN_CREDENTIALS}
     depends_on:
       auth-db:

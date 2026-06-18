@@ -39,9 +39,9 @@ export async function startChargerQueueConsumer() {
 
     const plugClient = new PlugAdapterHttpClient();
     const routingKey = message.fields.routingKey;
-    const saasPlugReservationRequest = JSON.parse(message.content.toString());
 
     try {
+      const saasPlugReservationRequest = JSON.parse(message.content.toString());
       switch (routingKey) {
         case RoutingKeys.RESERVATION_CREATED: {
           const adapterUrl = PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName];
@@ -59,7 +59,7 @@ export async function startChargerQueueConsumer() {
           break;
         }
         default:
-          channel.nack(message, false, false);
+          channel.ack(message);
           console.log("Unhandled event:", routingKey);
       }
     } catch (error) {
