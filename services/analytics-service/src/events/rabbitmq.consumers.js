@@ -25,7 +25,10 @@ export async function startConsumers() {
   await startConsuming(async (msg) => {
     const routingKey = msg.fields.routingKey;
     const payload = JSON.parse(msg.content.toString());
-    const period = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    // Use the reservation's own createdAt so stats are attributed to the correct month,
+    // not the wall-clock time of queue delivery (which drifts on backlog/redelivery).
+    const period = (payload.createdAt ? new Date(payload.createdAt) : new Date())
+      .toISOString().slice(0, 7);
 
     if (routingKey === "reservation.created") {
       // Only increment the count of reservations

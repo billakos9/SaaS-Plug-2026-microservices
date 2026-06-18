@@ -5,6 +5,7 @@ export const HttpCode = Object.freeze({
   UNAUTHORIZED: 401,
   FORBIDDEN:    403,
   NOT_FOUND:    404,
-  CONFLICT:     409,
-  SERVER_ERROR: 500,
+  CONFLICT:            409,
+  SERVER_ERROR:        500,
+  SERVICE_UNAVAILABLE: 503,
 });

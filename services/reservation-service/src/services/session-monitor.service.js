@@ -24,10 +24,10 @@ class SessionMonitorService {
     // We iterate through them because duration can vary per reservation.
     // However, we can filter for candidates that have definitely expired.
     // For most, duration is 30 mins, so we only check those created > 30 mins ago.
-    const candidates = await Reservation.find({ 
+    const candidates = await Reservation.find({
       status: "active",
       createdAt: { $lt: new Date(now.getTime() - 60000) } // At least 1 min old to avoid race conditions
-    });
+    }).sort({ createdAt: 1 }).limit(100);
 
     for (const res of candidates) {
       const expirationTime = new Date(res.createdAt.getTime() + res.duration * 60000);

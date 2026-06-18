@@ -33,19 +33,20 @@ class ReservationService {
     let locationName = data.locationName || `Station ${data.chargerId}`;
     try {
       const res = await fetch(`${CHARGER_SERVICE_URL}/charger/id/${data.chargerId}`);
-      if (res.ok) {
-        const charger = await res.json();
-        if (charger.status && charger.status !== "available") {
-          throw new AppError(HttpCode.CONFLICT, "Charger is not available");
-        }
-        kwhPrice = charger.kwhPrice ?? 0;
-        if (!data.locationName) {
-          locationName = charger.locationName || locationName;
-        }
+      if (!res.ok) {
+        throw new AppError(HttpCode.SERVICE_UNAVAILABLE, "Station temporarily unavailable. Please try again shortly.");
+      }
+      const charger = await res.json();
+      if (charger.status && charger.status !== "available") {
+        throw new AppError(HttpCode.CONFLICT, "Charger is not available");
+      }
+      kwhPrice = charger.kwhPrice ?? 0;
+      if (!data.locationName) {
+        locationName = charger.locationName || locationName;
       }
     } catch (err) {
       if (err instanceof AppError) throw err;
-      // network failure — proceed with defaults
+      // network failure — proceed with defaults (graceful degradation)
     }
 
     const reservationId = await ReservationRepository.getNextId();
@@ -73,6 +74,7 @@ class ReservationService {
       duration:         reservation.duration,
       kwhPrice:         reservation.kwhPrice,
       status:           "reserved",
+      createdAt:        reservation.createdAt,
     });
 
     return reservation;
@@ -127,11 +129,12 @@ class ReservationService {
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
       reservationId: updated.reservationId,
       id:            reservation.chargerId,
-      status:        "available",
+      // status omitted: charger stays "reserved"; plug-service polling releases it
       actualDuration,
       totalCost,
       capacityKw:    reservation.capacityKw,
       providerName:  reservation.providerName,
+      createdAt:     reservation.createdAt,
     });
 
     return updated;
@@ -167,11 +170,12 @@ class ReservationService {
       await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
         reservationId: updated.reservationId,
         id:            r.chargerId,
-        status:        "available",
+        // status omitted: charger stays "reserved"; plug-service polling releases it
         actualDuration,
         totalCost,
         capacityKw:    r.capacityKw,
         providerName:  r.providerName,
+        createdAt:     r.createdAt,
       });
     }
   }
@@ -207,6 +211,7 @@ class ReservationService {
       totalCost,
       capacityKw:    reservation.capacityKw,
       providerName:  reservation.providerName,
+      createdAt:     reservation.createdAt,
     });
 
     return updated;
