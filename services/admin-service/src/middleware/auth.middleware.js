@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
+import { revokedEmails } from "../lib/revoked-tokens.js";
 
 export default function authMiddleware(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -17,11 +18,16 @@ export default function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
 
+    if (revokedEmails.has(decoded.email)) {
+      return next(new AppError(HttpCode.UNAUTHORIZED, "Token revoked"));
+    }
+
     if (decoded.role !== "admin") {
       return next(new AppError(HttpCode.FORBIDDEN, "Admin access only"));
     }
 
-    req.admin = decoded;
+    // Support both old tokens (adminId) and new auth-service tokens (userId)
+    req.admin = { ...decoded, adminId: decoded.adminId ?? decoded.userId };
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {
