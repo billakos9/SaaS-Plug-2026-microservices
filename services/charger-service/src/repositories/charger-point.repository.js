@@ -63,8 +63,7 @@ class ChargerPointRepository {
   static async update(updatedChargerData) {
     const { id, ...updateData } = updatedChargerData;
 
-    await ChargerPoint.updateOne({ id }, { $set: updateData });
-    return ChargerPoint.findOne({ id });
+    return ChargerPoint.findOneAndUpdate({ id }, { $set: updateData }, { returnDocument: "after" }).lean();
   }
 
   /**
@@ -87,6 +86,7 @@ class ChargerPointRepository {
    * @returns {Promise<import("mongoose").UpdateWriteOpResult>} Mongoose updateMany result
    */
   static async markOfflineByProvider(providerName) {
+    // NOTE: `ProviderName` (capital P) must match the schema field in charger-point.model.js exactly.
     return ChargerPoint.updateMany({ ProviderName: providerName }, { $set: { status: "offline" } });
   }
 }
