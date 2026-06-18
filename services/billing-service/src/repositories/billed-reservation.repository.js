@@ -12,6 +12,14 @@ class BilledReservationRepository {
     return BilledReservation.create(data);
   }
 
+  static async upsertOnCreate(data) {
+    return BilledReservation.findOneAndUpdate(
+      { reservationId: data.reservationId },
+      { $setOnInsert: data },
+      { upsert: true, returnDocument: "after" },
+    ).lean();
+  }
+
   static async updateOnFinalise(reservationId, updates) {
     return BilledReservation.findOneAndUpdate(
       { reservationId },

@@ -27,48 +27,44 @@ const DLX = "saasplug.dlx";
  * - Messages are acknowledged manually to ensure reliability
  */
 export async function startChargerQueueConsumer() {
-  try {
-    const channel = await getChannelWithRetry(10);
+  const channel = await getChannelWithRetry(10);
 
-    await channel.assertQueue(MessageQueues.RESERVATION, {
-      durable: true,
-      arguments: { "x-dead-letter-exchange": DLX },
-    });
+  await channel.assertQueue(MessageQueues.RESERVATION, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
 
-    await channel.consume(MessageQueues.RESERVATION, async (message) => {
-      if (!message) return;
+  await channel.consume(MessageQueues.RESERVATION, async (message) => {
+    if (!message) return;
 
-      const plugClient = new PlugAdapterHttpClient();
-      const routingKey = message.fields.routingKey;
-      const saasPlugReservationRequest = JSON.parse(message.content.toString());
+    const plugClient = new PlugAdapterHttpClient();
+    const routingKey = message.fields.routingKey;
+    const saasPlugReservationRequest = JSON.parse(message.content.toString());
 
-      try {
-        switch (routingKey) {
-          case RoutingKeys.RESERVATION_CREATED: {
-            const adapterUrl = PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName];
-            if (!adapterUrl) {
-              console.warn(`No adapter URL for provider: ${saasPlugReservationRequest.providerName}`);
-              channel.nack(message, false, false);
-              break;
-            }
-            await plugClient.reservePoint(
-              adapterUrl,
-              saasPlugReservationRequest.pointId,
-              saasPlugReservationRequest.duration,
-            );
-            channel.ack(message);
+    try {
+      switch (routingKey) {
+        case RoutingKeys.RESERVATION_CREATED: {
+          const adapterUrl = PROVIDER_BASE_URLS[saasPlugReservationRequest.providerName];
+          if (!adapterUrl) {
+            console.warn(`No adapter URL for provider: ${saasPlugReservationRequest.providerName}`);
+            channel.nack(message, false, false);
             break;
           }
-          default:
-            channel.nack(message, false, false);
-            console.log("Unhandled event:", routingKey);
+          await plugClient.reservePoint(
+            adapterUrl,
+            saasPlugReservationRequest.pointId,
+            saasPlugReservationRequest.duration,
+          );
+          channel.ack(message);
+          break;
         }
-      } catch (error) {
-        console.error("Failed to process reservation event:", error.message);
-        channel.nack(message, false, false);
+        default:
+          channel.nack(message, false, false);
+          console.log("Unhandled event:", routingKey);
       }
-    });
-  } catch (error) {
-    console.log("Plug Service Message Consumer Error:", error);
-  }
+    } catch (error) {
+      console.error("Failed to process reservation event:", error.message);
+      channel.nack(message, false, false);
+    }
+  });
 }

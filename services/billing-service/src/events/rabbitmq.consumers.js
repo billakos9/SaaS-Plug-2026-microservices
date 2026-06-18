@@ -23,7 +23,7 @@ export async function startBillingConsumers() {
 
       if (routingKey === RoutingKeys.RESERVATION_CREATED) {
         const { reservationId, userId, id, locationName, capacityKw, providerName, kwhPrice, duration } = payload;
-        await BilledReservationRepository.create({
+        await BilledReservationRepository.upsertOnCreate({
           reservationId,
           userId,
           chargerId: id,
