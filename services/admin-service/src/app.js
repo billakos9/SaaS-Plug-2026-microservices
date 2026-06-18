@@ -29,6 +29,9 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error("[admin-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;

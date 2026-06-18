@@ -10,9 +10,13 @@ import {
  * Returns the profile of the currently authenticated admin.
  * Looks up by email (always in JWT) to support both old adminId tokens and new userId tokens.
  */
-export const getProfile = async (req, res) => {
-  const admin = await AdminService.getByEmail(req.admin.email);
-  res.json(toAdminResponseDTO(admin));
+export const getProfile = async (req, res, next) => {
+  try {
+    const admin = await AdminService.getByEmail(req.admin.email);
+    res.json(toAdminResponseDTO(admin));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -23,9 +27,13 @@ export const getProfile = async (req, res) => {
  * @param {import("express").Response} res
  * @returns {Promise<void>} Sends JSON array of admin profiles
  */
-export const getAllAdmins = async (req, res) => {
-  const admins = await AdminService.getAll();
-  res.json(toAdminListDTO(admins));
+export const getAllAdmins = async (req, res, next) => {
+  try {
+    const admins = await AdminService.getAll();
+    res.json(toAdminListDTO(admins));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -36,10 +44,14 @@ export const getAllAdmins = async (req, res) => {
  * @param {import("express").Response} res
  * @returns {Promise<void>} Sends JSON with the updated admin profile
  */
-export const updateAdmin = async (req, res) => {
-  const data = toAdminUpdateRequestDTO(req.params.id, req.body);
-  const updated = await AdminService.update(data);
-  res.json(toAdminResponseDTO(updated));
+export const updateAdmin = async (req, res, next) => {
+  try {
+    const data = toAdminUpdateRequestDTO(req.params.id, req.body);
+    const updated = await AdminService.update(data);
+    res.json(toAdminResponseDTO(updated));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -50,14 +62,12 @@ export const updateAdmin = async (req, res) => {
  * @param {import("express").Response} res
  * @returns {Promise<void>} Sends JSON with the deletion result
  */
-export const deleteAdmin = async (req, res) => {
-  const adminId = Number(req.params.id);
-  const result = await AdminService.delete(adminId);
-  res.json(result);
-};
-
-export const createAccount = async (req, res) => {
-  const data = toAdminRegistrationRequestDTO({ ...req.body, registrationKey: process.env.ADMIN_REGISTRATION_KEY });
-  const admin = await AdminService.register(data);
-  res.status(201).json(toAdminResponseDTO(admin));
+export const deleteAdmin = async (req, res, next) => {
+  try {
+    const adminId = Number(req.params.id);
+    const result = await AdminService.delete(adminId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
 };
