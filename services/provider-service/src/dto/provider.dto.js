@@ -99,6 +99,7 @@ export function toProviderUpdatedDTO(data) {
 export function toProviderListDTO(providers) {
   return providers.map((p) => ({
     providerId:   p.providerId,
+    email:        p.email,
     providerName: p.providerName,
     apiBaseUrl:   p.apiBaseUrl,
   }));

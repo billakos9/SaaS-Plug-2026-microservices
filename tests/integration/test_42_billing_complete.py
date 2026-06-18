@@ -1,9 +1,11 @@
 import math
 import pytest
-from helpers import get, post, patch, _request, GATEWAY
+from datetime import datetime
+from helpers import get, post, patch, shell, _request, GATEWAY
 
-_PERIOD_BLUE = "2099-01"
-_PERIOD_RED  = "2099-02"
+_NOW = datetime.now()
+_PERIOD_BLUE = f"{_NOW.year}-{_NOW.month}"
+_PERIOD_RED  = f"{_NOW.year}-{_NOW.month}"
 _BLUE_PNAME  = "bluePlug"
 _RED_PNAME   = "redPlug"
 
@@ -15,6 +17,31 @@ class TestBillingComplete:
     # shared state across tests in this class
     _blue_invoice_id = None
     _red_invoice_id  = None
+    _extra_invoice_ids = [] # Track any additional ones created mid-test
+
+    @classmethod
+    def setup_class(cls):
+        """Runs once before any tests start to wipe leftover data from previously crashed runs."""
+        shell(
+            f"docker exec billing_db mongosh --quiet --eval \""
+            f"db = db.getSiblingDB('billing');"
+            f"db.invoices.deleteMany({{providerName: '{_BLUE_PNAME}', period: '{_PERIOD_BLUE}'}});"
+            f"db.invoices.deleteMany({{providerName: '{_RED_PNAME}', period: '{_PERIOD_RED}'}});\""
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        """Runs once after all tests in this class complete to clean up the database."""
+        all_invoices = [cls._blue_invoice_id, cls._red_invoice_id] + cls._extra_invoice_ids
+        
+        for iid in all_invoices:
+            if iid:
+                # Adjust 'billing_db' and 'billing' to match your actual docker container and DB names
+                shell(
+                    f"docker exec billing_db mongosh --quiet --eval \""
+                    f"db = db.getSiblingDB('billing');"
+                    f"db.invoices.deleteOne({{invoiceId: '{iid}'}});\""
+                )
 
     # ── Auth enforcement ───────────────────────────────────────────────────────
 
@@ -49,7 +76,7 @@ class TestBillingComplete:
     def test_generate_invoice_admin_blueplug(self, admin_token):
         if not admin_token:
             pytest.skip("admin login failed")
-        code, data = post(f"{GATEWAY}/api/billing/generate",
+        code, data = post(f"{GATEWAY}/api/billing/invoices/generate",
                           {"providerName": _BLUE_PNAME, "period": _PERIOD_BLUE},
                           token=admin_token)
         assert code in (200, 201), f"Generate invoice HTTP {code}: {data}"
@@ -81,7 +108,7 @@ class TestBillingComplete:
     def test_generate_duplicate_invoice_returns_409(self, admin_token):
         if not admin_token:
             pytest.skip("admin login failed")
-        code, data = post(f"{GATEWAY}/api/billing/generate",
+        code, data = post(f"{GATEWAY}/api/billing/invoices/generate",
                           {"providerName": _BLUE_PNAME, "period": _PERIOD_BLUE},
                           token=admin_token)
         assert code == 409, f"Duplicate invoice generation should be 409, got {code}: {data}"
@@ -89,7 +116,7 @@ class TestBillingComplete:
     def test_provider_cannot_generate_invoice(self, provider_token):
         if not provider_token:
             pytest.skip("provider login failed")
-        code, _ = post(f"{GATEWAY}/api/billing/generate",
+        code, _ = post(f"{GATEWAY}/api/billing/invoices/generate",
                        {"providerName": _BLUE_PNAME, "period": "2099-03"},
                        token=provider_token)
         assert code == 403, f"Provider cannot generate invoice, got {code}"
@@ -97,7 +124,7 @@ class TestBillingComplete:
     def test_user_cannot_generate_invoice(self, user_token):
         if not user_token:
             pytest.skip("user login failed")
-        code, _ = post(f"{GATEWAY}/api/billing/generate",
+        code, _ = post(f"{GATEWAY}/api/billing/invoices/generate",
                        {"providerName": _BLUE_PNAME, "period": "2099-04"},
                        token=user_token)
         assert code in (401, 403), f"User cannot generate invoice, got {code}"
@@ -153,7 +180,7 @@ class TestBillingComplete:
         if not admin_token or not provider_token:
             pytest.skip("login failed")
         # generate a redPlug invoice
-        code_gen, resp_gen = post(f"{GATEWAY}/api/billing/generate",
+        code_gen, resp_gen = post(f"{GATEWAY}/api/billing/invoices/generate",
                                    {"providerName": _RED_PNAME, "period": _PERIOD_RED},
                                    token=admin_token)
         if code_gen not in (200, 201, 409):
@@ -206,16 +233,30 @@ class TestBillingComplete:
     def test_provider_can_pay_own_invoice(self, admin_token, provider_token):
         if not admin_token or not provider_token:
             pytest.skip("login failed")
-        # generate a fresh invoice for bluePlug in a different period
-        period = "2099-05"
-        code_gen, resp_gen = post(f"{GATEWAY}/api/billing/generate",
-                                   {"providerName": _BLUE_PNAME, "period": period},
+            
+        # Forcefully delete any existing current-month invoice for bluePlug to avoid a 409 Conflict
+        shell(
+            f"docker exec billing_db mongosh --quiet --eval \""
+            f"db = db.getSiblingDB('billing');"
+            f"db.invoices.deleteMany({{providerName: '{_BLUE_PNAME}', period: '{_PERIOD_BLUE}'}});\""
+        )
+
+        # Generate a fresh invoice for bluePlug for the current month
+        code_gen, resp_gen = post(f"{GATEWAY}/api/billing/invoices/generate",
+                                   {"providerName": _BLUE_PNAME, "period": _PERIOD_BLUE},
                                    token=admin_token)
+                                   
         if code_gen not in (200, 201):
-            pytest.skip(f"Could not generate invoice: {code_gen}")
+            pytest.skip(f"Could not generate invoice: {code_gen} - {resp_gen}")
+            
         iid = resp_gen.get("invoiceId") or (resp_gen.get("invoice") or {}).get("invoiceId")
         if not iid:
             pytest.skip("Could not get invoiceId from generation")
+            
+        # Add it to the tracking list so teardown_class cleans it up later
+        TestBillingComplete._extra_invoice_ids.append(iid)
+        
+        # Provider pays their own invoice
         code2, data = patch(f"{GATEWAY}/api/billing/invoices/{iid}/pay",
                              {}, token=provider_token)
         assert code2 == 200, \

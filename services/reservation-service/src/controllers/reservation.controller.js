@@ -69,10 +69,12 @@ export const completeReservation = async (req, res, next) => {
     const reservation = await ReservationService.getById(reservationId);
     assertOwnReservation(reservation, req.user.userId);
 
-    const expiresAt = new Date(reservation.createdAt).getTime() + reservation.duration * 60000;
-    // 30-second grace window to handle client-side timer jitter
-    if (Date.now() < expiresAt - 30000) {
-      return next(new AppError(HttpCode.BAD_REQUEST, "Session has not yet expired"));
+    if (reservation.status === "active") {
+      const expiresAt = new Date(reservation.createdAt).getTime() + reservation.duration * 60000;
+      // 30-second grace window to handle client-side timer jitter
+      if (Date.now() < expiresAt - 30000) {
+        return next(new AppError(HttpCode.BAD_REQUEST, "Session has not yet expired"));
+      }
     }
 
     const updated = await ReservationService.complete(reservationId);

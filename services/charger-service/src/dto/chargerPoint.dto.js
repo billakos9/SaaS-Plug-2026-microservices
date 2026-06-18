@@ -43,6 +43,8 @@ export function toChargerPointDTO(input) {
     throw new AppError(HttpCode.BAD_REQUEST, "Invalid cap");
   if (dto.kwhPrice !== undefined && Number.isNaN(dto.kwhPrice))
     throw new AppError(HttpCode.BAD_REQUEST, "Invalid kwhPrice");
+  if (dto.ProviderName.length === 0)
+    throw new AppError(HttpCode.BAD_REQUEST, "Invalid ProviderName");
 
   validChargerPointStatus(dto.status);
 

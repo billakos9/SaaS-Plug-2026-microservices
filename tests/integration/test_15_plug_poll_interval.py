@@ -23,8 +23,13 @@ class TestPlugServicePollInterval:
         assert value == "15", f"POLL_INTERVAL_MINUTES={value} (expected 15)"
 
     def test_consecutive_poll_cycles_spaced_14_min_apart(self):
+        inspect_result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.StartedAt}}", "Plug-Service"],
+            capture_output=True, text=True, check=True
+        )
+        started_at = inspect_result.stdout.strip()
         logs_result = subprocess.run(
-            ["docker", "logs", "--timestamps", "Plug-Service"],
+            ["docker", "logs", "--timestamps", "--since", started_at, "Plug-Service"],
             capture_output=True, text=True,
         )
         all_lines = (logs_result.stdout + logs_result.stderr).splitlines()
