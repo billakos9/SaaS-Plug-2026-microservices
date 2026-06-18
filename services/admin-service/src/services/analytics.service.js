@@ -3,7 +3,7 @@ import { PROVIDER_SERVICE_URL, ANALYTICS_SERVICE_URL } from "../config/env.js";
 /**
  * Fetches data from a downstream service.
  * Returns null on failure so analytics can degrade gracefully.
- * @param {String} url 
+ * @param {String} url
  * @param {String|null} token
  * @returns {Promise<Object|null>} The fetched data or null on failure.
  */
@@ -11,8 +11,8 @@ async function safeFetch(url, token = null) {
   try {
     const headers = {};
     if (token) headers["Authorization"] = token;
-    
-    const res = await fetch(url, { headers });
+
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(3000) });
     if (!res.ok) {
        console.error(`[analytics-fetch] ${url} failed with ${res.status}`);
        return null;

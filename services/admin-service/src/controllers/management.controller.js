@@ -47,7 +47,7 @@ export const getProviderById = async (req, res, next) => {
  */
 export const registerProvider = async (req, res, next) => {
   try {
-    const result = await ManagementService.registerProvider(req.body);
+    const result = await ManagementService.registerProvider(req.body, req.headers["authorization"]);
     res.status(201).json(result);
   } catch (err) {
     next(err);
