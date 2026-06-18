@@ -21,7 +21,7 @@ class AnalyticStatRepository {
     return AnalyticStat.findOneAndUpdate(
       { providerName, period },
       { $inc: increments },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     ).lean();
   }
 }
