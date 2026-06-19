@@ -135,6 +135,8 @@ export async function login(email, password) {
     const profile = await getCurrentUser();
     const finalUser = {
       ...profile,
+      // providerName lives only in the JWT — user-service doesn't return it
+      providerName: profile.providerName || tokenUser?.providerName,
       role: profile.role || tokenUser?.role,
       isAdmin: profile.isAdmin || tokenUser?.isAdmin,
       isProvider: profile.isProvider || tokenUser?.isProvider,

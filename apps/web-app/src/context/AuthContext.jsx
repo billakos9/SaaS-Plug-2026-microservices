@@ -20,7 +20,11 @@ export const AuthProvider = ({ children }) => {
         setUser(tokenUser);
         try {
           const profile = await getCurrentUser();
-          if (profile) setUser(profile);
+          if (profile) setUser({
+            ...profile,
+            // providerName lives only in the JWT — user-service doesn't return it
+            providerName: profile.providerName || tokenUser.providerName,
+          });
         } catch (err) {
           console.warn('[Auth] Initial profile fetch failed', err);
         }
