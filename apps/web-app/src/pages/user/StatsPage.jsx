@@ -193,9 +193,9 @@ const StatsPage = () => {
   const overview = useMemo(() => {
     if (isAdmin || isProvider) return null;
     const total = sessions.length;
-    const totalSeconds = sessions.reduce((acc, s) => acc + (s.actualDurationSeconds || s.durationSeconds || 0), 0);
+    const totalSeconds = sessions.reduce((acc, s) => acc + ((s.actualDurationSeconds ?? s.durationSeconds) ?? 0), 0);
     const energy = sessions.reduce((acc, s) => {
-      const durationHrs = (s.actualDurationSeconds || s.durationSeconds || 0) / 3600;
+      const durationHrs = ((s.actualDurationSeconds ?? s.durationSeconds) ?? 0) / 3600;
       const kw = s.capacityKw || 22;
       return acc + (durationHrs * kw);
     }, 0);
@@ -640,8 +640,8 @@ const StatsPage = () => {
                                </td>
                                <td>{s.providerName || 'saasPlug'}</td>
                                <td>{new Date(s.createdAt).toLocaleDateString()}</td>
-                               <td>{formatDuration(s.actualDurationSeconds || s.durationSeconds)}</td>
-                               <td><span className={styles.costBadge}>€{((s.actualDurationSeconds || s.durationSeconds || 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice || 0.45)).toFixed(2)}</span></td>
+                               <td>{formatDuration((s.actualDurationSeconds ?? s.durationSeconds) ?? 0)}</td>
+                               <td><span className={styles.costBadge}>€{(((s.actualDurationSeconds ?? s.durationSeconds) ?? 0) / 3600 * (s.capacityKw || 22) * (s.kwhPrice ?? 0)).toFixed(2)}</span></td>
                              </motion.tr>
                            ))}
                          </tbody>
