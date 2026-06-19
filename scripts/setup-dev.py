@@ -118,7 +118,11 @@ info(f"Project root: {ROOT}")
 # ── 1. Write environment files ────────────────────────────────────────────────
 info("Writing environment files...")
 
-write_file(ROOT / ".env", "JWT_SECRET=change_me_to_a_strong_secret\n")
+write_file(ROOT / ".env", (
+    "JWT_SECRET=change_me_to_a_strong_secret\n"
+    "PROVIDER_REGISTRATION_CODE=saasplug-provider-2024\n"
+    "SEED_ADMIN_CREDENTIALS=admin@saas.com:123456,admin@saasplug.app:123456,agrinios@saasplug.app:123456\n"
+))
 
 write_file(ROOT / "services/auth-service/.env.development.local", """\
 PORT=3000
@@ -174,32 +178,15 @@ MONGOOSE_URL=mongodb://provider-db:27017/provider
 RABBITMQ_URL=amqp://rabbitmq:5672
 """)
 
-write_file(ROOT / "services/plug-adapters/blue-plug-adapter/.env.development.local", """\
-PORT=3000
-MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
-BLUE_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
-""")
+# plug adapters — only the auth token is needed; MONGOOSE_URL/RABBITMQ_URL removed in Issue #16
+write_file(ROOT / "services/plug-adapters/blue-plug-adapter/.env.development.local",
+           "BLUE_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970\n")
 
-write_file(ROOT / "services/plug-adapters/red-plug-adapter/.env.development.local", """\
-PORT=3000
-MONGOOSE_URL=mongodb://redplug-db:27017/redplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
-RED_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
-""")
+write_file(ROOT / "services/plug-adapters/red-plug-adapter/.env.development.local",
+           "RED_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970\n")
 
-write_file(ROOT / "services/plug-adapters/green-plug-adapter/.env.development.local", """\
-PORT=3000
-MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
-GREEN_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
-""")
+write_file(ROOT / "services/plug-adapters/green-plug-adapter/.env.development.local",
+           "GREEN_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970\n")
 
 success("Environment files written.")
 
@@ -298,22 +285,26 @@ print(f"""
 
 {BOLD}{CYAN}  ── Test Accounts  (all passwords: 123456) ────────────────{RESET}
 
-{BOLD}  Regular user{RESET}  →  Log in at /login  →  Map, Reserve, Charging, Stats
-    {GREEN}seed001@saasplug.app{RESET}  through  {GREEN}seed100@saasplug.app{RESET}
+{BOLD}  Users{RESET}  →  /login  →  Map, Reserve, Charging, Stats
+    {GREEN}giorgos.papadopoulos@gmail.com{RESET}
+    {GREEN}james.smith@gmail.com{RESET}
+    {GREEN}marco.rossi@gmail.com{RESET}
+    (100 users total — see mock_data/users.json)
 
-{BOLD}  Provider accounts{RESET}  →  Log in at /login  →  My Network, Analytics, Account
-    {GREEN}blue@plug.com{RESET}      bluePlug network
-    {GREEN}red@plug.com{RESET}       redPlug network
-    {GREEN}green@plug.com{RESET}     greenPlug network
+{BOLD}  Providers{RESET}  →  /login  →  My Network, Analytics, Invoices, Account
+    {GREEN}blue@plug.com{RESET}      bluePlug
+    {GREEN}red@plug.com{RESET}       redPlug
+    {GREEN}green@plug.com{RESET}     greenPlug
 
-{BOLD}  Admin accounts{RESET}  →  Log in at /login  →  System Map, Global Analytics, Management
-    {GREEN}admin@saas.com{RESET}         Super Admin
-    {GREEN}admin@saasplug.app{RESET}     Global Admin
-    {GREEN}agrinios@saasplug.app{RESET}  Giorgos Admin
+{BOLD}  Admins{RESET}  →  /login  →  System Map, Global Analytics, Management
+    {GREEN}admin@saas.com{RESET}
+    {GREEN}admin@saasplug.app{RESET}
+    {GREEN}agrinios@saasplug.app{RESET}
 
 {BOLD}{CYAN}  ── Seeded Data ────────────────────────────────────────────{RESET}
-    100 completed reservations  (bluePlug 40 · redPlug 35 · greenPlug 25)
-    Analytics stats pre-built for the current month
+    3,612 completed reservations  (2024-06-15 → 2026-06-14)
+    bluePlug 40 %  ·  redPlug 35 %  ·  greenPlug 25 %
+    75 invoices pre-generated  (25 months × 3 providers)
 
 {BOLD}{YELLOW}  Press Ctrl+C to stop the frontend dev server.{RESET}
 {BOLD}{YELLOW}  Backend containers keep running — stop with: docker compose down{RESET}

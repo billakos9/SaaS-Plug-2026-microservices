@@ -49,9 +49,11 @@ cd "$ROOT"
 # ── 1. Write environment files ────────────────────────────────────────────────
 info "Writing environment files..."
 
-# Root .env (consumed by docker-compose for JWT_SECRET substitution)
+# Root .env (consumed by docker-compose for variable substitution)
 cat > .env <<'EOF'
 JWT_SECRET=change_me_to_a_strong_secret
+PROVIDER_REGISTRATION_CODE=saasplug-provider-2024
+SEED_ADMIN_CREDENTIALS=admin@saas.com:123456,admin@saasplug.app:123456,agrinios@saasplug.app:123456
 EOF
 
 # auth-service
@@ -113,32 +115,17 @@ MONGOOSE_URL=mongodb://provider-db:27017/provider
 RABBITMQ_URL=amqp://rabbitmq:5672
 EOF
 
-# plug adapters (all share the same auth token for the external NTUA API)
+# plug adapters — only the auth token is needed; MONGOOSE_URL/RABBITMQ_URL removed in Issue #16
 cat > services/plug-adapters/blue-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
 BLUE_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 cat > services/plug-adapters/red-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://redplug-db:27017/redplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
 RED_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 cat > services/plug-adapters/green-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
 GREEN_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 success "Environment files written."
@@ -187,7 +174,7 @@ success "Stack is up."
 # ── 6. Seed users (dev-seeder via docker compose) ─────────────────────────────
 info "Seeding regular users (auth-db + user-db)..."
 docker compose --profile seed run --rm dev-seeder
-success "100 regular users seeded (seed001@saasplug.app … seed100@saasplug.app, password: 123456)."
+success "100 regular users seeded (e.g. giorgos.papadopoulos@gmail.com — see mock_data/users.json, password: 123456)."
 
 # ── 7. Seed provider auth accounts + provider-db records ─────────────────────
 info "Seeding provider accounts..."

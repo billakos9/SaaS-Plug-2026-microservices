@@ -101,17 +101,18 @@ for (let day = 0; day < TOTAL_DAYS; day++) {
     const period          = createdAt.toISOString().slice(0, 7);
 
     reservations.push({
-      reservationId: resId++,
+      reservationId:         resId++,
       userId,
-      chargerId:    charger.id,
-      locationName: charger.locationName,
-      capacityKw:   charger.cap,
+      chargerId:             charger.id,
+      locationName:          charger.locationName,
+      capacityKw:            charger.cap,
       providerName,
-      duration:     durationSec,
-      kwhPrice:     charger.kwhPrice,
-      status:       'completed',
+      duration:              durationMin,
+      actualDurationSeconds: durationSec,
+      kwhPrice:              charger.kwhPrice,
+      status:                'completed',
       createdAt,
-      updatedAt:    new Date(createdAt.getTime() + durationSec * 1000),
+      updatedAt:             new Date(createdAt.getTime() + durationSec * 1000),
     });
 
     const key = `${providerName}|${period}`;
@@ -177,10 +178,10 @@ const billedDocs = reservations.map(r => ({
   capacityKw:              r.capacityKw,
   providerName:            r.providerName,
   kwhPrice:                r.kwhPrice,
-  originalDurationMinutes: r.duration / 60,
+  originalDurationMinutes: r.duration,                   // r.duration is already in minutes
   status:                  'completed',
-  actualDurationSeconds:   r.duration,
-  totalCost:               parseFloat((parseFloat(((r.duration / 3600) * r.capacityKw).toFixed(4)) * r.kwhPrice).toFixed(2)),
+  actualDurationSeconds:   r.actualDurationSeconds,      // r.actualDurationSeconds is in seconds
+  totalCost:               parseFloat((parseFloat(((r.actualDurationSeconds / 3600) * r.capacityKw).toFixed(4)) * r.kwhPrice).toFixed(2)),
   createdAt:               r.createdAt,
 }));
 
