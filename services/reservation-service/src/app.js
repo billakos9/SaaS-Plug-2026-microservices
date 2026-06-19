@@ -5,6 +5,7 @@ import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
 import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import { startEventConsumers } from "./events/rabbitmq.consumers.js";
+import { prewarm as prewarmChargerCache } from "./lib/charger-cache.js";
 import SessionMonitorService from "./services/session-monitor.service.js";
 import reservationRouter from "./routes/reservation.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
@@ -27,6 +28,7 @@ async function bootstrap() {
   await setupMessaging();
   await startEventConsumers();
   onReconnect(startEventConsumers);
+  await prewarmChargerCache();
   SessionMonitorService.start();
   app.listen(PORT, () => {
     console.log(`Reservation service running on http://localhost:${PORT}`);

@@ -50,6 +50,11 @@ const ReservationSchema = new mongoose.Schema(
 ReservationSchema.index({ userId: 1, status: 1 });
 ReservationSchema.index({ status: 1, createdAt: 1 });
 ReservationSchema.index({ providerName: 1, status: 1, createdAt: 1 });
+// Prevents two concurrent active reservations for the same charger (DB-level race guard).
+ReservationSchema.index(
+  { chargerId: 1 },
+  { unique: true, partialFilterExpression: { status: "active" }, name: "active_reservation_per_charger" },
+);
 
 const Reservation = mongoose.model("Reservation", ReservationSchema);
 

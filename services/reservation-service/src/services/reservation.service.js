@@ -1,9 +1,9 @@
 import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
-import { CHARGER_SERVICE_URL } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import ReservationRepository from "../repositories/reservation.repository.js";
+import { get as getCachedCharger } from "../lib/charger-cache.js";
 
 /**
  * Business-logic layer for reservation operations.
@@ -29,39 +29,37 @@ class ReservationService {
       throw new AppError(HttpCode.CONFLICT, "You already have an active reservation");
     }
 
-    let kwhPrice = 0;
-    let locationName = data.locationName || `Station ${data.chargerId}`;
-    try {
-      const res = await fetch(`${CHARGER_SERVICE_URL}/charger/id/${data.chargerId}`);
-      if (!res.ok) {
-        throw new AppError(HttpCode.SERVICE_UNAVAILABLE, "Station temporarily unavailable. Please try again shortly.");
-      }
-      const charger = await res.json();
-      if (charger.status && charger.status !== "available") {
-        throw new AppError(HttpCode.CONFLICT, "Charger is not available");
-      }
-      kwhPrice = charger.kwhPrice ?? 0;
-      if (!data.locationName) {
-        locationName = charger.locationName || locationName;
-      }
-    } catch (err) {
-      if (err instanceof AppError) throw err;
-      // network failure — proceed with defaults (graceful degradation)
+    const cached = getCachedCharger(data.chargerId);
+    if (!cached) {
+      throw new AppError(HttpCode.SERVICE_UNAVAILABLE, "Station data unavailable — try again shortly.");
     }
+    if (cached.status !== "available") {
+      throw new AppError(HttpCode.CONFLICT, "Charger is not available");
+    }
+    const kwhPrice = cached.kwhPrice ?? 0;
+    const locationName = data.locationName || cached.locationName || `Station ${data.chargerId}`;
 
     const reservationId = await ReservationRepository.getNextId();
 
-    const reservation = await ReservationRepository.create({
-      reservationId,
-      userId:       data.userId,
-      chargerId:    data.chargerId,
-      locationName,
-      capacityKw:   data.capacityKw || 22,
-      providerName: data.providerName,
-      duration:     data.duration,
-      kwhPrice,
-      status:       "active",
-    });
+    let reservation;
+    try {
+      reservation = await ReservationRepository.create({
+        reservationId,
+        userId:       data.userId,
+        chargerId:    data.chargerId,
+        locationName,
+        capacityKw:   data.capacityKw || cached.capacityKw || 22,
+        providerName: data.providerName,
+        duration:     data.duration,
+        kwhPrice,
+        status:       "active",
+      });
+    } catch (err) {
+      if (err.code === 11000 && err.keyPattern?.chargerId) {
+        throw new AppError(HttpCode.CONFLICT, "Charger is already reserved");
+      }
+      throw err;
+    }
 
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED, {
       reservationId:    reservation.reservationId,

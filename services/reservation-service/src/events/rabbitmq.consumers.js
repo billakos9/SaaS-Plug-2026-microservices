@@ -1,7 +1,8 @@
-import { MessageQueues } from "../constants/messaging.js";
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import ReservationService from "../services/reservation.service.js";
 import { addRevoked } from "../lib/revoked-tokens.js";
+import { upsert as upsertCachedCharger } from "../lib/charger-cache.js";
 
 const DLX = "saasplug.dlx";
 
@@ -51,7 +52,31 @@ export async function startUserDeleteConsumer() {
   console.log("[reservation-service] user delete consumer started.");
 }
 
+export async function startChargerCacheConsumer() {
+  const channel = await getChannelWithRetry();
+  await channel.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
+  await channel.assertQueue(MessageQueues.CHARGER_CACHE, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
+  await channel.bindQueue(MessageQueues.CHARGER_CACHE, Exchanges.CHARGER, RoutingKeys.CHARGER_ADD);
+  await channel.bindQueue(MessageQueues.CHARGER_CACHE, Exchanges.CHARGER, RoutingKeys.CHARGER_UPDATE);
+  channel.consume(MessageQueues.CHARGER_CACHE, async (msg) => {
+    if (!msg) return;
+    try {
+      const charger = JSON.parse(msg.content.toString());
+      upsertCachedCharger(charger);
+      channel.ack(msg);
+    } catch (err) {
+      console.error("[charger-cache-consumer] error:", err.message);
+      channel.nack(msg, false, false);
+    }
+  });
+  console.log("[reservation-service] charger cache consumer started.");
+}
+
 export async function startEventConsumers() {
   await startTokenRevocationConsumer();
   await startUserDeleteConsumer();
+  await startChargerCacheConsumer();
 }
