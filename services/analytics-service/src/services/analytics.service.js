@@ -44,10 +44,13 @@ function buildReservationStats(stat) {
 
 class AnalyticsService {
   static async getProviderReport(providerName, period) {
-    const [stat, allChargers] = await Promise.all([
-      AnalyticStatRepository.getByProviderAndPeriod(providerName, period),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
-    ]);
+    // DB check first — only call charger-service when a stat record exists for
+    // this provider+period combination. Avoids the HTTP round-trip on a cache miss.
+    const stat = await AnalyticStatRepository.getByProviderAndPeriod(providerName, period);
+
+    const allChargers = stat
+      ? await safeFetch(`${CHARGER_SERVICE_URL}/charger`)
+      : null;
 
     const providerChargers = Array.isArray(allChargers)
       ? allChargers.filter(c => c.ProviderName === providerName)
