@@ -94,6 +94,14 @@ export async function setupMessaging() {
 
   await channel.assertQueue(MessageQueues.RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await channel.bindQueue(MessageQueues.RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED);
+
+  // Assert charger.management.queue and bind it before the first poll runs.
+  // charger-service asserts the same queue with the same properties — idempotent.
+  // Without this, messages published during cold boot (before charger-service has
+  // bound the queue) are silently discarded by AMQP, causing the first provider
+  // polled (bluePlug) to lose all its CHARGER_ADD events.
+  await channel.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
 }
 
 /**
