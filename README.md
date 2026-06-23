@@ -29,8 +29,6 @@ architecture/           Visual Paradigm architecture artifacts
 tests/                  Node integration tests
 ```
 
-`apps/front-end/` is legacy and ignored by git. Use `apps/web-app/`.
-
 ## Public Entrypoint
 
 The canonical public entrypoint is the API Gateway:
