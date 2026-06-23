@@ -5,6 +5,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
 } from '../services/auth';
+import { USER_ROLES } from '../config/constants';
 
 export const AuthContext = createContext(null);
 
@@ -55,8 +56,8 @@ export const AuthProvider = ({ children }) => {
       user,
       loading,
       isAuthenticated: Boolean(user),
-      isAdmin: user?.role === 'admin',
-      isProvider: user?.role === 'provider',
+      isAdmin: user?.role === USER_ROLES.ADMIN,
+      isProvider: user?.role === USER_ROLES.PROVIDER,
       login,
       logout,
       setUser,

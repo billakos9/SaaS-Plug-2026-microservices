@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './ProviderProfilePage.module.css';
 
 const ProviderProfilePage = () => {
@@ -9,7 +10,7 @@ const ProviderProfilePage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login', { replace: true });
+    navigate(APP_ROUTES.login, { replace: true });
   };
 
   const initials = user?.providerName

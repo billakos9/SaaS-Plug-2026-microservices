@@ -1,7 +1,6 @@
 import axios from "axios";
-
-// jwt token
-export const AUTH_TOKEN_KEY = "saasplug:auth:token";
+import { API_BASE } from "../config/api";
+import { AUTH_TOKEN_KEY } from "../config/constants";
 
 let cachedAuthToken = null;
 
@@ -44,11 +43,6 @@ export const setStoredToken = (token) => {
 
 // shortcut for logout from the function before
 export const clearStoredToken = () => setStoredToken(null);
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE ||
-  import.meta.env.VITE_API_URL ||
-  "/api";
 
 // request max time for response = 10 sec
 export const http = axios.create({

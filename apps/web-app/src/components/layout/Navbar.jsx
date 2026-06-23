@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import brandLogo from '../../assets/LogoOnly.png';
 import { useAuth } from '../../hooks/useAuth';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './Navbar.module.css';
 
 const Navbar = () => {
@@ -19,7 +20,7 @@ const Navbar = () => {
     <>
       <header className={`${styles.navbar} ${open ? styles.navOpen : ''}`}>
         <div className={styles.navContainer}>
-          <Link to="/" className={styles.brand} aria-label="saasPlug home" onClick={closeMenu}>
+          <Link to={APP_ROUTES.home} className={styles.brand} aria-label="saasPlug home" onClick={closeMenu}>
             <img src={brandLogo} alt="saasPlug logo" className={styles.logoMark} />
             <span className={styles.brandName}>saasPlug</span>
           </Link>
@@ -34,30 +35,30 @@ const Navbar = () => {
           </button>
 
           <ul className={styles.navMenu}>
-            {!isAdmin && !isProvider && <li><NavLink to="/" end onClick={closeMenu}>Home</NavLink></li>}
+            {!isAdmin && !isProvider && <li><NavLink to={APP_ROUTES.home} end onClick={closeMenu}>Home</NavLink></li>}
             <li>
-              <NavLink to="/map" onClick={closeMenu}>
+              <NavLink to={APP_ROUTES.map} onClick={closeMenu}>
                 {isAdmin ? 'System Map' : isProvider ? 'My Network' : 'Map'}
               </NavLink>
             </li>
 
             {user ? (
               <>
-                {!isAdmin && !isProvider && <li><NavLink to="/charging" onClick={closeMenu}>Charging</NavLink></li>}
+                {!isAdmin && !isProvider && <li><NavLink to={APP_ROUTES.charging} onClick={closeMenu}>Charging</NavLink></li>}
                 <li>
-                  <NavLink to="/stats" onClick={closeMenu}>
+                  <NavLink to={APP_ROUTES.stats} onClick={closeMenu}>
                     {isAdmin ? 'Global Analytics' : isProvider ? 'Analytics' : 'Statistics'}
                   </NavLink>
                 </li>
                 {isAdmin ? (
-                  <li><NavLink to="/admin" onClick={closeMenu}>Management</NavLink></li>
+                  <li><NavLink to={APP_ROUTES.admin} onClick={closeMenu}>Management</NavLink></li>
                 ) : isProvider ? (
                   <>
-                    <li><NavLink to="/provider/invoices" onClick={closeMenu}>Invoices</NavLink></li>
-                    <li><NavLink to="/provider/profile" onClick={closeMenu}>Account</NavLink></li>
+                    <li><NavLink to={APP_ROUTES.provider.invoices} onClick={closeMenu}>Invoices</NavLink></li>
+                    <li><NavLink to={APP_ROUTES.provider.profile} onClick={closeMenu}>Account</NavLink></li>
                   </>
                 ) : (
-                  <li><NavLink to="/profile" onClick={closeMenu}>Profile</NavLink></li>
+                  <li><NavLink to={APP_ROUTES.profile} onClick={closeMenu}>Profile</NavLink></li>
                 )}
                 <li>
                   <button type="button" className={styles.logoutButton} onClick={handleLogout}>
@@ -66,7 +67,7 @@ const Navbar = () => {
                 </li>
               </>
             ) : (
-              <li><NavLink to="/login" onClick={closeMenu} className={styles.loginBtn}>Login</NavLink></li>
+              <li><NavLink to={APP_ROUTES.login} onClick={closeMenu} className={styles.loginBtn}>Login</NavLink></li>
             )}
           </ul>
         </div>

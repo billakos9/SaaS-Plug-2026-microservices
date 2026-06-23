@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { updateProfile } from '../../services/auth';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './ProfilePage.module.css';
 
 const ProfilePage = () => {
@@ -119,7 +120,7 @@ const ProfilePage = () => {
         ) : (
           <div className={styles.profileEmpty}>
             <p className={styles.profileSubtle}>You are not logged in yet.</p>
-            <Link className={styles.profileLogout} to="/login">
+            <Link className={styles.profileLogout} to={APP_ROUTES.login}>
               Go to Login
             </Link>
           </div>

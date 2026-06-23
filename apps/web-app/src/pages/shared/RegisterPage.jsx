@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../services/auth';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './RegisterPage.module.css';
 
 const RegisterPage = () => {
@@ -40,7 +41,7 @@ const RegisterPage = () => {
         name: `${formData.firstName} ${formData.lastName}`.trim() || formData.username || formData.email
       };
       await register(submissionData);
-      navigate('/login', {
+      navigate(APP_ROUTES.login, {
         state: { message: 'Account created. Please log in.' },
       });
     } catch (err) {
@@ -164,7 +165,7 @@ const RegisterPage = () => {
 
         <p className={styles["auth-footer"]}>
           Already have an account?{' '}
-          <Link className={styles["auth-link"]} to="/login">
+          <Link className={styles["auth-link"]} to={APP_ROUTES.login}>
             Login
           </Link>
         </p>

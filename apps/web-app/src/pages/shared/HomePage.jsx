@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import heroVideo from '../../assets/vid-homepage.mp4';
 import HowItWorksSection from '../../components/ui/HowItWorks'
+import { APP_ROUTES } from '../../config/routes';
 import styles from './HomePage.module.css'
 
 
@@ -25,7 +26,7 @@ const Home = ({ user, lastReservation, activeSession }) => {
                         <p className={styles.eyebrowHighlight}>saasPlug Charging Network</p>
                         <h2>Charge faster with saasPlug</h2>
                         <div className={styles.heroActions}>
-                            <Link className= {`${styles.btn} ${styles.btnPrimary} ${styles.heroBtn}`} to="/map">
+                            <Link className= {`${styles.btn} ${styles.btnPrimary} ${styles.heroBtn}`} to={APP_ROUTES.map}>
                                 Find the nearest location
                             </Link>
                         </div>

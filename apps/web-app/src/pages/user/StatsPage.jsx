@@ -10,6 +10,7 @@ import {
 } from '../../services/analytics';
 import { useAuth } from '../../hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
+import { APP_ROUTES } from '../../config/routes';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -160,7 +161,7 @@ const StatsPage = () => {
   }, [user?.providerName]);
 
   useEffect(() => {
-    if (!user) { navigate('/login', { replace: true }); return; }
+    if (!user) { navigate(APP_ROUTES.login, { replace: true }); return; }
     const fetchPeriod = isAllTime ? currentPeriod : period;
     if (isAdmin) {
       fetchAdminData(fetchPeriod);

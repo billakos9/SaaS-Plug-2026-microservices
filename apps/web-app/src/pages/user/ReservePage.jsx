@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getChargers } from '../../services/chargers';
 import { createReservation } from '../../services/reservations';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './ReservePage.module.css';
 
 const mergeSelectedCharger = (list, selected) => {
@@ -115,7 +116,7 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) {
-      navigate('/login', { replace: true, state: { message: 'Login to reserve chargers.' } });
+      navigate(APP_ROUTES.login, { replace: true, state: { message: 'Login to reserve chargers.' } });
       return;
     }
     if (!selectedCharger) {
@@ -136,7 +137,7 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
 
       if (isSuccess) {
         // Instant redirect for better UX
-        navigate('/charging');
+        navigate(APP_ROUTES.charging);
       } else {
         setError(`Could not reserve. Current status: ${result.status}`);
       }
@@ -166,7 +167,7 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
                 <div className={styles.emptyIcon}>📍</div>
                 <h3>No Station Selected</h3>
                 <p>Please return to the map to choose a charging station.</p>
-                <button className={styles.submitBtn} onClick={() => navigate('/map')}>
+                <button className={styles.submitBtn} onClick={() => navigate(APP_ROUTES.map)}>
                     Open Interactive Map
                 </button>
             </div>
@@ -217,7 +218,7 @@ const ReserveFlow = ({ selectedCharger, user, onReserved }) => {
                 <button 
                   type="button" 
                   className={styles.cancelLink}
-                  onClick={() => navigate('/map')}
+                  onClick={() => navigate(APP_ROUTES.map)}
                 >
                   Change Station
                 </button>

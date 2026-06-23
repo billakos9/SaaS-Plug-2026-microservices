@@ -1,4 +1,6 @@
 import http from "./http";
+import { API_ENDPOINTS } from "../config/api";
+import { DEFAULT_CHARGER } from "../config/constants";
 
 /**
  * Normalizes charger data.
@@ -16,11 +18,11 @@ export function normalizeChargerSync(charger) {
     longitude: lon,
     latitude: lat,
     status: charger.status || "available",
-    capacityKw: charger.cap || charger.capacityKw || 22,
-    kwhPrice: charger.kwhPrice || 0.55,
+    capacityKw: charger.cap || charger.capacityKw || DEFAULT_CHARGER.capacityKw,
+    kwhPrice: charger.kwhPrice || DEFAULT_CHARGER.kwhPrice,
     address: address,
     locationName: charger.locationName || `Station ${charger.id}`,
-    connectionType: charger.connectionType || "Type 2",
+    connectionType: charger.connectionType || DEFAULT_CHARGER.connectionType,
     raw: charger
   };
 }
@@ -30,7 +32,7 @@ export function normalizeChargerSync(charger) {
  */
 export async function getChargers() {
   try {
-    const res = await http.get("/chargers/");
+    const res = await http.get(API_ENDPOINTS.chargers.list);
     const data = Array.isArray(res.data) ? res.data : [];
     return data.map(normalizeChargerSync);
   } catch (error) {
@@ -44,7 +46,7 @@ export async function getChargers() {
  */
 export async function getChargersByStatus(status) {
   try {
-    const res = await http.get(`/chargers/status/${status}`);
+    const res = await http.get(API_ENDPOINTS.chargers.byStatus(status));
     const data = Array.isArray(res.data) ? res.data : [];
     return data.map(normalizeChargerSync);
   } catch (error) {
@@ -58,7 +60,7 @@ export async function getChargersByStatus(status) {
  */
 export async function getChargersByProvider(providerId) {
   try {
-    const res = await http.get(`/chargers/provider/${providerId}`);
+    const res = await http.get(API_ENDPOINTS.chargers.byProvider(providerId));
     const data = Array.isArray(res.data) ? res.data : [];
     return data.map(normalizeChargerSync);
   } catch (error) {
@@ -69,7 +71,7 @@ export async function getChargersByProvider(providerId) {
 
 export async function getChargerById(id) {
   try {
-    const res = await http.get(`/chargers/id/${id}`);
+    const res = await http.get(API_ENDPOINTS.chargers.byId(id));
     if (!res.data) return null;
     return normalizeChargerSync(res.data);
   } catch (error) {
