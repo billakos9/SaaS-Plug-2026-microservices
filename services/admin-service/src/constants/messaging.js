@@ -18,4 +18,5 @@ export const RoutingKeys = Object.freeze({
   CHARGER_UPDATE:  "charger.update",
   CHARGER_DELETE:  "charger.delete",
   ADMIN_CREATED:   "admin.created",
+  ADMIN_DELETED:   "admin.deleted",
 });

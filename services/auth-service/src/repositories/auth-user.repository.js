@@ -36,6 +36,13 @@ class AuthUserRepository {
   static async deleteByEmail(email) {
     return AuthUser.findOneAndDelete({ email: email.toLowerCase() }).lean();
   }
+
+  static async deleteByEmailAndRole(email, role) {
+    return AuthUser.findOneAndDelete({
+      email: email.toLowerCase().trim(),
+      role,
+    }).lean();
+  }
 }
 
 export default AuthUserRepository;

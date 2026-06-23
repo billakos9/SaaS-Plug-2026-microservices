@@ -8,6 +8,7 @@ const DLX = "saasplug.dlx";
 const AUTH_UPDATE_QUEUE = "auth.user.update.queue";
 const AUTH_USER_DELETE_QUEUE = "auth.user.delete.queue";
 const AUTH_PROVIDER_DELETE_QUEUE = "auth.provider.delete.queue";
+const AUTH_ADMIN_DELETE_QUEUE = "auth.admin.delete.queue";
 
 export async function setupAuthConsumers() {
   const channel = await getChannelWithRetry();
@@ -105,4 +106,50 @@ export async function setupAuthConsumers() {
   });
 
   console.log(`[Auth Service] Listening for ${RoutingKeys.PROVIDER_DELETE} events...`);
+
+  // --- admin.deleted consumer ---
+  await channel.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
+  await channel.assertQueue(AUTH_ADMIN_DELETE_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(AUTH_ADMIN_DELETE_QUEUE, Exchanges.ADMIN, RoutingKeys.ADMIN_DELETED);
+
+  channel.consume(AUTH_ADMIN_DELETE_QUEUE, async (msg) => {
+    if (!msg) return;
+
+    try {
+      const payload = JSON.parse(msg.content.toString());
+      const { email } = payload;
+
+      if (!email) {
+        console.warn("[Auth Service] admin.deleted event missing email — skipping auth cleanup");
+        channel.ack(msg);
+        return;
+      }
+
+      const existing = await AuthUserRepository.findByEmail(email);
+
+      if (existing && existing.role !== "admin") {
+        console.warn(`[Auth Service] admin.deleted email ${email} belongs to role ${existing.role} — skipping auth cleanup`);
+        channel.ack(msg);
+        return;
+      }
+
+      const deleted = existing
+        ? await AuthUserRepository.deleteByEmailAndRole(email, "admin")
+        : null;
+
+      if (!deleted) {
+        console.warn(`[Auth Service] No admin auth credentials found for email ${email}; revoking any existing tokens`);
+      }
+
+      addRevoked(email);
+      await publishEvent(Exchanges.AUTH, RoutingKeys.TOKEN_REVOKED, { email });
+      console.log(`[Auth Service] Revoked admin auth for email ${email}`);
+      channel.ack(msg);
+    } catch (err) {
+      console.error("[Auth Service] Error processing admin.deleted event:", err.message);
+      channel.nack(msg, false, false);
+    }
+  });
+
+  console.log(`[Auth Service] Listening for ${RoutingKeys.ADMIN_DELETED} events...`);
 }
