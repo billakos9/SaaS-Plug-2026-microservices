@@ -3,6 +3,8 @@
 *.bak_*
 apps/front-end
 .postman
+docker-compose.override.yml
+apps/api-gateway/nginx.vm.conf
 
 # Dependencies
 # Ignores the folder where npm stores all the downloaded packages
