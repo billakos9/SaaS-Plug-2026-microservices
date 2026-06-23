@@ -29,4 +29,8 @@ if (result.error) {
   }
 }
 
-export const { PORT, MONGOOSE_URL, RABBITMQ_URL } = process.env;
+for (const key of ["JWT_SECRET"]) {
+  if (!process.env[key]) { console.error(`${key} is required`); process.exit(1); }
+}
+
+export const { PORT, MONGOOSE_URL, RABBITMQ_URL, JWT_SECRET } = process.env;

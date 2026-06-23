@@ -2,39 +2,99 @@ import { PROVIDER_SERVICE_URL, USER_SERVICE_URL, CHARGER_SERVICE_URL, AUTH_SERVI
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
 
+// ── N12 Circuit-breaker state ─────────────────────────────────────────────────
+const CIRCUIT_THRESHOLD = 3;
+const CIRCUIT_WINDOW_MS = 30_000;
+const CIRCUIT_OPEN_MS   = 60_000;
+const circuits = new Map();
+
+function getCircuit(url) {
+  const host = new URL(url).hostname;
+  if (!circuits.has(host)) circuits.set(host, { failures: [], openUntil: 0 });
+  return circuits.get(host);
+}
+function circuitIsOpen(c) { return c.openUntil > Date.now(); }
+function recordFailure(c) {
+  const now = Date.now();
+  c.failures = c.failures.filter(t => now - t < CIRCUIT_WINDOW_MS);
+  c.failures.push(now);
+  if (c.failures.length >= CIRCUIT_THRESHOLD) c.openUntil = now + CIRCUIT_OPEN_MS;
+}
+function recordSuccess(c) { c.failures = []; c.openUntil = 0; }
+
+// ── N11 timeout · N12 circuit breaker · N13 retry ────────────────────────────
+const PROXY_TIMEOUT_MS = 5000;
+const MAX_RETRIES = 2;
+
 /**
  * Proxies a request to a downstream service and returns the parsed JSON response.
+ * Includes a 5 s timeout (N11), per-host circuit breaker (N12), and
+ * exponential-backoff retry for idempotent methods (N13).
  * Throws AppError if the downstream service returns an error status.
  * @param {String} url - The URL to proxy the request to.
  * @param {String} method - The HTTP method to use (default: "GET").
  * @param {Object|null} body - The request body to send (for POST/PUT requests).
+ * @param {String|null} token - Optional Authorization header value.
  * @returns {Promise<Object>} The parsed JSON response from the downstream service.
  * @throws {AppError} If the downstream service returns a non-OK status or if there is a network error.
  */
-async function proxyRequest(url, method = "GET", body = null) {
+async function proxyRequest(url, method = "GET", body = null, token = null) {
+  const circuit = getCircuit(url);
+  if (circuitIsOpen(circuit)) {
+    throw new AppError(HttpCode.SERVICE_UNAVAILABLE, "Service temporarily unavailable — please try again shortly.");
+  }
+
   const options = {
     method,
     headers: { "Content-Type": "application/json" },
   };
-
+  if (token) options.headers["Authorization"] = token;
   if (body) options.body = JSON.stringify(body);
 
-  let res;
-  try {
-    res = await fetch(url, options);
-  } catch (err) {
-    console.error(`[proxy] failed to reach ${url}:`, err.message);
-    throw new AppError(HttpCode.SERVER_ERROR, `Downstream service unreachable: ${url}`, err.message);
+  // Only idempotent reads are safe to retry; DELETE is excluded because a
+  // successful upstream delete followed by a dropped connection would retry and
+  // receive a 404, falsely signalling failure to the admin operator.
+  const isSafe = method === "GET";
+  const attempts = isSafe ? MAX_RETRIES + 1 : 1;
+
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) await new Promise(r => setTimeout(r, 200 * 2 ** (i - 1)));
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
+
+    let res;
+    try {
+      res = await fetch(url, { ...options, signal: controller.signal });
+    } catch (err) {
+      clearTimeout(timer);
+      lastErr = err;
+      continue; // network error or timeout — retry if safe
+    }
+    clearTimeout(timer);
+
+    // 4xx: caller error — do not retry, do not count as circuit failure
+    if (!res.ok && res.status < 500) {
+      const data = await res.json().catch(() => ({}));
+      throw new AppError(res.status, data?.error ?? "Downstream service error", data?.debugInfo ?? null);
+    }
+
+    // 5xx: upstream failure — retry if safe, track for circuit
+    if (!res.ok) {
+      lastErr = new Error(`Upstream ${url} returned ${res.status}`);
+      recordFailure(circuit);
+      if (i < attempts - 1) continue;
+      const data = await res.json().catch(() => ({}));
+      throw new AppError(res.status, data?.error ?? "Downstream service error", data?.debugInfo ?? null);
+    }
+
+    recordSuccess(circuit);
+    return res.json();
   }
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    console.error(`[proxy] ${url} error:`, data);
-    throw new AppError(res.status, data?.error ?? "Downstream service error", data?.debugInfo ?? null);
-  }
-
-  return data;
+  recordFailure(circuit);
+  throw new AppError(HttpCode.SERVER_ERROR, `Downstream service unreachable: ${url}`, lastErr?.message);
 }
 
 /**
@@ -62,8 +122,8 @@ class ManagementService {
    * @returns {Promise<Array>} A promise resolving to an array of provider objects.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getAllProviders() {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/`);
+  static getAllProviders(token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/`, "GET", null, token);
   }
 
   /**
@@ -72,8 +132,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getProviderById(id) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/${id}`);
+  static getProviderById(id, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/${id}`, "GET", null, token);
   }
 
   /**
@@ -82,14 +142,16 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the registered provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static async registerProvider(body) {
-    const provider = await proxyRequest(`${PROVIDER_SERVICE_URL}/provider/register`, "POST", body);
-    await proxyRequest(`${AUTH_SERVICE_URL}/auth/internal/provider`, "POST", {
+  static async registerProvider(body, token) {
+    // auth-service creates the credential and publishes provider.registered event;
+    // provider-service creates its record autonomously via RabbitMQ consumer
+    return proxyRequest(`${AUTH_SERVICE_URL}/auth/internal/provider`, "POST", {
       email: body.email,
       password: body.password,
       providerName: body.providerName,
-    });
-    return provider;
+      apiBaseUrl: body.apiBaseUrl,
+      apiKey: body.apiKey,
+    }, token);
   }
 
   /**
@@ -99,8 +161,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the updated provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static updateProvider(id, body) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/update/${id}`, "PUT", body);
+  static updateProvider(id, body, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/update/${id}`, "PUT", body, token);
   }
 
   /**
@@ -109,8 +171,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the deleted provider object.
    * @throws {AppError} If there is an error communicating with the provider service, an AppError with status SERVER_ERROR is thrown.
    */
-  static deleteProvider(id) {
-    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/delete/${id}`, "DELETE");
+  static deleteProvider(id, token) {
+    return proxyRequest(`${PROVIDER_SERVICE_URL}/provider/delete/${id}`, "DELETE", null, token);
   }
 
   // ── Users ─────────────────────────────────────────────────────────────────
@@ -120,8 +182,8 @@ class ManagementService {
    * @returns {Promise<Array>} A promise resolving to an array of user objects.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getAllUsers() {
-    return proxyRequest(`${USER_SERVICE_URL}/user/`);
+  static getAllUsers(token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/`, "GET", null, token);
   }
 
   /**
@@ -130,8 +192,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the user object.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static getUserById(id) {
-    return proxyRequest(`${USER_SERVICE_URL}/user/${id}`);
+  static getUserById(id, token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/${id}`, "GET", null, token);
   }
 
   /**
@@ -140,8 +202,8 @@ class ManagementService {
    * @returns {Promise<Object>} A promise resolving to the deleted user object.
    * @throws {AppError} If there is an error communicating with the user service, an AppError with status SERVER_ERROR is thrown.
    */
-  static deleteUser(id) {
-    return proxyRequest(`${USER_SERVICE_URL}/user/delete/${id}`, "DELETE");
+  static deleteUser(id, token) {
+    return proxyRequest(`${USER_SERVICE_URL}/user/delete/${id}`, "DELETE", null, token);
   }
 
   // ── Chargers ──────────────────────────────────────────────────────────────

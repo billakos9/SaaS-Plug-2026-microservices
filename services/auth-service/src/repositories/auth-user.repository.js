@@ -6,7 +6,7 @@ class AuthUserRepository {
     const counter = await Counter.findByIdAndUpdate(
       "userId",
       { $inc: { seq: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
 
     return counter.seq;
@@ -29,8 +29,12 @@ class AuthUserRepository {
     return AuthUser.findOneAndUpdate(
       { userId },
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
+  }
+
+  static async deleteByEmail(email) {
+    return AuthUser.findOneAndDelete({ email: email.toLowerCase() }).lean();
   }
 }
 

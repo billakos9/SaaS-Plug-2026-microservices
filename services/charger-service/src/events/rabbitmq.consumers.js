@@ -1,6 +1,10 @@
 import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
 import ChargerPointService from "../services/charger-point.service.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
+
+const PROVIDER_DELETE_QUEUE = "charger.provider.delete.queue";
+const DLX = "saasplug.dlx";
 
 /**
  * Starts a RabbitMQ consumer for the Charger Service.
@@ -23,17 +27,40 @@ import ChargerPointService from "../services/charger-point.service.js";
  * - Ensure `setupMessaging()` has been executed before calling this
  * - Messages are acknowledged manually to ensure reliability
  */
+export async function startTokenRevocationConsumer() {
+  const channel = await getChannelWithRetry();
+  const TOKEN_REVOKED_QUEUE = "charger.token.revoked.queue";
+  await channel.assertExchange("auth", "topic", { durable: true });
+  await channel.assertQueue(TOKEN_REVOKED_QUEUE, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
+  await channel.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+  await channel.consume(TOKEN_REVOKED_QUEUE, async (msg) => {
+    if (!msg) return;
+    try {
+      const { email } = JSON.parse(msg.content.toString());
+      if (email) addRevoked(email);
+      channel.ack(msg);
+    } catch (err) {
+      console.error("[revocation] error:", err.message);
+      channel.nack(msg, false, false);
+    }
+  });
+}
+
 export async function startChargerQueueConsumer() {
-  try {
-    const channel = await getChannelWithRetry();
+  const channel = await getChannelWithRetry();
 
-    await channel.assertQueue(MessageQueues.CHARGER, {
-      durable: true,
-    });
+  await channel.assertQueue(MessageQueues.CHARGER, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
 
-    await channel.consume(MessageQueues.CHARGER, async (message) => {
-      if (!message) return;
+  await channel.consume(MessageQueues.CHARGER, async (message) => {
+    if (!message) return;
 
+    try {
       const routingKey = message.fields.routingKey;
       const chargerData = JSON.parse(message.content.toString());
 
@@ -52,10 +79,11 @@ export async function startChargerQueueConsumer() {
       }
 
       channel.ack(message);
-    });
-  } catch (error) {
-    console.log("Charger Service Message Consumer Error:", error);
-  }
+    } catch (error) {
+      console.error("[charger-consumer] Error processing message:", error.message);
+      channel.nack(message, false, false);
+    }
+  });
 }
 
 /**
@@ -80,16 +108,17 @@ export async function startChargerQueueConsumer() {
  * - Messages are acknowledged manually to ensure reliability
  */
 export async function startReservationQueueConsumer() {
-  try {
-    const channel = await getChannelWithRetry();
+  const channel = await getChannelWithRetry();
 
-    await channel.assertQueue(MessageQueues.RESERVATION, {
-      durable: true,
-    });
+  await channel.assertQueue(MessageQueues.RESERVATION, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
 
-    await channel.consume(MessageQueues.RESERVATION, async (message) => {
-      if (!message) return;
+  await channel.consume(MessageQueues.RESERVATION, async (message) => {
+    if (!message) return;
 
+    try {
       const routingKey = message.fields.routingKey;
       const reservationData = JSON.parse(message.content.toString());
 
@@ -117,8 +146,40 @@ export async function startReservationQueueConsumer() {
       }
 
       channel.ack(message);
-    });
-  } catch (error) {
-    console.log("Reservation Service Message Consumer Error:", error);
-  }
+    } catch (error) {
+      console.error("[reservation-consumer] Error processing message:", error.message);
+      channel.nack(message, false, false);
+    }
+  });
+}
+
+export async function startProviderDeleteConsumer() {
+  const channel = await getChannelWithRetry();
+
+  await channel.assertQueue(PROVIDER_DELETE_QUEUE, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
+
+  await channel.consume(PROVIDER_DELETE_QUEUE, async (message) => {
+    if (!message) return;
+
+    try {
+      const { providerName } = JSON.parse(message.content.toString());
+      await ChargerPointService.markOfflineByProvider(providerName);
+      channel.ack(message);
+    } catch (error) {
+      console.error("[charger-consumer] provider.delete handler error:", error.message);
+      channel.nack(message, false, false);
+    }
+  });
+
+  console.log("[charger-service] provider delete consumer started.");
+}
+
+export async function startEventConsumers() {
+  await startTokenRevocationConsumer();
+  await startChargerQueueConsumer();
+  await startReservationQueueConsumer();
+  await startProviderDeleteConsumer();
 }

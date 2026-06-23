@@ -11,6 +11,7 @@ const ChargerPointSchema = new mongoose.Schema(
     ProviderName: {
       type: String,
       required: true,
+      minlength: 1,
     },
     longitude: String,
     latitude: String,

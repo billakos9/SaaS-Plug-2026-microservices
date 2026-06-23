@@ -1,9 +1,9 @@
 import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
-import { CHARGER_SERVICE_URL } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import ReservationRepository from "../repositories/reservation.repository.js";
+import { get as getCachedCharger } from "../lib/charger-cache.js";
 
 /**
  * Business-logic layer for reservation operations.
@@ -29,38 +29,37 @@ class ReservationService {
       throw new AppError(HttpCode.CONFLICT, "You already have an active reservation");
     }
 
-    let kwhPrice = 0;
-    let locationName = data.locationName || `Station ${data.chargerId}`;
-    try {
-      const res = await fetch(`${CHARGER_SERVICE_URL}/charger/id/${data.chargerId}`);
-      if (res.ok) {
-        const charger = await res.json();
-        if (charger.status && charger.status !== "available") {
-          throw new AppError(HttpCode.CONFLICT, "Charger is not available");
-        }
-        kwhPrice = charger.kwhPrice ?? 0;
-        if (!data.locationName) {
-          locationName = charger.locationName || locationName;
-        }
-      }
-    } catch (err) {
-      if (err instanceof AppError) throw err;
-      // network failure — proceed with defaults
+    const cached = getCachedCharger(data.chargerId);
+    if (!cached) {
+      throw new AppError(HttpCode.SERVICE_UNAVAILABLE, "Station data unavailable — try again shortly.");
     }
+    if (cached.status !== "available") {
+      throw new AppError(HttpCode.CONFLICT, "Charger is not available");
+    }
+    const kwhPrice = cached.kwhPrice ?? 0;
+    const locationName = data.locationName || cached.locationName || `Station ${data.chargerId}`;
 
     const reservationId = await ReservationRepository.getNextId();
 
-    const reservation = await ReservationRepository.create({
-      reservationId,
-      userId:       data.userId,
-      chargerId:    data.chargerId,
-      locationName,
-      capacityKw:   data.capacityKw || 22,
-      providerName: data.providerName,
-      duration:     data.duration,
-      kwhPrice,
-      status:       "active",
-    });
+    let reservation;
+    try {
+      reservation = await ReservationRepository.create({
+        reservationId,
+        userId:       data.userId,
+        chargerId:    data.chargerId,
+        locationName,
+        capacityKw:   data.capacityKw || cached.capacityKw || 22,
+        providerName: data.providerName,
+        duration:     data.duration,
+        kwhPrice,
+        status:       "active",
+      });
+    } catch (err) {
+      if (err.code === 11000 && err.keyPattern?.chargerId) {
+        throw new AppError(HttpCode.CONFLICT, "Charger is already reserved");
+      }
+      throw err;
+    }
 
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED, {
       reservationId:    reservation.reservationId,
@@ -73,6 +72,7 @@ class ReservationService {
       duration:         reservation.duration,
       kwhPrice:         reservation.kwhPrice,
       status:           "reserved",
+      createdAt:        reservation.createdAt,
     });
 
     return reservation;
@@ -115,22 +115,69 @@ class ReservationService {
     const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
     const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
-    await ReservationRepository.update(reservationId, { 
-      status: "cancelled", 
-      duration: actualDuration 
+    const updated = await ReservationRepository.updateIfActive(reservationId, {
+      status: "cancelled",
+      actualDurationSeconds: actualDuration,
     });
 
+    if (!updated) {
+      throw new AppError(HttpCode.CONFLICT, "Reservation already finalized");
+    }
+
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
-      reservationId: reservation.reservationId,
+      reservationId: updated.reservationId,
+      userId:        reservation.userId,
       id:            reservation.chargerId,
-      status:        "available",
+      // status omitted: charger stays "reserved"; plug-service polling releases it
       actualDuration,
       totalCost,
       capacityKw:    reservation.capacityKw,
       providerName:  reservation.providerName,
+      createdAt:     reservation.createdAt,
     });
 
-    return reservation;
+    return updated;
+  }
+
+  /**
+   * Cancels all active reservations belonging to a user.
+   *
+   * Called when a `user.deleted` event is received. For each active reservation
+   * found, it atomically claims it via `updateIfActive` (to prevent races with
+   * concurrent cancels) and then publishes a `reservation.cancelled` event.
+   *
+   * @param {number} userId - The numeric user identifier whose reservations should be cancelled
+   * @returns {Promise<void>}
+   */
+  static async cancelAllForUser(userId) {
+    const activeReservations = await ReservationRepository.findActiveByUserId(userId);
+
+    for (const r of activeReservations) {
+      const actualDuration = Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 1000);
+      const totalCost = (actualDuration / 3600) * (r.capacityKw || 22) * r.kwhPrice;
+
+      const updated = await ReservationRepository.updateIfActive(r.reservationId, {
+        status: "cancelled",
+        actualDurationSeconds: actualDuration,
+      });
+
+      if (!updated) {
+        // A racing writer already finalized this reservation; skip publishing
+        continue;
+      }
+
+      await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED, {
+        reservationId: updated.reservationId,
+        userId:        r.userId,
+        id:            r.chargerId,
+        // status omitted: charger stays "reserved"; plug-service polling releases it
+        actualDuration,
+        totalCost,
+        capacityKw:    r.capacityKw,
+        providerName:  r.providerName,
+        createdAt:     r.createdAt,
+      });
+    }
   }
 
   /**
@@ -147,22 +194,28 @@ class ReservationService {
     const actualDuration = Math.round((new Date() - new Date(reservation.createdAt)) / 1000);
     const totalCost = (actualDuration / 3600) * (reservation.capacityKw || 22) * reservation.kwhPrice;
 
-    await ReservationRepository.update(reservationId, { 
-      status: "completed", 
-      duration: actualDuration 
+    const updated = await ReservationRepository.updateIfActive(reservationId, {
+      status: "completed",
+      actualDurationSeconds: actualDuration,
     });
 
+    if (!updated) {
+      throw new AppError(HttpCode.CONFLICT, "Reservation already finalized");
+    }
+
     await publishEvent(Exchanges.RESERVATION, RoutingKeys.RESERVATION_COMPLETED, {
-      reservationId: reservation.reservationId,
+      reservationId: updated.reservationId,
+      userId:        reservation.userId,
       id:            reservation.chargerId,
       status:        "available",
       actualDuration,
       totalCost,
       capacityKw:    reservation.capacityKw,
       providerName:  reservation.providerName,
+      createdAt:     reservation.createdAt,
     });
 
-    return reservation;
+    return updated;
   }
 }
 

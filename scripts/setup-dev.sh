@@ -49,9 +49,11 @@ cd "$ROOT"
 # ── 1. Write environment files ────────────────────────────────────────────────
 info "Writing environment files..."
 
-# Root .env (consumed by docker-compose for JWT_SECRET substitution)
+# Root .env (consumed by docker-compose for variable substitution)
 cat > .env <<'EOF'
 JWT_SECRET=change_me_to_a_strong_secret
+PROVIDER_REGISTRATION_CODE=saasplug-provider-2024
+SEED_ADMIN_CREDENTIALS=admin@saas.com:123456,admin@saasplug.app:123456,agrinios@saasplug.app:123456
 EOF
 
 # auth-service
@@ -113,32 +115,17 @@ MONGOOSE_URL=mongodb://provider-db:27017/provider
 RABBITMQ_URL=amqp://rabbitmq:5672
 EOF
 
-# plug adapters (all share the same auth token for the external NTUA API)
+# plug adapters — only the auth token is needed; MONGOOSE_URL/RABBITMQ_URL removed in Issue #16
 cat > services/plug-adapters/blue-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
 BLUE_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 cat > services/plug-adapters/red-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://redplug-db:27017/redplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
 RED_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 cat > services/plug-adapters/green-plug-adapter/.env.development.local <<'EOF'
-PORT=3000
-MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
-RABBITMQ_URL=amqp://rabbitmq:5672
-GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
 GREEN_PLUG_AUTH_TOKEN=sk_saas_bb5c92ea23c41ad654a2c970
-JWT_SECRET=change_me_to_a_strong_secret
 EOF
 
 success "Environment files written."
@@ -187,7 +174,7 @@ success "Stack is up."
 # ── 6. Seed users (dev-seeder via docker compose) ─────────────────────────────
 info "Seeding regular users (auth-db + user-db)..."
 docker compose --profile seed run --rm dev-seeder
-success "100 regular users seeded (seed001@saasplug.app … seed100@saasplug.app, password: 123456)."
+success "100 regular users seeded (e.g. giorgos.papadopoulos@gmail.com — see mock_data/users.json, password: 123456)."
 
 # ── 7. Seed provider auth accounts + provider-db records ─────────────────────
 info "Seeding provider accounts..."
@@ -225,22 +212,26 @@ echo -e "${BOLD}  Frontend:${RESET}     http://localhost:5173      (Vite — sta
 echo ""
 echo -e "${BOLD}${CYAN}  ── Test Accounts  (all passwords: 123456) ────────────────${RESET}"
 echo ""
-echo -e "${BOLD}  Regular user${RESET}  →  Log in at /login  →  Map, Reserve, Charging, Stats"
-echo -e "    ${GREEN}seed001@saasplug.app${RESET}  through  ${GREEN}seed100@saasplug.app${RESET}"
+echo -e "${BOLD}  Users${RESET}  →  /login  →  Map, Reserve, Charging, Stats"
+echo -e "    ${GREEN}giorgos.papadopoulos@gmail.com${RESET}"
+echo -e "    ${GREEN}james.smith@gmail.com${RESET}"
+echo -e "    ${GREEN}marco.rossi@gmail.com${RESET}"
+echo -e "    (100 users total — see mock_data/users.json)"
 echo ""
-echo -e "${BOLD}  Provider accounts${RESET}  →  Log in at /login  →  My Network, Analytics, Account"
-echo -e "    ${GREEN}blue@plug.com${RESET}      bluePlug network"
-echo -e "    ${GREEN}red@plug.com${RESET}       redPlug network"
-echo -e "    ${GREEN}green@plug.com${RESET}     greenPlug network"
+echo -e "${BOLD}  Providers${RESET}  →  /login  →  My Network, Analytics, Invoices, Account"
+echo -e "    ${GREEN}blue@plug.com${RESET}      bluePlug"
+echo -e "    ${GREEN}red@plug.com${RESET}       redPlug"
+echo -e "    ${GREEN}green@plug.com${RESET}     greenPlug"
 echo ""
-echo -e "${BOLD}  Admin accounts${RESET}  →  Log in at /login  →  System Map, Global Analytics, Management"
-echo -e "    ${GREEN}admin@saas.com${RESET}         Super Admin"
-echo -e "    ${GREEN}admin@saasplug.app${RESET}     Global Admin"
-echo -e "    ${GREEN}agrinios@saasplug.app${RESET}  Giorgos Admin"
+echo -e "${BOLD}  Admins${RESET}  →  /login  →  System Map, Global Analytics, Management"
+echo -e "    ${GREEN}admin@saas.com${RESET}"
+echo -e "    ${GREEN}admin@saasplug.app${RESET}"
+echo -e "    ${GREEN}agrinios@saasplug.app${RESET}"
 echo ""
 echo -e "${BOLD}${CYAN}  ── Seeded Data ────────────────────────────────────────────${RESET}"
-echo -e "    100 completed reservations  (bluePlug 40 · redPlug 35 · greenPlug 25)"
-echo -e "    Analytics stats pre-built for the current month"
+echo -e "    3,612 completed reservations  (2024-06-15 → 2026-06-14)"
+echo -e "    bluePlug 40 %  ·  redPlug 35 %  ·  greenPlug 25 %"
+echo -e "    75 invoices pre-generated  (25 months × 3 providers)"
 echo ""
 echo -e "${BOLD}${YELLOW}  Press Ctrl+C to stop the frontend dev server.${RESET}"
 echo -e "${BOLD}${YELLOW}  Backend containers keep running — stop with: docker compose down${RESET}"

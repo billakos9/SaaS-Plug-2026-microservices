@@ -1,0 +1,85 @@
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
+import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
+import BilledReservationRepository from "../repositories/billed-reservation.repository.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
+
+const DLX = "saasplug.dlx";
+
+export async function startBillingConsumers() {
+  const channel = await getChannelWithRetry();
+
+  await channel.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
+  await channel.assertExchange(DLX, "fanout", { durable: true });
+  await channel.assertQueue(MessageQueues.BILLING_RESERVATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CREATED);
+  await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_CANCELLED);
+  await channel.bindQueue(MessageQueues.BILLING_RESERVATION, Exchanges.RESERVATION, RoutingKeys.RESERVATION_COMPLETED);
+
+  await channel.consume(MessageQueues.BILLING_RESERVATION, async (msg) => {
+    if (!msg) return;
+    const routingKey = msg.fields.routingKey;
+    try {
+      const payload = JSON.parse(msg.content.toString());
+
+      if (routingKey === RoutingKeys.RESERVATION_CREATED) {
+        const { reservationId, userId, id, locationName, capacityKw, providerName, kwhPrice, duration } = payload;
+        await BilledReservationRepository.upsertOnCreate({
+          reservationId,
+          userId,
+          chargerId: id,
+          locationName: locationName || "",
+          capacityKw: capacityKw ?? 22,
+          providerName,
+          kwhPrice: kwhPrice ?? 0,
+          originalDurationMinutes: duration ?? 0,
+          status: "active",
+          createdAt: new Date(),
+        });
+      } else if (
+        routingKey === RoutingKeys.RESERVATION_COMPLETED ||
+        routingKey === RoutingKeys.RESERVATION_CANCELLED
+      ) {
+        const { reservationId, userId, actualDuration, totalCost, id, capacityKw, providerName, createdAt } = payload;
+        const newStatus = routingKey === RoutingKeys.RESERVATION_COMPLETED ? "completed" : "cancelled";
+        await BilledReservationRepository.upsertOnFinalise(
+          reservationId,
+          { actualDurationSeconds: actualDuration, totalCost, status: newStatus },
+          {
+            reservationId,
+            userId:                  userId ?? 0,
+            chargerId:               id ?? 0,
+            locationName:            "",
+            capacityKw:              capacityKw ?? 22,
+            providerName:            providerName ?? "",
+            kwhPrice:                0,
+            originalDurationMinutes: 0,
+            createdAt:               createdAt ? new Date(createdAt) : new Date(),
+          },
+        );
+      }
+
+      channel.ack(msg);
+    } catch (err) {
+      console.error(`[billing-consumer] Error handling ${routingKey}:`, err.message);
+      channel.nack(msg, false, false);
+    }
+  });
+
+  console.log(`Billing consumers started on ${MessageQueues.BILLING_RESERVATION}`);
+
+  const TOKEN_REVOKED_QUEUE = "billing.token.revoked.queue";
+  await channel.assertExchange("auth", "topic", { durable: true });
+  await channel.assertQueue(TOKEN_REVOKED_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+  await channel.consume(TOKEN_REVOKED_QUEUE, async (msg) => {
+    if (!msg) return;
+    try {
+      const { email } = JSON.parse(msg.content.toString());
+      if (email) addRevoked(email);
+      channel.ack(msg);
+    } catch (err) {
+      console.error("[revocation] error:", err.message);
+      channel.nack(msg, false, false);
+    }
+  });
+}

@@ -10,10 +10,16 @@ const normalizeProvider = (provider) => ({
   raw: provider,
 });
 
-// payload = info
+// legacy — used by admin panel flows
 export async function registerProvider(payload) {
   const res = await http.post("/providers", payload);
   return normalizeProvider(res.data ?? {});
+}
+
+// public self-registration — gated by registration code
+export async function selfRegisterProvider(payload) {
+  const res = await http.post("/auth/provider/register", payload);
+  return res.data ?? {};
 }
 
 

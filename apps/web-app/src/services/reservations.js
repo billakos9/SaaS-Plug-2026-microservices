@@ -17,6 +17,8 @@ const normalizeReservation = (reservation) => {
     capacityKw: reservation.capacityKw,
     status: reservation.status,
     duration: reservation.duration,
+    durationSeconds: (reservation.duration ?? 0) * 60,
+    actualDurationSeconds: reservation.actualDurationSeconds ?? null,
     kwhPrice: reservation.kwhPrice,
     createdAt: reservation.createdAt,
     updatedAt: reservation.updatedAt,
@@ -86,7 +88,13 @@ export async function getReservationById(id) {
 export async function cancelReservation(reservationId) {
   if (!reservationId) throw new Error("Reservation ID is required");
   const res = await http.post(`/reservations/${reservationId}/cancel`);
-  return res.data;
+  return normalizeReservation(res.data);
+}
+
+export async function completeReservation(reservationId) {
+  if (!reservationId) throw new Error("Reservation ID is required");
+  const res = await http.post(`/reservations/${reservationId}/complete`);
+  return normalizeReservation(res.data);
 }
 
 export { normalizeReservation };

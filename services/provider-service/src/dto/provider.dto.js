@@ -18,7 +18,6 @@ export function toProviderRegistrationRequestDTO(input) {
 
   if (!input.providerName?.trim()) throw new AppError(HttpCode.BAD_REQUEST, "providerName is required");
   if (!input.email?.trim())        throw new AppError(HttpCode.BAD_REQUEST, "email is required");
-  if (!input.password?.trim())     throw new AppError(HttpCode.BAD_REQUEST, "password is required");
   if (!input.apiBaseUrl?.trim())   throw new AppError(HttpCode.BAD_REQUEST, "apiBaseUrl is required");
   if (!input.apiKey?.trim())       throw new AppError(HttpCode.BAD_REQUEST, "apiKey is required");
 
@@ -27,7 +26,6 @@ export function toProviderRegistrationRequestDTO(input) {
     apiBaseUrl:   input.apiBaseUrl.trim(),
     apiKey:       input.apiKey.trim(),
     email:        input.email.trim(),
-    password:     input.password.trim(),
   };
 }
 
@@ -101,6 +99,7 @@ export function toProviderUpdatedDTO(data) {
 export function toProviderListDTO(providers) {
   return providers.map((p) => ({
     providerId:   p.providerId,
+    email:        p.email,
     providerName: p.providerName,
     apiBaseUrl:   p.apiBaseUrl,
   }));

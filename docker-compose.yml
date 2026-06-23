@@ -16,6 +16,7 @@ services:
       - provider-service
       - admin-service
       - analytics-service
+      - billing-service
       - blueplug-adapter
       - redplug-adapter
       - greenplug-adapter
@@ -51,6 +52,8 @@ services:
       - MONGOOSE_URL=mongodb://auth-db:27017/auth
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - JWT_SECRET=${JWT_SECRET}
+      - PROVIDER_REGISTRATION_CODE=${PROVIDER_REGISTRATION_CODE}
+      - SEED_ADMIN_CREDENTIALS=${SEED_ADMIN_CREDENTIALS}
     depends_on:
       auth-db:
         condition: service_started
@@ -90,6 +93,7 @@ services:
       - PORT=3000
       - MONGOOSE_URL=mongodb://charger-db:27017/charger
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       charger-db:
         condition: service_started
@@ -121,6 +125,24 @@ services:
     networks:
       - backend
 
+  billing-service:
+    build: ./services/billing-service
+    container_name: billing_service
+    ports:
+      - "3012:3000"
+    environment:
+      - PORT=3000
+      - MONGOOSE_URL=mongodb://billing-db:27017/billing
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      billing-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+
   provider-service:
     build: ./services/provider-service
     container_name: provider_service
@@ -130,6 +152,7 @@ services:
       - PORT=3000
       - MONGOOSE_URL=mongodb://provider-db:27017/provider
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -160,6 +183,7 @@ services:
       - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000
       - RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000
       - GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000
+      - BILLING_SERVICE_URL=http://billing-service:3000
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       rabbitmq:
@@ -183,6 +207,7 @@ services:
       - BLUE_PLUG_ADAPTER_URL=http://blueplug-adapter:3000/bluePlugAdapter
       - RED_PLUG_ADAPTER_URL=http://redplug-adapter:3000/redPlugAdapter
       - GREEN_PLUG_ADAPTER_URL=http://greenplug-adapter:3000/greenPlugAdapter
+      - POLL_INTERVAL_MINUTES=15
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -200,12 +225,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://blueplug-db:27017/blueplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - BLUE_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/bluePlug/api
-    depends_on:
-      - blueplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -219,12 +239,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://redplug-db:27017/redplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - RED_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/redPlug/api
-    depends_on:
-      - redplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -238,12 +253,7 @@ services:
         required: false
     environment:
       - PORT=3000
-      - MONGOOSE_URL=mongodb://greenplug-db:27017/greenplug
-      - RABBITMQ_URL=amqp://rabbitmq:5672
       - GREEN_PLUG_BASE_URL=https://davinci.softlab.ntua.gr/saas26/greenPlug/api
-    depends_on:
-      - greenplug-db
-      - rabbitmq
     networks:
       - backend
 
@@ -352,35 +362,16 @@ services:
     networks:
       - backend
 
-  blueplug-db:
-    container_name: bluePlug_db
+  billing-db:
     image: mongo:8
+    container_name: billing_db
     ports:
-      - "27018:27017"
+      - "27022:27017"
     volumes:
-      - blueplug_data:/data/db
+      - billing_data:/data/db
     networks:
       - backend
 
-  redplug-db:
-    container_name: redPlug_db
-    image: mongo:8
-    ports:
-      - "27019:27017"
-    volumes:
-      - redplug_data:/data/db
-    networks:
-      - backend
-
-  greenplug-db:
-    container_name: greenPlug_db
-    image: mongo:8
-    ports:
-      - "27020:27017"
-    volumes:
-      - greenplug_data:/data/db
-    networks:
-      - backend
 
 # ---------- Volumes ----------
 volumes:
@@ -391,9 +382,7 @@ volumes:
   analytics_data:
   provider_data:
   admin_data:
-  blueplug_data:
-  redplug_data:
-  greenplug_data:
+  billing_data:
 
 # ---------- Network ----------
 networks:

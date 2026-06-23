@@ -2,20 +2,69 @@ import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges, MessageQueues } from "../constants/messaging.js";
 
-let connection = null;
-let channel = null;
+const DLX = "saasplug.dlx";
+
+let connection     = null;
+let consumeChannel = null;
+let channelPromise = null;
+
+const reconnectHandlers = [];
+
+export function onReconnect(fn) {
+  reconnectHandlers.push(fn);
+}
+
+async function handleDisconnect(reason) {
+  console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
+  connection     = null;
+  consumeChannel = null;
+  channelPromise = null;
+
+  while (true) {
+    try {
+      await getChannelWithRetry();
+      for (const fn of reconnectHandlers) {
+        await fn();
+      }
+      console.log("[rabbitmq] reconnected and resubscribed");
+      return;
+    } catch (err) {
+      console.error("[rabbitmq] reconnect attempt failed, retrying in 5s:", err.message);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "admin-service" } });
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
 
 /**
- * Returns the singleton RabbitMQ channel, creating the connection and channel
+ * Returns the singleton RabbitMQ consume channel, creating the connection and channel
  * on first call. Subsequent calls return the cached channel instance.
  *
  * @returns {Promise<import("amqplib").Channel>} Active RabbitMQ channel
  */
 export async function getChannel() {
-  if (channel) return channel;
-  connection = await amqp.connect(RABBITMQ_URL);
-  channel = await connection.createChannel();
-  return channel;
+  if (consumeChannel) return consumeChannel;
+  if (!channelPromise) {
+    channelPromise = (async () => {
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
+    })().catch((err) => {
+      channelPromise = null;
+      throw err;
+    });
+  }
+  return channelPromise;
 }
 
 /**
@@ -48,11 +97,17 @@ export async function getChannelWithRetry(retries = 5) {
 export async function setupMessaging() {
   const ch = await getChannelWithRetry();
 
+  await ch.assertExchange(DLX, "fanout", { durable: true });
+
   await ch.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.PROVIDER, { durable: true });
-  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.*");
+  await ch.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.add");
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.update");
+  await ch.bindQueue(MessageQueues.PROVIDER, Exchanges.PROVIDER, "provider.delete");
 
   await ch.assertExchange(Exchanges.CHARGER, "topic", { durable: true });
-  await ch.assertQueue(MessageQueues.CHARGER, { durable: true });
+  await ch.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
   await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
+
+  await ch.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
 }

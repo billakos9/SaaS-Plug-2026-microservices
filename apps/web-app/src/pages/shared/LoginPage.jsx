@@ -95,6 +95,12 @@ const LoginPage = () => {
                         Register
                     </Link>
                 </p>
+                <p className={styles.AuthFooter}>
+                    Are you a provider?{' '}
+                    <Link className={styles.AuthLink} to="/provider/register">
+                        Register your network
+                    </Link>
+                </p>
             </div>
         </section>
     );

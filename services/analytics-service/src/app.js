@@ -1,34 +1,38 @@
 import express from "express";
+import mongoose from "mongoose";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
 import { startConsumers } from "./events/rabbitmq.consumers.js";
-import { startInvoiceGenerationJob } from "./jobs/invoice-generation.job.js";
+import { onReconnect } from "./infrastructure/rabbitMQ.js";
 import analyticsRouter from "./routes/analytics.route.js";
-import invoiceRouter from "./routes/invoice.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 
 const app = express();
 app.use(express.json());
 
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  res.status(dbOk ? 200 : 503).json({ status: dbOk ? "operational" : "degraded" });
+});
 
-app.use("/analytics/invoices", invoiceRouter);
-app.use("/analytics",          analyticsRouter);
+app.use("/analytics", analyticsRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
-
-app.listen(PORT, () => {
-  console.log(`Analytics service running on http://localhost:${PORT}`);
-});
 
 async function bootstrap() {
   await connectMongoDB();
   await startConsumers();
-  startInvoiceGenerationJob();
+  onReconnect(startConsumers);
+  app.listen(PORT, () => {
+    console.log(`Analytics service running on http://localhost:${PORT}`);
+  });
 }
 
-bootstrap().catch(console.error);
+bootstrap().catch((err) => {
+  console.error("[analytics-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;

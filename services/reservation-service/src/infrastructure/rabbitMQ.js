@@ -1,23 +1,92 @@
 import amqp from "amqplib";
 import { RABBITMQ_URL } from "../config/env.js";
-import { Exchanges, MessageQueues } from "../constants/messaging.js";
+import { Exchanges, MessageQueues, RoutingKeys } from "../constants/messaging.js";
 
-let connection = null;
-let channel    = null;
+const DLX = "saasplug.dlx";
+
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
+
+const reconnectHandlers = [];
+
+export function onReconnect(fn) {
+  reconnectHandlers.push(fn);
+}
+
+async function handleDisconnect(reason) {
+  console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
+
+  while (true) {
+    try {
+      await getChannelWithRetry();
+      for (const fn of reconnectHandlers) {
+        await fn();
+      }
+      console.log("[rabbitmq] reconnected and resubscribed");
+      return;
+    } catch (err) {
+      console.error("[rabbitmq] reconnect attempt failed, retrying in 5s:", err.message);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "reservation-service" } });
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
 
 /**
- * Returns a singleton RabbitMQ channel, creating the connection and channel on first call.
+ * Returns a singleton RabbitMQ consume channel, creating the connection and channel on first call.
  *
- * Reuses the module-level `connection` and `channel` variables so that only one
+ * Reuses the module-level `connection` and `consumeChannel` variables so that only one
  * channel exists for the lifetime of the process, preventing resource exhaustion.
  *
- * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ channel instance
+ * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ consume channel instance
  */
 export async function getChannel() {
-  if (channel) return channel;
-  connection = await amqp.connect(RABBITMQ_URL);
-  channel    = await connection.createChannel();
-  return channel;
+  if (consumeChannel) return consumeChannel;
+  if (!channelPromise) {
+    channelPromise = (async () => {
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
+    })().catch((err) => {
+      channelPromise = null;
+      throw err;
+    });
+  }
+  return channelPromise;
+}
+
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
 }
 
 /**
@@ -27,7 +96,7 @@ export async function getChannel() {
  * are exhausted without a successful connection.
  *
  * @param {number} [retries=5] - Maximum number of connection attempts before giving up
- * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ channel instance
+ * @returns {Promise<import("amqplib").Channel>} The shared RabbitMQ consume channel instance
  * @throws {Error} If a channel cannot be obtained after all retries are exhausted
  */
 export async function getChannelWithRetry(retries = 5) {
@@ -54,14 +123,22 @@ export async function getChannelWithRetry(retries = 5) {
 export async function setupMessaging() {
   const ch = await getChannelWithRetry();
   await ch.assertExchange(Exchanges.RESERVATION, "topic", { durable: true });
+  await ch.assertExchange(Exchanges.USER, "topic", { durable: true });
+  await ch.assertExchange(DLX, "fanout", { durable: true });
+
+  await ch.assertQueue(MessageQueues.USER_DELETE, {
+    durable: true,
+    arguments: { "x-dead-letter-exchange": DLX },
+  });
+  await ch.bindQueue(MessageQueues.USER_DELETE, Exchanges.USER, RoutingKeys.USER_DELETED);
 }
 
 /**
  * Publishes a domain event to a RabbitMQ topic exchange.
  *
- * The payload is JSON-stringified and sent as a persistent message so it survives
- * broker restarts. Consumers bound to the exchange with a matching routing key
- * (e.g. "reservation.*") will receive the event.
+ * Uses a dedicated publish channel separate from the consume channel to
+ * avoid head-of-line blocking. The payload is JSON-stringified and sent as a
+ * persistent message so it survives broker restarts.
  *
  * @param {string} exchange - Name of the target exchange (e.g. Exchanges.RESERVATION)
  * @param {string} routingKey - Routing key describing the event (e.g. "reservation.created")
@@ -70,7 +147,7 @@ export async function setupMessaging() {
  * @throws {Error} If the channel is unavailable or the publish call fails
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const ch = await getChannelWithRetry();
+  const ch = await getPublishChannel();
   ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
     persistent: true,
   });

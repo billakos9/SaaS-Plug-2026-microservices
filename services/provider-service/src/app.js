@@ -5,31 +5,45 @@
  * messaging infrastructure, and starts the provider queue consumer.
  */
 import express from "express";
+import mongoose from "mongoose";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect, publishEvent } from "./infrastructure/rabbitMQ.js";
+import { startOutboxRelay } from "./infrastructure/outbox.js";
 import providerRouter from "./routes/provider.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
-import { startProviderQueueConsumer } from "./events/rabbitmq.consumers.js";
+import { startProviderQueueConsumer, startTokenRevocationConsumer } from "./events/rabbitmq.consumers.js";
 
 const app = express();
 app.use(express.json());
 
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  res.status(dbOk ? 200 : 503).json({ status: dbOk ? "operational" : "degraded" });
+});
 
 app.use("/provider", providerRouter);
 app.use(unmatchedRouteMiddleware);
 
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startProviderQueueConsumer();
+  await startTokenRevocationConsumer();
+  onReconnect(async () => {
+    await startProviderQueueConsumer();
+    await startTokenRevocationConsumer();
+  });
+  startOutboxRelay(publishEvent);
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
 
-connectMongoDB();
-setupMessaging();
-startProviderQueueConsumer();
+bootstrap().catch(err => { console.error("Bootstrap failed:", err); process.exit(1); });
 
 export default app;

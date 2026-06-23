@@ -7,6 +7,7 @@ import {
   getAllChargerPoints,
   getAllChargerPointsByStatus,
 } from "../controllers/charger-point.controller.js";
+import { authMiddleware, requireRole } from "../middleware/auth.middleware.js";
 
 const chargerPointRouter = Router();
 
@@ -18,6 +19,6 @@ chargerPointRouter.get(
   getChargerPointByLocation,
 );
 
-chargerPointRouter.post("/", addChargerPoint);
+chargerPointRouter.post("/", authMiddleware, requireRole("admin"), addChargerPoint);
 
 export default chargerPointRouter;

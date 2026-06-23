@@ -8,10 +8,15 @@ import ManagementService from "../services/management.service.js";
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON array of provider objects
  */
-export const getAllProviders = async (req, res) => {
-  res.json(await ManagementService.getAllProviders());
+export const getAllProviders = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getAllProviders(req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -20,10 +25,15 @@ export const getAllProviders = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON object of the matching provider
  */
-export const getProviderById = async (req, res) => {
-  res.json(await ManagementService.getProviderById(req.params.id));
+export const getProviderById = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getProviderById(req.params.id, req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -32,11 +42,16 @@ export const getProviderById = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON of the created provider (201)
  */
-export const registerProvider = async (req, res) => {
-  const result = await ManagementService.registerProvider(req.body);
-  res.status(201).json(result);
+export const registerProvider = async (req, res, next) => {
+  try {
+    const result = await ManagementService.registerProvider(req.body, req.headers["authorization"]);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -45,10 +60,15 @@ export const registerProvider = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON of the updated provider
  */
-export const updateProvider = async (req, res) => {
-  res.json(await ManagementService.updateProvider(req.params.id, req.body));
+export const updateProvider = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.updateProvider(req.params.id, req.body, req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -57,10 +77,15 @@ export const updateProvider = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON with the deletion result
  */
-export const deleteProvider = async (req, res) => {
-  res.json(await ManagementService.deleteProvider(req.params.id));
+export const deleteProvider = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.deleteProvider(req.params.id, req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ── Users ─────────────────────────────────────────────────────────────────
@@ -71,10 +96,15 @@ export const deleteProvider = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON array of user objects
  */
-export const getAllUsers = async (req, res) => {
-  res.json(await ManagementService.getAllUsers());
+export const getAllUsers = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getAllUsers(req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -83,10 +113,15 @@ export const getAllUsers = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON object of the matching user
  */
-export const getUserById = async (req, res) => {
-  res.json(await ManagementService.getUserById(req.params.id));
+export const getUserById = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getUserById(req.params.id, req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -95,10 +130,15 @@ export const getUserById = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON with the deletion result
  */
-export const deleteUser = async (req, res) => {
-  res.json(await ManagementService.deleteUser(req.params.id));
+export const deleteUser = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.deleteUser(req.params.id, req.headers["authorization"]));
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ── Chargers ──────────────────────────────────────────────────────────────
@@ -109,10 +149,15 @@ export const deleteUser = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON array of charger objects
  */
-export const getAllChargers = async (req, res) => {
-  res.json(await ManagementService.getAllChargers());
+export const getAllChargers = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getAllChargers());
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -121,10 +166,15 @@ export const getAllChargers = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON object of the matching charger
  */
-export const getChargerById = async (req, res) => {
-  res.json(await ManagementService.getChargerById(req.params.id));
+export const getChargerById = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getChargerById(req.params.id));
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -133,8 +183,13 @@ export const getChargerById = async (req, res) => {
  *
  * @param {import("express").Request} req
  * @param {import("express").Response} res
+ * @param {import("express").NextFunction} next
  * @returns {Promise<void>} Sends JSON array of chargers matching the status
  */
-export const getChargersByStatus = async (req, res) => {
-  res.json(await ManagementService.getChargersByStatus(req.params.status));
+export const getChargersByStatus = async (req, res, next) => {
+  try {
+    res.json(await ManagementService.getChargersByStatus(req.params.status));
+  } catch (err) {
+    next(err);
+  }
 };

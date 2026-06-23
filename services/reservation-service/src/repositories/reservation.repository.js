@@ -21,7 +21,7 @@ class ReservationRepository {
     const counter = await Counter.findOneAndUpdate(
       { name: "reservationId" },
       { $inc: { value: 1 } },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     return counter.value;
   }
@@ -50,6 +50,10 @@ class ReservationRepository {
     return Reservation.findOne({ userId, status: "active" }).lean();
   }
 
+  static async findActiveByUserId(userId) {
+    return Reservation.find({ userId, status: "active" }).lean();
+  }
+
   static async getActiveByChargerId(chargerId) {
     return Reservation.findOne({ chargerId, status: "active" }).lean();
   }
@@ -76,17 +80,23 @@ class ReservationRepository {
   }
 
   /**
-   * Updates fields of an existing reservation and returns the updated document.
+   * Atomically updates a reservation only if it is currently "active".
+   *
+   * Used as a concurrency guard so that two racing writers (e.g. a user's
+   * cancel request and the session-monitor's expiry sweep) cannot both
+   * successfully finalize the same reservation. Only the first writer to
+   * reach MongoDB will see a non-null result; the loser receives null and
+   * must treat the reservation as already finalized.
    *
    * @param {number} reservationId - The unique numeric reservation identifier
    * @param {Object} fields - The fields to update
-   * @returns {Promise<Object|null>} The updated lean reservation document, or null if not found
+   * @returns {Promise<Object|null>} The updated lean reservation document, or null if it was not "active"
    */
-  static async update(reservationId, fields) {
+  static async updateIfActive(reservationId, fields) {
     return Reservation.findOneAndUpdate(
-      { reservationId },
+      { reservationId, status: "active" },
       { $set: fields },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
   }
 }

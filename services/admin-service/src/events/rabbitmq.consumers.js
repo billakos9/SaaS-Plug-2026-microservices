@@ -1,5 +1,9 @@
 import { MessageQueues, RoutingKeys } from "../constants/messaging.js";
 import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
+import AdminRepository from "../repositories/admin.repository.js";
+import { addRevoked } from "../lib/revoked-tokens.js";
+
+const DLX = "saasplug.dlx";
 
 /**
  * Registers consumers on the provider and charger queues for observability.
@@ -8,12 +12,14 @@ import { getChannelWithRetry } from "../infrastructure/rabbitMQ.js";
  * @returns {Promise<void>} Resolves once both consumers are registered
  */
 export async function startEventConsumers() {
-  try {
-    const channel = await getChannelWithRetry();
+  const channel = await getChannelWithRetry();
 
-    await channel.assertQueue(MessageQueues.PROVIDER, { durable: true });
-    await channel.consume(MessageQueues.PROVIDER, (message) => {
-      if (!message) return;
+  await channel.assertExchange(DLX, "fanout", { durable: true });
+
+  await channel.assertQueue(MessageQueues.PROVIDER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.consume(MessageQueues.PROVIDER, async (message) => {
+    if (!message) return;
+    try {
       const routingKey = message.fields.routingKey;
       const data = JSON.parse(message.content.toString());
 
@@ -32,11 +38,16 @@ export async function startEventConsumers() {
       }
 
       channel.ack(message);
-    });
+    } catch (err) {
+      console.error("[event] provider consumer error:", err.message);
+      channel.nack(message, false, false);
+    }
+  });
 
-    await channel.assertQueue(MessageQueues.CHARGER, { durable: true });
-    await channel.consume(MessageQueues.CHARGER, (message) => {
-      if (!message) return;
+  await channel.assertQueue(MessageQueues.CHARGER, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.consume(MessageQueues.CHARGER, async (message) => {
+    if (!message) return;
+    try {
       const routingKey = message.fields.routingKey;
       const data = JSON.parse(message.content.toString());
 
@@ -55,10 +66,52 @@ export async function startEventConsumers() {
       }
 
       channel.ack(message);
-    });
+    } catch (err) {
+      console.error("[event] charger consumer error:", err.message);
+      channel.nack(message, false, false);
+    }
+  });
 
-    console.log("Admin event consumers started.");
-  } catch (error) {
-    console.error("Admin event consumer error:", error);
-  }
+  await channel.assertQueue(MessageQueues.ADMIN_REGISTRATION, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(MessageQueues.ADMIN_REGISTRATION, "admin", RoutingKeys.ADMIN_CREATED);
+  await channel.consume(MessageQueues.ADMIN_REGISTRATION, async (message) => {
+    if (!message) return;
+    try {
+      const { userId, email, firstName, lastName } = JSON.parse(message.content.toString());
+      const existing = await AdminRepository.getByEmail(email);
+      if (!existing) {
+        const adminId = await AdminRepository.getNextId();
+        await AdminRepository.create({
+          adminId,
+          firstName: firstName || "Admin",
+          lastName: lastName || "User",
+          email,
+          password: null,
+        });
+        console.log(`[event] admin.created — created profile for ${email} (adminId=${adminId})`);
+      }
+      channel.ack(message);
+    } catch (err) {
+      console.error("[event] admin.created handler error:", err.message);
+      channel.nack(message, false, false);
+    }
+  });
+
+  const TOKEN_REVOKED_QUEUE = "admin.token.revoked.queue";
+  await channel.assertExchange("auth", "topic", { durable: true });
+  await channel.assertQueue(TOKEN_REVOKED_QUEUE, { durable: true, arguments: { "x-dead-letter-exchange": DLX } });
+  await channel.bindQueue(TOKEN_REVOKED_QUEUE, "auth", "token.revoked");
+  await channel.consume(TOKEN_REVOKED_QUEUE, async (message) => {
+    if (!message) return;
+    try {
+      const { email } = JSON.parse(message.content.toString());
+      if (email) addRevoked(email);
+      channel.ack(message);
+    } catch (err) {
+      console.error("[revocation] error:", err.message);
+      channel.nack(message, false, false);
+    }
+  });
+
+  console.log("Admin event consumers started.");
 }

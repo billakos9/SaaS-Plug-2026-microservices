@@ -74,10 +74,28 @@ const User = userConnection.model(
         lowercase: true,
         trim: true,
       },
+      username: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true,
+      },
       name: {
         type: String,
         required: true,
         trim: true,
+      },
+      firstName: {
+        type: String,
+        default: null,
+      },
+      lastName: {
+        type: String,
+        default: null,
+      },
+      birthdate: {
+        type: Date,
+        default: null,
       },
       phoneNumber: {
         type: String,
@@ -135,11 +153,21 @@ function normalizeSeedUser(rawUser, position) {
     throw new Error(`mock user #${position} has invalid role`);
   }
 
+  // Optional enrichment fields — omit entirely when absent (sparse index safety)
+  const username   = rawUser.username   ? String(rawUser.username).trim()   : undefined;
+  const firstName  = rawUser.firstName  ? String(rawUser.firstName).trim()  : null;
+  const lastName   = rawUser.lastName   ? String(rawUser.lastName).trim()   : null;
+  const birthdate  = rawUser.birthdate  ? new Date(rawUser.birthdate)        : null;
+
   return {
     userId,
     email,
     password,
+    username,
     name,
+    firstName,
+    lastName,
+    birthdate,
     phoneNumber,
     role,
   };
@@ -173,6 +201,8 @@ async function loadMockUsers() {
 
   assertNoDuplicates(users, "userId");
   assertNoDuplicates(users, "email");
+  const withUsername = users.filter((u) => u.username !== undefined);
+  assertNoDuplicates(withUsername, "username");
 
   return users;
 }
@@ -216,20 +246,26 @@ async function seed() {
   );
 
   await User.bulkWrite(
-    users.map((user) => ({
-      updateOne: {
-        filter: { userId: user.userId },
-        update: {
-          $set: {
-            email: user.email,
-            name: user.name,
-            phoneNumber: user.phoneNumber,
-            role: user.role,
-          },
+    users.map((user) => {
+      const setFields = {
+        email:       user.email,
+        name:        user.name,
+        firstName:   user.firstName,
+        lastName:    user.lastName,
+        birthdate:   user.birthdate,
+        phoneNumber: user.phoneNumber,
+        role:        user.role,
+      };
+      // username uses a sparse unique index — omit the key entirely when absent
+      if (user.username !== undefined) setFields.username = user.username;
+      return {
+        updateOne: {
+          filter: { userId: user.userId },
+          update: { $set: setFields },
+          upsert: true,
         },
-        upsert: true,
-      },
-    })),
+      };
+    }),
   );
 
   await Promise.all([

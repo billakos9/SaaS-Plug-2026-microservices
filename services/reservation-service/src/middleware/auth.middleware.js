@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
+import { revokedEmails } from "../lib/revoked-tokens.js";
 
 /**
  * Verifies the Bearer JWT from the Authorization header and attaches the decoded payload to req.user.
@@ -23,7 +24,10 @@ export default function authMiddleware(req, res, next) {
   const token = authHeader.slice(7);
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+    if (revokedEmails.has(decoded.email)) {
+      return next(new AppError(HttpCode.UNAUTHORIZED, "Token revoked"));
+    }
     req.user = decoded;
     next();
   } catch (err) {

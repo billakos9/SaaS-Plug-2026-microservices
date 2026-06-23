@@ -19,14 +19,17 @@ export function startProviderPolling(providers, intervalMinutes = 15) {
 
           if (!prev) {
             await publishEvent(Exchanges.CHARGER, RoutingKeys.CHARGER_ADD, point);
+            knownChargers.set(point.id, { ...point });
           } else {
             const hasChanged = WATCH_FIELDS.some(key => String(prev[key]) !== String(point[key]));
             if (hasChanged) {
               await publishEvent(Exchanges.CHARGER, RoutingKeys.CHARGER_UPDATE, point);
+              knownChargers.set(point.id, { ...point });
+            } else {
+              // No publish needed — still refresh map so prev stays current
+              knownChargers.set(point.id, { ...point });
             }
           }
-
-          knownChargers.set(point.id, { ...point });
         }
       } catch (err) {
         console.error(`Provider ${providerName} (${providerBaseUrl}) failed:`, err.message);

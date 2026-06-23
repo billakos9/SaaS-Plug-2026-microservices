@@ -41,3 +41,21 @@ export const postRegisterProvider = async (req, res, next) => {
     next(error);
   }
 };
+
+export const postSelfRegisterProvider = async (req, res, next) => {
+  try {
+    const result = await AuthService.selfRegisterProvider(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const postRegisterAdmin = async (req, res, next) => {
+  try {
+    const result = await AuthService.registerAdmin(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};

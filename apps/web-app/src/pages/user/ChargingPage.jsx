@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMyReservations, cancelReservation } from '../../services/reservations';
+import { getMyReservations, cancelReservation, completeReservation } from '../../services/reservations';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './ChargingPage.module.css';
 
@@ -80,6 +80,7 @@ const ChargingPage = ({ user }) => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  const completionTriggered = useRef(false);
 
   useEffect(() => {
     if (!user) {
@@ -100,8 +101,8 @@ const ChargingPage = ({ user }) => {
     };
 
     loadData();
-    // Refresh every 10 seconds to pick up status changes from backend monitor
-    const interval = setInterval(() => loadData(true), 10000);
+    // Refresh every 30 seconds to pick up status changes from backend monitor
+    const interval = setInterval(() => loadData(true), 30000);
     return () => clearInterval(interval);
   }, [user, navigate]);
 
@@ -124,6 +125,20 @@ const ChargingPage = ({ user }) => {
       return () => clearInterval(interval);
     }
   }, [activeSession]);
+
+  useEffect(() => {
+    if (!activeSession) {
+      completionTriggered.current = false;
+      return;
+    }
+    const durationSeconds = activeSession.durationSeconds || 30 * 60;
+    if (elapsed < durationSeconds || completionTriggered.current) return;
+
+    completionTriggered.current = true;
+    completeReservation(activeSession.id)
+      .then(updated => setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)))
+      .catch(err => console.error('[ChargingPage] auto-complete failed, monitor will catch it:', err.message));
+  }, [elapsed, activeSession]);
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -151,10 +166,8 @@ const ChargingPage = ({ user }) => {
     if (!window.confirm('Are you sure you want to terminate this charging session?')) return;
 
     try {
-      await cancelReservation(activeSession.id);
-      // Refresh the list to show the updated status
-      const data = await getMyReservations(user.id);
-      setSessions(data);
+      const updated = await cancelReservation(activeSession.id);
+      setSessions(prev => prev.map(s => s.id === activeSession.id ? updated : s));
     } catch (err) {
       console.error('Failed to cancel reservation', err);
       alert('Could not cancel the session. It may have already expired.');
@@ -213,7 +226,7 @@ const ChargingPage = ({ user }) => {
               <ProgressRing 
                 elapsed={elapsed} 
                 label="REMAINING" 
-                durationSeconds={(activeSession.duration || 30) * 60} 
+                durationSeconds={activeSession.durationSeconds || 30 * 60}
               />
             </div>
 
@@ -295,7 +308,7 @@ const ChargingPage = ({ user }) => {
                 </div>
                 <div className={styles.historyMetrics}>
                   <span className={styles.historyBadge}>{s.status}</span>
-                  <p className={styles.historyDuration}>{formatDurationPrecise(s.duration)}</p>
+                  <p className={styles.historyDuration}>{formatDurationPrecise(s.actualDurationSeconds || s.durationSeconds)}</p>
                 </div>
               </motion.div>
             ))}

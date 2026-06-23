@@ -29,11 +29,11 @@ class UserRepository {
     return user.toObject();
   }
 
-  static async update(userData) {
+  static async update(userId, userData) {
     return User.findOneAndUpdate(
-      { userId: userData.userId },
-      userData,
-      { new: true, runValidators: true },
+      { userId },
+      { $set: userData },
+      { returnDocument: "after", runValidators: true },
     ).lean();
   }
 

@@ -3,7 +3,7 @@ import AnalyticStatRepository from "../repositories/analytic-stat.repository.js"
 
 async function safeFetch(url) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -44,10 +44,13 @@ function buildReservationStats(stat) {
 
 class AnalyticsService {
   static async getProviderReport(providerName, period) {
-    const [stat, allChargers] = await Promise.all([
-      AnalyticStatRepository.getByProviderAndPeriod(providerName, period),
-      safeFetch(`${CHARGER_SERVICE_URL}/charger`),
-    ]);
+    // DB check first — only call charger-service when a stat record exists for
+    // this provider+period combination. Avoids the HTTP round-trip on a cache miss.
+    const stat = await AnalyticStatRepository.getByProviderAndPeriod(providerName, period);
+
+    const allChargers = stat
+      ? await safeFetch(`${CHARGER_SERVICE_URL}/charger`)
+      : null;
 
     const providerChargers = Array.isArray(allChargers)
       ? allChargers.filter(c => c.ProviderName === providerName)
@@ -93,6 +96,35 @@ class AnalyticsService {
       })),
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  static async getProviderHistory(providerName) {
+    const stats = await AnalyticStatRepository.getAllByProvider(providerName);
+    return stats.map(s => ({
+      period:            s.period,
+      totalReservations: s.totalReservations,
+      totalEnergyKwh:    Math.round((s.totalEnergyKwh ?? 0) * 100) / 100,
+      totalRevenue:      Math.round((s.totalRevenue ?? 0) * 100) / 100,
+    }));
+  }
+
+  static async getGlobalHistory() {
+    const stats = await AnalyticStatRepository.getAll();
+    const acc = {};
+    for (const s of stats) {
+      if (!acc[s.period]) acc[s.period] = { period: s.period, totalReservations: 0, totalEnergyKwh: 0, totalRevenue: 0 };
+      acc[s.period].totalReservations += s.totalReservations ?? 0;
+      acc[s.period].totalEnergyKwh    += s.totalEnergyKwh ?? 0;
+      acc[s.period].totalRevenue      += s.totalRevenue ?? 0;
+    }
+    return Object.values(acc)
+      .sort((a, b) => a.period.localeCompare(b.period))
+      .map(s => ({
+        period:            s.period,
+        totalReservations: s.totalReservations,
+        totalEnergyKwh:    Math.round(s.totalEnergyKwh * 100) / 100,
+        totalRevenue:      Math.round(s.totalRevenue * 100) / 100,
+      }));
   }
 
   static async getGlobalReport(period) {

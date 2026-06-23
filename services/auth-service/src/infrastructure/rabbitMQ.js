@@ -3,24 +3,86 @@ import { RABBITMQ_URL } from "../config/env.js";
 import { Exchanges } from "../constants/messaging.js";
 import { setupAuthConsumers } from "../events/rabbitmq.consumers.js";
 
-let connection = null;
-let channel = null;
+let connection       = null;
+let consumeChannel   = null;
+let publishChannel   = null;
+let channelPromise   = null;
+let publishChPromise = null;
+
+const reconnectHandlers = [];
+
+export function onReconnect(fn) {
+  reconnectHandlers.push(fn);
+}
+
+async function handleDisconnect(reason) {
+  console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
+  connection       = null;
+  consumeChannel   = null;
+  publishChannel   = null;
+  channelPromise   = null;
+  publishChPromise = null;
+
+  while (true) {
+    try {
+      await getChannelWithRetry();
+      for (const fn of reconnectHandlers) {
+        await fn();
+      }
+      console.log("[rabbitmq] reconnected and resubscribed");
+      return;
+    } catch (err) {
+      console.error("[rabbitmq] reconnect attempt failed, retrying in 5s:", err.message);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+}
+
+async function getConnection() {
+  if (connection) return connection;
+  connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "auth-service" } });
+  connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
+  connection.on("close", () => {
+    channelPromise   = null;
+    publishChPromise = null;
+    handleDisconnect("connection closed");
+  });
+  return connection;
+}
 
 /**
- * Creates or returns a singleton RabbitMQ channel.
+ * Creates or returns the singleton consume channel.
  *
- * Ensures only one connection/channel exists for the entire application
- * to prevent resource exhaustion and multiple competing consumers.
- *
- * @returns {Promise<import("amqplib").Channel>} RabbitMQ channel instance
+ * @returns {Promise<import("amqplib").Channel>} RabbitMQ consume channel instance
  */
 export async function getChannel() {
-  if (channel) return channel;
+  if (consumeChannel) return consumeChannel;
+  if (!channelPromise) {
+    channelPromise = (async () => {
+      const conn = await getConnection();
+      consumeChannel = await conn.createChannel();
+      return consumeChannel;
+    })().catch((err) => {
+      channelPromise = null;
+      throw err;
+    });
+  }
+  return channelPromise;
+}
 
-  connection = await amqp.connect(RABBITMQ_URL);
-  channel = await connection.createChannel();
-
-  return channel;
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
 }
 
 /**
@@ -50,9 +112,10 @@ export async function getChannelWithRetry(retries = 5) {
 export async function setupMessaging() {
   const channel = await getChannelWithRetry();
 
-  await channel.assertExchange(Exchanges.USER, "topic", { 
-    durable: true,
-  });
+  await channel.assertExchange(Exchanges.USER, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.PROVIDER, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
+  await channel.assertExchange(Exchanges.AUTH, "topic", { durable: true });
 
   await setupAuthConsumers();
 }
@@ -60,10 +123,8 @@ export async function setupMessaging() {
 /**
  * Publishes an event to a RabbitMQ exchange using a routing key.
  *
- * This function is used for emitting domain events (e.g. "reservation.created",
- * "charger.status.updated") to other services via a topic exchange.
- *
- * Messages are sent as JSON and marked as persistent to survive broker restarts.
+ * Uses a dedicated publish channel separate from the consume channel to
+ * avoid head-of-line blocking between publishing and consuming.
  *
  * @param {string} exchange - The name of the exchange (e.g. "charger", "reservation")
  * @param {string} routingKey - The routing key describing the event (e.g. "charger.status.updated")
@@ -72,23 +133,8 @@ export async function setupMessaging() {
  * @returns {Promise<void>} Resolves when the message is successfully published
  *
  * @throws {Error} If the channel is not available or publish fails
- *
- * @example
- * await publishEvent(
- *   "charger",
- *   "charger.status.updated",
- *   { chargerId: "123", status: "busy" }
- * );
  */
 export async function publishEvent(exchange, routingKey, payload) {
-  const channel = await getChannelWithRetry();
-
-  channel.publish(
-    exchange, 
-    routingKey, 
-    Buffer.from(JSON.stringify(payload)), 
-    {
-      persistent: true,
-    }
-  );
+  const ch = await getPublishChannel();
+  ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), { persistent: true });
 }

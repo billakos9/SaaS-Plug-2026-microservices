@@ -6,14 +6,14 @@ import {
   getUserById,
   updateCurrentUser,
 } from "../controllers/user.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import authMiddleware, { requireRole } from "../middleware/auth.middleware.js";
 
 const userRouter = Router();
 
-userRouter.get("/", getAllUsers);
+userRouter.get("/", authMiddleware, requireRole("admin"), getAllUsers);
 userRouter.get("/me", authMiddleware, getCurrentUser);
 userRouter.put("/me", authMiddleware, updateCurrentUser);
-userRouter.get("/:id", getUserById);
-userRouter.delete("/delete/:id", deleteUser);
+userRouter.get("/:id", authMiddleware, requireRole("admin"), getUserById);
+userRouter.delete("/delete/:id", authMiddleware, requireRole("admin"), deleteUser);
 
 export default userRouter;

@@ -2,6 +2,7 @@ import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AppError from "../errors/app-error.js";
 import { publishEvent } from "../infrastructure/rabbitMQ.js";
+import { writeOutbox } from "../infrastructure/outbox.js";
 import ProviderRepository from "../repositories/provider.repository.js";
 
 class ProviderService {
@@ -43,9 +44,6 @@ class ProviderService {
     if (!providerData.providerName || !providerData.email) {
       throw new AppError(HttpCode.BAD_REQUEST, "Name and email are required");
     }
-    if (!providerData.password) {
-      throw new AppError(HttpCode.BAD_REQUEST, "Password is required");
-    }
     if (!providerData.apiBaseUrl) {
       throw new AppError(HttpCode.BAD_REQUEST, "API base URL is required");
     }
@@ -56,11 +54,30 @@ class ProviderService {
     const providerId = await ProviderRepository.getNextId();
     const newProvider = await ProviderRepository.create({ ...providerData, providerId });
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, {
+    const eventPayload = {
       providerId: newProvider.providerId,
       providerName: newProvider.providerName,
       apiBaseUrl: newProvider.apiBaseUrl,
-    });
+    };
+
+    // Persist publish intent so the relay retries if RabbitMQ is down
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, eventPayload);
+
+    // Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_ADD, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed (provider.add), relay will retry:", err.message);
+      return newProvider;
+    }
+
+    // Publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      console.error("[provider-service] outbox: failed to mark provider.add entry as published:", saveErr.message);
+    }
 
     return newProvider;
   }
@@ -82,11 +99,30 @@ class ProviderService {
     const updated = await ProviderRepository.update(providerData);
     if (!updated) throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, {
+    const eventPayload = {
       providerId: updated.providerId,
       providerName: updated.providerName,
       apiBaseUrl: updated.apiBaseUrl,
-    });
+    };
+
+    // Persist publish intent so the relay retries if RabbitMQ is down
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, eventPayload);
+
+    // Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_UPDATE, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed (provider.update), relay will retry:", err.message);
+      return updated;
+    }
+
+    // Publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      console.error("[provider-service] outbox: failed to mark provider.update entry as published:", saveErr.message);
+    }
 
     return updated;
   }
@@ -104,12 +140,41 @@ class ProviderService {
       throw new AppError(HttpCode.BAD_REQUEST, "Provider ID is required for deletion");
     }
 
-    const result = await ProviderRepository.delete(providerId);
-    if (result.deletedCount === 0) {
+    const existing = await ProviderRepository.getById(providerId);
+    if (!existing) {
       throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
     }
 
-    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, { providerId });
+    const eventPayload = { providerName: existing.providerName, email: existing.email };
+
+    // 1. Persist publish intent BEFORE deleting so the event is never lost
+    const outboxEntry = await writeOutbox(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, eventPayload);
+
+    // 2. Delete from DB
+    const result = await ProviderRepository.delete(providerId);
+
+    if (!result?.deletedCount) {
+      // Undo the outbox entry to avoid a phantom event
+      await outboxEntry.deleteOne();
+      throw new AppError(HttpCode.NOT_FOUND, "Provider not found");
+    }
+
+    // 3. Try to publish immediately; outbox relay retries if this fails
+    try {
+      await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_DELETE, eventPayload);
+    } catch (err) {
+      console.warn("[provider-service] outbox: immediate publish failed, relay will retry:", err.message);
+      return result; // stop here — don't try to save, let relay handle it
+    }
+
+    // publish succeeded — mark as processed (best-effort)
+    try {
+      outboxEntry.publishedAt = new Date();
+      await outboxEntry.save();
+    } catch (saveErr) {
+      // relay will find this entry and republish — downstream consumers must be idempotent
+      console.error("[provider-service] outbox: failed to mark entry as published:", saveErr.message);
+    }
 
     return result;
   }

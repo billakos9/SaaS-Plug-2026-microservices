@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
+import { revokedEmails } from "../lib/revoked-tokens.js";
 
 export function requireProviderAuth(req, res, next) {
   const authHeader = req.headers["authorization"];
@@ -11,7 +12,10 @@ export function requireProviderAuth(req, res, next) {
 
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+    if (revokedEmails.has(decoded.email)) {
+      return next(new AppError(HttpCode.UNAUTHORIZED, "Token revoked"));
+    }
     if (decoded.role !== "provider" && decoded.role !== "admin") {
       return next(new AppError(HttpCode.FORBIDDEN, "Provider or Admin access only"));
     }
@@ -27,7 +31,8 @@ export function requireProviderAuth(req, res, next) {
 }
 
 export function requireSelfProvider(req, res, next) {
-  if (req.provider.providerName !== req.params.providerName) {
+  if (req.user?.role === "admin") return next();
+  if (!req.provider || req.provider.providerName !== req.params.providerName) {
     return next(new AppError(HttpCode.FORBIDDEN, "Access denied: token does not match requested provider"));
   }
   next();

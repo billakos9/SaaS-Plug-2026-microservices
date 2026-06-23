@@ -34,8 +34,6 @@ if (result.error) {
  */
 export const {
   PORT,
-  MONGOOSE_URL,
-  RABBITMQ_URL,
   RED_PLUG_BASE_URL,
   RED_PLUG_AUTH_TOKEN,
 } = process.env;

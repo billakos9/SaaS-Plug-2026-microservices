@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config/env.js";
+import { JWT_SECRET, PROVIDER_REGISTRATION_CODE } from "../config/env.js";
 import { HttpCode } from "../constants/http-codes.js";
 import { Exchanges, RoutingKeys } from "../constants/messaging.js";
 import AppError from "../errors/app-error.js";
@@ -8,7 +8,7 @@ import { publishEvent } from "../infrastructure/rabbitMQ.js";
 import AuthUserRepository from "../repositories/auth-user.repository.js";
 
 class AuthService {
-  static async registerProvider({ email, password, providerName }) {
+  static async registerProvider({ email, password, providerName, apiBaseUrl, apiKey }) {
     if (!email || !password || !providerName) {
       throw new AppError(HttpCode.BAD_REQUEST, "Email, password and providerName are required");
     }
@@ -26,7 +26,25 @@ class AuthService {
       role: "provider",
       providerName,
     });
+
+    await publishEvent(Exchanges.PROVIDER, RoutingKeys.PROVIDER_REGISTERED, {
+      providerName,
+      email: authUser.email,
+      apiBaseUrl: apiBaseUrl || "",
+      apiKey: apiKey || "",
+    });
+
     return { userId: authUser.userId, email: authUser.email, role: authUser.role, providerName: authUser.providerName };
+  }
+
+  static async selfRegisterProvider({ email, password, providerName, apiBaseUrl, apiKey, registrationCode }) {
+    if (!registrationCode || registrationCode !== PROVIDER_REGISTRATION_CODE) {
+      throw new AppError(HttpCode.FORBIDDEN, "Invalid registration code");
+    }
+    if (!apiBaseUrl?.trim() || !apiKey?.trim()) {
+      throw new AppError(HttpCode.BAD_REQUEST, "apiBaseUrl and apiKey are required");
+    }
+    return AuthService.registerProvider({ email, password, providerName, apiBaseUrl: apiBaseUrl.trim(), apiKey: apiKey.trim() });
   }
 
   static async register({ email, password, name, phoneNumber, username, firstName, lastName, birthdate }) {
@@ -87,7 +105,12 @@ class AuthService {
   }
 
   static async login(email, password) {
-    if (!email || !password) {
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      email.trim() === "" ||
+      password.trim() === ""
+    ) {
       throw new AppError(HttpCode.BAD_REQUEST, "Email & Password are required");
     }
 
@@ -121,13 +144,36 @@ class AuthService {
     };
   }
 
+  static async registerAdmin({ email, password, firstName, lastName }) {
+    if (!email || !password) {
+      throw new AppError(HttpCode.BAD_REQUEST, "Email and password are required");
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await AuthUserRepository.findByEmail(normalizedEmail);
+    if (existing) {
+      throw new AppError(HttpCode.CONFLICT, "Email already exists");
+    }
+    const userId = await AuthUserRepository.getNextId();
+    const passwordHash = await bcrypt.hash(password, 10);
+    await AuthUserRepository.create({ userId, email: normalizedEmail, passwordHash, role: "admin" });
+
+    await publishEvent(Exchanges.ADMIN, RoutingKeys.ADMIN_CREATED, {
+      userId,
+      email: normalizedEmail,
+      firstName: firstName?.trim() || null,
+      lastName: lastName?.trim() || null,
+    });
+
+    return { userId, email: normalizedEmail, role: "admin" };
+  }
+
   static validateToken(token) {
     if (!token) {
       throw new AppError(HttpCode.BAD_REQUEST, "Token is required");
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
 
       return {
         valid: true,

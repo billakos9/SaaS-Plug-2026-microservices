@@ -2,7 +2,7 @@ import express from "express";
 
 import { PORT } from "./config/env.js";
 import connectMongoDB from "./infrastructure/mongoDB.js";
-import { setupMessaging } from "./infrastructure/rabbitMQ.js";
+import { setupMessaging, onReconnect } from "./infrastructure/rabbitMQ.js";
 import { startEventConsumers } from "./events/rabbitmq.consumers.js";
 import adminRouter from "./routes/admin.route.js";
 import unmatchedRouteMiddleware from "./middleware/unmatched-routes.middleware.js";
@@ -19,12 +19,19 @@ app.use("/admin", adminRouter);
 app.use(unmatchedRouteMiddleware);
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Admin service running on http://localhost:${PORT}`);
-});
+async function bootstrap() {
+  await connectMongoDB();
+  await setupMessaging();
+  await startEventConsumers();
+  onReconnect(startEventConsumers);
+  app.listen(PORT, () => {
+    console.log(`Admin service running on http://localhost:${PORT}`);
+  });
+}
 
-connectMongoDB();
-setupMessaging();
-startEventConsumers();
+bootstrap().catch((err) => {
+  console.error("[admin-service] Fatal startup error:", err);
+  process.exit(1);
+});
 
 export default app;
