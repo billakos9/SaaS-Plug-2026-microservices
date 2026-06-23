@@ -1,18 +1,40 @@
 import { useMemo, useState, useEffect } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import L, { divIcon } from 'leaflet';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { divIcon } from 'leaflet';
 import { motion } from 'framer-motion';
 import 'leaflet/dist/leaflet.css';
 import styles from './ChargerMap.module.css';
 
 const MAX_SAFE_ZOOM = 19;
 const CLUSTER_ZOOM = 15; // Threshold where bubbles disperse
+const DEFAULT_CENTER = [37.9838, 23.7275];
+
+const isValidCenter = (center) => (
+  Number.isFinite(Number(center?.lat)) &&
+  Number.isFinite(Number(center?.lon))
+);
+
+const getStatusClassName = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+
+  if (normalized === 'available') return styles.available;
+  if (normalized === 'reserved') return styles.reserved;
+  if (normalized === 'charging' || normalized === 'occupied') return styles.occupied;
+
+  return styles.outOfOrder;
+};
+
+const getMarkerColor = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+
+  if (normalized === 'available') return '#00c853';
+  if (normalized === 'charging' || normalized === 'occupied' || normalized === 'reserved') return '#ffab00';
+  return '#ff1744';
+};
 
 // Pins: status colours for admin/provider, uniform blue for regular users
 const createStationIcon = (status, colorByStatus = false) => {
-  const color = colorByStatus
-    ? (status === 'available' ? '#00c853' : status === 'occupied' ? '#ffab00' : '#ff1744')
-    : '#00a7b5';
+  const color = colorByStatus ? getMarkerColor(status) : '#00a7b5';
   return divIcon({
     html: `
       <div class="${styles.customMarker}" style="--marker-color: ${color}">
@@ -43,7 +65,7 @@ const SmartPopup = ({ charger, onReserve, isAdmin }) => {
           <strong className={styles.popupTitle}>{charger.locationName || 'Charging Station'}</strong>
           <p className={styles.popupProvider}>Station #{charger.id} • {charger.providerName}</p>
         </div>
-        <span className={`${styles.statusBadge} ${styles[charger.status]}`}>{charger.status}</span>
+        <span className={`${styles.statusBadge} ${getStatusClassName(charger.status)}`}>{charger.status}</span>
       </header>
       
       <div className={styles.popupInfo}>
@@ -105,7 +127,7 @@ const MultiStationPopup = ({ chargers, onReserve, isAdmin }) => {
           >
             <div className={styles.stationItemMain}>
               <span className={styles.stationItemName}>Station #{charger.id} • {charger.providerName}</span>
-              <span className={`${styles.statusBadge} ${styles[charger.status]}`}>
+              <span className={`${styles.statusBadge} ${getStatusClassName(charger.status)}`}>
                 {charger.status}
               </span>
             </div>
@@ -267,14 +289,75 @@ const ClusterMarkers = ({ items, onReserve, isAdmin }) => {
   });
 };
 
-const ChargerMap = ({ chargers, loading, onReserve, isAdmin }) => (
-  <div className={styles.mapWrapper}>
-    <MapContainer center={[37.9838, 23.7275]} zoom={12} maxZoom={MAX_SAFE_ZOOM} className={styles.leafletMap}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
-      <ClusterMarkers items={chargers} onReserve={onReserve} isAdmin={isAdmin} />
-    </MapContainer>
-    {loading && <div className={styles.mapLoading}>Syncing Infrastructure...</div>}
-  </div>
-);
+const MapCenterPicker = ({ enabled, onPickCenter }) => {
+  useMapEvents({
+    click: (event) => {
+      if (!enabled) return;
+      onPickCenter?.({
+        lat: event.latlng.lat,
+        lon: event.latlng.lng,
+      });
+    },
+  });
+
+  return null;
+};
+
+const MapCenterController = ({ center }) => {
+  const map = useMap();
+  const [lat, lon] = center;
+
+  useEffect(() => {
+    map.flyTo([lat, lon], Math.max(map.getZoom(), 12), {
+      duration: 0.8,
+      easeLinearity: 0.25,
+    });
+  }, [lat, lon, map]);
+
+  return null;
+};
+
+const ChargerMap = ({
+  chargers,
+  loading,
+  onReserve,
+  isAdmin,
+  center,
+  radiusKm,
+  pickMode = false,
+  onPickCenter,
+  emptyMessage,
+}) => {
+  const mapCenter = isValidCenter(center)
+    ? [Number(center.lat), Number(center.lon)]
+    : DEFAULT_CENTER;
+  const radiusMeters = Number(radiusKm) > 0 ? Number(radiusKm) * 1000 : 0;
+
+  return (
+    <div className={`${styles.mapWrapper} ${pickMode ? styles.pickMode : ''}`}>
+      <MapContainer center={mapCenter} zoom={12} maxZoom={MAX_SAFE_ZOOM} className={styles.leafletMap}>
+        <MapCenterController center={mapCenter} />
+        <MapCenterPicker enabled={pickMode} onPickCenter={onPickCenter} />
+        {radiusMeters > 0 && (
+          <Circle
+            center={mapCenter}
+            radius={radiusMeters}
+            pathOptions={{
+              color: '#00a7b5',
+              fillColor: '#00a7b5',
+              fillOpacity: 0.12,
+            }}
+          />
+        )}
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+        <ClusterMarkers items={chargers} onReserve={onReserve} isAdmin={isAdmin} />
+      </MapContainer>
+      {loading && <div className={styles.mapLoading}>Syncing Infrastructure...</div>}
+      {!loading && chargers.length === 0 && (
+        <div className={styles.mapEmpty}>{emptyMessage || 'No chargers found for the selected filters.'}</div>
+      )}
+    </div>
+  );
+};
 
 export default ChargerMap;
