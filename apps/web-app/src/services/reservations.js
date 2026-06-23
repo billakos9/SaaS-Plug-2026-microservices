@@ -1,5 +1,7 @@
 import http from "./http";
 import { getChargerById } from "./chargers";
+import { API_ENDPOINTS } from "../config/api";
+import { DEFAULT_CHARGER, DEFAULT_RESERVATION_MINUTES } from "../config/constants";
 
 /**
  * Normalizes a reservation from the backend DTO.
@@ -46,12 +48,12 @@ export async function createReservation({ chargerId, minutes }) {
   }
 
   // 2. Submit reservation with required fields
-  const res = await http.post("/reservations", {
+  const res = await http.post(API_ENDPOINTS.reservations.create, {
     chargerId: Number(chargerId),
-    duration: minutes || 60,
+    duration: minutes || DEFAULT_RESERVATION_MINUTES,
     providerName: charger.providerName,
     locationName: charger.locationName,
-    capacityKw: charger.capacityKw || 22,
+    capacityKw: charger.capacityKw || DEFAULT_CHARGER.capacityKw,
   });
 
   return normalizeReservation(res.data);
@@ -66,7 +68,7 @@ export async function getMyReservations(userId) {
     throw new Error("User ID is required to fetch reservations");
   }
   
-  const res = await http.get(`/reservations/user/${userId}`);
+  const res = await http.get(API_ENDPOINTS.reservations.byUser(userId));
   const data = Array.isArray(res.data) ? res.data : [];
   return data.map(normalizeReservation);
 }
@@ -77,7 +79,7 @@ export async function getMyReservations(userId) {
  */
 export async function getReservationById(id) {
   if (!id) throw new Error("Reservation ID is required");
-  const res = await http.get(`/reservations/${id}`);
+  const res = await http.get(API_ENDPOINTS.reservations.byId(id));
   return normalizeReservation(res.data);
 }
 
@@ -87,13 +89,13 @@ export async function getReservationById(id) {
  */
 export async function cancelReservation(reservationId) {
   if (!reservationId) throw new Error("Reservation ID is required");
-  const res = await http.post(`/reservations/${reservationId}/cancel`);
+  const res = await http.post(API_ENDPOINTS.reservations.cancel(reservationId));
   return normalizeReservation(res.data);
 }
 
 export async function completeReservation(reservationId) {
   if (!reservationId) throw new Error("Reservation ID is required");
-  const res = await http.post(`/reservations/${reservationId}/complete`);
+  const res = await http.post(API_ENDPOINTS.reservations.complete(reservationId));
   return normalizeReservation(res.data);
 }
 

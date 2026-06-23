@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { selfRegisterProvider } from '../../services/providers';
 import logo from '../../assets/LogoOnly.png';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './ProviderRegisterPage.module.css';
 
 const ProviderRegisterPage = () => {
@@ -42,7 +43,7 @@ const ProviderRegisterPage = () => {
         registrationCode: form.registrationCode,
       });
       setMessage('Account created! Redirecting to login…');
-      setTimeout(() => navigate('/login', { state: { message: 'Provider account created. Please log in.' } }), 2000);
+      setTimeout(() => navigate(APP_ROUTES.login, { state: { message: 'Provider account created. Please log in.' } }), 2000);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -155,7 +156,7 @@ const ProviderRegisterPage = () => {
 
         <p className={styles.authFooter}>
           Already have an account?{' '}
-          <Link className={styles.authLink} to="/login">Log in</Link>
+          <Link className={styles.authLink} to={APP_ROUTES.login}>Log in</Link>
         </p>
       </div>
     </section>

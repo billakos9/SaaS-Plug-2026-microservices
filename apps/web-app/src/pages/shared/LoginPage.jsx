@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './LoginPage.module.css';
 import logo from '../../assets/LogoOnly.png';
 
@@ -18,7 +19,7 @@ const LoginPage = () => {
 
     useEffect(() => {
         if (currentUser) {
-            navigate('/', { replace: true });
+            navigate(APP_ROUTES.home, { replace: true });
         }
     }, [currentUser, navigate]);
 
@@ -91,13 +92,13 @@ const LoginPage = () => {
 
                 <p className={styles.AuthFooter}>
                     Need an account?{' '}
-                    <Link className={styles.AuthLink} to="/register">
+                    <Link className={styles.AuthLink} to={APP_ROUTES.register}>
                         Register
                     </Link>
                 </p>
                 <p className={styles.AuthFooter}>
                     Are you a provider?{' '}
-                    <Link className={styles.AuthLink} to="/provider/register">
+                    <Link className={styles.AuthLink} to={APP_ROUTES.provider.register}>
                         Register your network
                     </Link>
                 </p>

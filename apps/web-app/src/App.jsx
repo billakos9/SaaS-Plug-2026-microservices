@@ -17,6 +17,7 @@ import ProviderDashboardPage from './pages/provider/ProviderDashboardPage';
 import ProviderInvoicesPage from './pages/provider/ProviderInvoicesPage';
 import ProviderRegisterPage from './pages/provider/ProviderRegisterPage';
 import ProviderProfilePage from './pages/provider/ProviderProfilePage';
+import { APP_ROUTES } from './config/routes';
 import styles from './App.module.css';
 
 const AppRoutes = () => {
@@ -49,9 +50,9 @@ const AppRoutes = () => {
             path="/"
             element={
               isAdmin ? (
-                <Navigate to="/admin" replace />
+                <Navigate to={APP_ROUTES.admin} replace />
               ) : isProvider ? (
-                <Navigate to="/map" replace />
+                <Navigate to={APP_ROUTES.map} replace />
               ) : (
                 <HomePage
                   user={user}
@@ -61,12 +62,12 @@ const AppRoutes = () => {
               )
             }
           />
-          <Route path="/map" element={<MapPage user={user} onSelect={setSelectedCharger} />} />
+          <Route path={APP_ROUTES.map} element={<MapPage user={user} onSelect={setSelectedCharger} />} />
           <Route
-            path="/reserve"
+            path={APP_ROUTES.reserve}
             element={
               isAdmin || isProvider ? (
-                <Navigate to={isAdmin ? "/admin" : "/map"} replace />
+                <Navigate to={isAdmin ? APP_ROUTES.admin : APP_ROUTES.map} replace />
               ) : (
                 <ReservePage
                   selectedCharger={selectedCharger}
@@ -77,67 +78,67 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/charging"
+            path={APP_ROUTES.charging}
             element={
               isAdmin || isProvider ? (
-                <Navigate to={isAdmin ? "/admin" : "/map"} replace />
+                <Navigate to={isAdmin ? APP_ROUTES.admin : APP_ROUTES.map} replace />
               ) : (
                 <ChargingPage user={user} />
               )
             }
           />
-          <Route path="/stats" element={<StatsPage user={user} />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/provider/register" element={<ProviderRegisterPage />} />
-          <Route path="/provider" element={<ProviderDashboardPage />} />
+          <Route path={APP_ROUTES.stats} element={<StatsPage user={user} />} />
+          <Route path={APP_ROUTES.login} element={<LoginPage />} />
+          <Route path={APP_ROUTES.register} element={<RegisterPage />} />
+          <Route path={APP_ROUTES.provider.register} element={<ProviderRegisterPage />} />
+          <Route path={APP_ROUTES.provider.dashboard} element={<ProviderDashboardPage />} />
           <Route
-            path="/provider/invoices"
+            path={APP_ROUTES.provider.invoices}
             element={
               isProvider ? (
                 <ProviderInvoicesPage />
               ) : (
-                <Navigate to={user ? "/" : "/login"} replace />
+                <Navigate to={user ? APP_ROUTES.home : APP_ROUTES.login} replace />
               )
             }
           />
           <Route
-            path="/profile"
+            path={APP_ROUTES.profile}
             element={
               isAdmin ? (
-                <Navigate to="/admin" replace />
+                <Navigate to={APP_ROUTES.admin} replace />
               ) : isProvider ? (
-                <Navigate to="/provider/profile" replace />
+                <Navigate to={APP_ROUTES.provider.profile} replace />
               ) : (
                 <ProfilePage user={user} onLogout={logout} />
               )
             }
           />
           <Route
-            path="/provider/profile"
+            path={APP_ROUTES.provider.profile}
             element={
               isProvider ? (
                 <ProviderProfilePage />
               ) : (
-                <Navigate to={user ? "/" : "/login"} replace />
+                <Navigate to={user ? APP_ROUTES.home : APP_ROUTES.login} replace />
               )
             }
           />
           <Route
-            path="/admin"
+            path={APP_ROUTES.admin}
             element={
               isAdmin ? (
                 <AdminPage />
               ) : (
                 <Navigate
-                  to={user ? '/' : '/login'}
+                  to={user ? APP_ROUTES.home : APP_ROUTES.login}
                   replace
                   state={{ message: 'Admin access only.' }}
                 />
               )
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={APP_ROUTES.home} replace />} />
         </Routes>
       </main>
 

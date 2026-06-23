@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyReservations, cancelReservation, completeReservation } from '../../services/reservations';
 import { motion, AnimatePresence } from 'framer-motion';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './ChargingPage.module.css';
 
 const DEFAULT_SESSION_LIMIT = 30 * 60; // Fallback
@@ -84,7 +85,7 @@ const ChargingPage = ({ user }) => {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login', { replace: true });
+      navigate(APP_ROUTES.login, { replace: true });
       return;
     }
 
@@ -275,7 +276,7 @@ const ChargingPage = ({ user }) => {
             <div className={styles.emptyIcon}>⚡</div>
             <h2>No Active Connection</h2>
             <p>Your vehicle is not currently connected to any saasPlug station.</p>
-            <button className={styles.primaryBtn} onClick={() => navigate('/map')}>
+            <button className={styles.primaryBtn} onClick={() => navigate(APP_ROUTES.map)}>
               Locate a Station
             </button>
           </motion.div>
@@ -286,7 +287,7 @@ const ChargingPage = ({ user }) => {
         <section className={styles.historySection}>
           <div className={styles.sectionHeader}>
             <h2>Recent Activity</h2>
-            <button className={styles.linkBtn} onClick={() => navigate('/stats')}>
+            <button className={styles.linkBtn} onClick={() => navigate(APP_ROUTES.stats)}>
               Full Analytics →
             </button>
           </div>

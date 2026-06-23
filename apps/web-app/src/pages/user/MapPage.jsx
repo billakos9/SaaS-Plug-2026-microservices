@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import ChargerMap from '../../components/map/ChargerMap';
 import { getChargers } from '../../services/chargers';
+import { APP_ROUTES } from '../../config/routes';
 import styles from './MapPage.module.css';
 
 const MapPage = ({ onSelect }) => {
@@ -34,7 +35,7 @@ const MapPage = ({ onSelect }) => {
   const handleReserve = (charger) => {
     if (isAdmin || isProvider) return;
     onSelect(charger);
-    navigate('/reserve');
+    navigate(APP_ROUTES.reserve);
   };
 
   const eyebrow = isAdmin ? 'System Monitoring' : isProvider ? 'Fleet Overview' : 'Global Network';

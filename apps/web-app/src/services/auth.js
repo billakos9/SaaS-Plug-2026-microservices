@@ -3,6 +3,8 @@ import http, {
   getStoredToken,
   setStoredToken,
 } from "./http";
+import { API_ENDPOINTS } from "../config/api";
+import { USER_ROLES } from "../config/constants";
 
 /**
  * Decodes a JWT payload without an external library.
@@ -41,7 +43,7 @@ const buildUserFromToken = (token) => {
   const payload = decodeJwtPayload(token);
   if (!payload) return null;
 
-  const role = payload.role || "user";
+  const role = payload.role || USER_ROLES.USER;
 
   const user = {
     id: payload.userId || payload.adminId || payload.sub,
@@ -49,8 +51,8 @@ const buildUserFromToken = (token) => {
     username: payload.username || "",
     name: payload.name || (payload.email ? payload.email.split("@")[0] : "saasPlug User"),
     role: role,
-    isAdmin: role === "admin",
-    isProvider: role === "provider",
+    isAdmin: role === USER_ROLES.ADMIN,
+    isProvider: role === USER_ROLES.PROVIDER,
     providerName: payload.providerName || null,
   };
   console.log("[Auth] Built user from token:", user);
@@ -63,7 +65,7 @@ const buildUserFromToken = (token) => {
 const normalizeUserProfile = (data) => {
   if (!data) return null;
 
-  const role = data.role || "user";
+  const role = data.role || USER_ROLES.USER;
 
   return ({
     id: data.userId || data.id,
@@ -75,8 +77,8 @@ const normalizeUserProfile = (data) => {
     lastName: data.lastName || null,
     birthdate: data.birthdate || null,
     role: role,
-    isAdmin: role === "admin",
-    isProvider: role === "provider",
+    isAdmin: role === USER_ROLES.ADMIN,
+    isProvider: role === USER_ROLES.PROVIDER,
   });
 };
 
@@ -91,7 +93,7 @@ export const getUserFromToken = () => buildUserFromToken(getStoredToken());
  */
 export async function getCurrentUser() {
   try {
-    const res = await http.get("/users/me");
+    const res = await http.get(API_ENDPOINTS.users.me);
     console.log("[Auth] Fetched user profile:", res.data);
     return normalizeUserProfile(res.data);
   } catch (err) {
@@ -115,7 +117,7 @@ export async function login(email, password) {
 
   // All roles (user, provider, admin) authenticate through auth-service
   try {
-    const res = await http.post("/auth/login", { email, password });
+    const res = await http.post(API_ENDPOINTS.auth.login, { email, password });
     token = res.data?.accessToken || res.data?.token;
   } catch {
     // auth-service rejected
@@ -157,7 +159,7 @@ export async function register({ email, password, name, phoneNumber, username, f
     throw new Error("Email, password and name are required");
   }
 
-  const res = await http.post("/auth/register", { 
+  const res = await http.post(API_ENDPOINTS.auth.register, {
     email, 
     password, 
     name,
@@ -166,7 +168,7 @@ export async function register({ email, password, name, phoneNumber, username, f
     firstName,
     lastName,
     birthdate,
-    role: role || "user"
+    role: role || USER_ROLES.USER
   });
   
   return normalizeUserProfile(res.data) || res.data;
@@ -177,7 +179,7 @@ export async function register({ email, password, name, phoneNumber, username, f
  */
 export async function updateProfile(updateData) {
   console.log("[Auth] Updating profile with:", updateData);
-  const res = await http.put("/users/me", updateData);
+  const res = await http.put(API_ENDPOINTS.users.me, updateData);
   return normalizeUserProfile(res.data);
 }
 
