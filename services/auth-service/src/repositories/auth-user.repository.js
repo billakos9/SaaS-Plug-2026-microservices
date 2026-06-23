@@ -33,6 +33,17 @@ class AuthUserRepository {
     ).lean();
   }
 
+  static async updateByEmailAndRole(email, role, updateData) {
+    return AuthUser.findOneAndUpdate(
+      {
+        email: email.toLowerCase().trim(),
+        role,
+      },
+      { $set: updateData },
+      { returnDocument: "after", runValidators: true }
+    ).lean();
+  }
+
   static async deleteByEmail(email) {
     return AuthUser.findOneAndDelete({ email: email.toLowerCase() }).lean();
   }

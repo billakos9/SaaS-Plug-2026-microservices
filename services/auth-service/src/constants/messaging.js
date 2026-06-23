@@ -12,6 +12,7 @@ export const RoutingKeys = Object.freeze({
   PROVIDER_REGISTERED: "provider.registered",
   PROVIDER_DELETE: "provider.delete",
   ADMIN_CREATED: "admin.created",
+  ADMIN_UPDATED: "admin.updated",
   ADMIN_DELETED: "admin.deleted",
   TOKEN_REVOKED: "token.revoked",
 });

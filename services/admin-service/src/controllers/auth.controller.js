@@ -20,7 +20,7 @@ export const getProfile = async (req, res, next) => {
 };
 
 /**
- * Handles GET /admin/auth/all
+ * Handles GET /admin/accounts
  * Returns a list of all registered admin accounts.
  *
  * @param {import("express").Request} req
@@ -37,7 +37,7 @@ export const getAllAdmins = async (req, res, next) => {
 };
 
 /**
- * Handles PUT /admin/auth/update/:id
+ * Handles PUT /admin/accounts/:id
  * Updates the profile fields of an existing admin.
  *
  * @param {import("express").Request} req
@@ -55,7 +55,7 @@ export const updateAdmin = async (req, res, next) => {
 };
 
 /**
- * Handles DELETE /admin/auth/delete/:id
+ * Handles DELETE /admin/accounts/:id
  * Permanently removes an admin account by numeric ID.
  *
  * @param {import("express").Request} req

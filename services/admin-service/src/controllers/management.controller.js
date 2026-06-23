@@ -3,7 +3,7 @@ import ManagementService from "../services/management.service.js";
 // ── Providers ────────────────────────────────────────────────────────────────
 
 /**
- * Handles GET /admin/management/providers
+ * Handles GET /admin/providers
  * Returns all providers from the provider service.
  *
  * @param {import("express").Request} req
@@ -20,7 +20,7 @@ export const getAllProviders = async (req, res, next) => {
 };
 
 /**
- * Handles GET /admin/management/providers/:id
+ * Handles GET /admin/providers/:id
  * Returns a single provider by its ID from the provider service.
  *
  * @param {import("express").Request} req
@@ -37,7 +37,7 @@ export const getProviderById = async (req, res, next) => {
 };
 
 /**
- * Handles POST /admin/management/providers/register
+ * Handles POST /admin/providers
  * Creates a new provider by proxying the request to the provider service.
  *
  * @param {import("express").Request} req
@@ -55,7 +55,7 @@ export const registerProvider = async (req, res, next) => {
 };
 
 /**
- * Handles PUT /admin/management/providers/update/:id
+ * Handles PUT /admin/providers/:id
  * Updates an existing provider by proxying the request to the provider service.
  *
  * @param {import("express").Request} req
@@ -72,7 +72,7 @@ export const updateProvider = async (req, res, next) => {
 };
 
 /**
- * Handles DELETE /admin/management/providers/delete/:id
+ * Handles DELETE /admin/providers/delete/:id
  * Permanently removes a provider by proxying the request to the provider service.
  *
  * @param {import("express").Request} req
@@ -91,7 +91,7 @@ export const deleteProvider = async (req, res, next) => {
 // ── Users ─────────────────────────────────────────────────────────────────
 
 /**
- * Handles GET /admin/management/users
+ * Handles GET /admin/users
  * Returns all users from the user service.
  *
  * @param {import("express").Request} req
@@ -108,7 +108,7 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 /**
- * Handles GET /admin/management/users/:id
+ * Handles GET /admin/users/:id
  * Returns a single user by their ID from the user service.
  *
  * @param {import("express").Request} req
@@ -125,7 +125,7 @@ export const getUserById = async (req, res, next) => {
 };
 
 /**
- * Handles DELETE /admin/management/users/delete/:id
+ * Handles DELETE /admin/users/:id
  * Permanently removes a user by proxying the request to the user service.
  *
  * @param {import("express").Request} req
@@ -144,7 +144,7 @@ export const deleteUser = async (req, res, next) => {
 // ── Chargers ──────────────────────────────────────────────────────────────
 
 /**
- * Handles GET /admin/management/chargers
+ * Handles GET /admin/chargers
  * Returns all charger points from the charger service.
  *
  * @param {import("express").Request} req
@@ -161,7 +161,7 @@ export const getAllChargers = async (req, res, next) => {
 };
 
 /**
- * Handles GET /admin/management/chargers/:id
+ * Handles GET /admin/chargers/:id
  * Returns a single charger point by its ID from the charger service.
  *
  * @param {import("express").Request} req
@@ -178,7 +178,7 @@ export const getChargerById = async (req, res, next) => {
 };
 
 /**
- * Handles GET /admin/management/chargers/status/:status
+ * Handles GET /admin/chargers/status/:status
  * Returns all charger points with the given status from the charger service.
  *
  * @param {import("express").Request} req
