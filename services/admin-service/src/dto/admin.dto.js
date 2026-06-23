@@ -2,56 +2,6 @@ import AppError from "../errors/app-error.js";
 import { HttpCode } from "../constants/http-codes.js";
 
 /**
- * Validates and transforms raw request body into an admin registration payload.
- *
- * @param {Object} input - Raw request body
- * @param {string} input.firstName - Admin's first name
- * @param {string} input.lastName - Admin's last name
- * @param {string} input.email - Admin's email address
- * @param {string} input.password - Plain-text password
- * @param {string} input.registrationKey - Secret key required for registration
- * @returns {{ firstName: string, lastName: string, email: string, password: string, registrationKey: string }} Sanitised registration data
- * @throws {AppError} If any required field is missing or blank
- */
-export function toAdminRegistrationRequestDTO(input) {
-  if (!input) throw new AppError(HttpCode.BAD_REQUEST, "Request body is required");
-
-  if (!input.firstName?.trim())       throw new AppError(HttpCode.BAD_REQUEST, "firstName is required");
-  if (!input.lastName?.trim())        throw new AppError(HttpCode.BAD_REQUEST, "lastName is required");
-  if (!input.email?.trim())           throw new AppError(HttpCode.BAD_REQUEST, "email is required");
-  if (!input.password?.trim())        throw new AppError(HttpCode.BAD_REQUEST, "password is required");
-  if (!input.registrationKey?.trim()) throw new AppError(HttpCode.BAD_REQUEST, "registrationKey is required");
-
-  return {
-    firstName:       input.firstName.trim(),
-    lastName:        input.lastName.trim(),
-    email:           input.email.trim().toLowerCase(),
-    password:        input.password.trim(),
-    registrationKey: input.registrationKey.trim(),
-  };
-}
-
-/**
- * Validates and transforms raw request body into an admin login payload.
- *
- * @param {Object} input - Raw request body
- * @param {string} input.email - Admin's email address
- * @param {string} input.password - Plain-text password
- * @returns {{ email: string, password: string }} Sanitised login credentials
- * @throws {AppError} If email or password is missing
- */
-export function toAdminLoginRequestDTO(input) {
-  if (!input) throw new AppError(HttpCode.BAD_REQUEST, "Request body is required");
-  if (!input.email?.trim())    throw new AppError(HttpCode.BAD_REQUEST, "email is required");
-  if (!input.password?.trim()) throw new AppError(HttpCode.BAD_REQUEST, "password is required");
-
-  return {
-    email:    input.email.trim().toLowerCase(),
-    password: input.password.trim(),
-  };
-}
-
-/**
  * Validates and transforms route params and request body into an admin update payload.
  * Only fields present in the body are included in the returned object.
  *

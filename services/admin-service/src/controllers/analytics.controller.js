@@ -7,7 +7,7 @@ import {
 } from "../config/env.js";
 
 /**
- * Handles GET /admin/analytics/stats
+ * Handles GET /admin/analytics
  * Returns aggregated global statistics for providers and chargers.
  *
  * @param {import("express").Request} req

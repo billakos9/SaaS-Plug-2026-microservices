@@ -6,7 +6,9 @@ const DLX = "saasplug.dlx";
 
 let connection     = null;
 let consumeChannel = null;
+let publishChannel = null;
 let channelPromise = null;
+let publishChPromise = null;
 
 const reconnectHandlers = [];
 
@@ -18,7 +20,9 @@ async function handleDisconnect(reason) {
   console.error(`[rabbitmq] connection lost (${reason}) — reconnecting...`);
   connection     = null;
   consumeChannel = null;
+  publishChannel = null;
   channelPromise = null;
+  publishChPromise = null;
 
   while (true) {
     try {
@@ -40,7 +44,8 @@ async function getConnection() {
   connection = await amqp.connect(RABBITMQ_URL, { clientProperties: { connection_name: "admin-service" } });
   connection.on("error", (err) => console.error("[rabbitmq] connection error:", err.message));
   connection.on("close", () => {
-    channelPromise = null;
+    channelPromise   = null;
+    publishChPromise = null;
     handleDisconnect("connection closed");
   });
   return connection;
@@ -67,6 +72,21 @@ export async function getChannel() {
   return channelPromise;
 }
 
+async function getPublishChannel() {
+  if (publishChannel) return publishChannel;
+  if (!publishChPromise) {
+    publishChPromise = (async () => {
+      const conn = await getConnection();
+      publishChannel = await conn.createChannel();
+      return publishChannel;
+    })().catch((err) => {
+      publishChPromise = null;
+      throw err;
+    });
+  }
+  return publishChPromise;
+}
+
 /**
  * Attempts to obtain the RabbitMQ channel, retrying up to the specified number
  * of times with a 3-second delay between attempts.
@@ -90,7 +110,7 @@ export async function getChannelWithRetry(retries = 5) {
 
 /**
  * Declares the exchanges and queues this service subscribes to.
- * Admin-service is read-only on RabbitMQ — it only consumes, never publishes.
+ * Admin-service consumes observability/account events and publishes admin account lifecycle events.
  *
  * @returns {Promise<void>} Resolves once all exchanges and queues are asserted
  */
@@ -110,4 +130,19 @@ export async function setupMessaging() {
   await ch.bindQueue(MessageQueues.CHARGER, Exchanges.CHARGER, "charger.*");
 
   await ch.assertExchange(Exchanges.ADMIN, "topic", { durable: true });
+}
+
+/**
+ * Publishes an event to a RabbitMQ exchange.
+ *
+ * @param {string} exchange - Exchange name
+ * @param {string} routingKey - Event routing key
+ * @param {Object} payload - JSON payload
+ * @returns {Promise<void>}
+ */
+export async function publishEvent(exchange, routingKey, payload) {
+  const ch = await getPublishChannel();
+  ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
+    persistent: true,
+  });
 }

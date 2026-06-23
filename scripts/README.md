@@ -1,5 +1,5 @@
-# MICROSERVICE
+# Scripts
 
-## (name)
+## Deployment scripts
 
-(description)
+## Seeding scripts

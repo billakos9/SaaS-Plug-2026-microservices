@@ -4,13 +4,14 @@ setup-vm.py — saasPlug VM hosting bootstrap
 
 Sets up saasPlug for demo hosting on a VirtualBox (or any Linux) VM on a home network.
 Builds the React frontend as static files, injects a `location /` block into the
-existing nginx config so the gateway serves both the SPA and the API on port 80,
+existing nginx config so the gateway serves both the SPA and the API on the
+team-specific public port required by softlab,
 and starts all containers with restart policies so they survive reboots.
 
 Usage:
-  python scripts/setup-vm.py              # fresh setup (wipes volumes + reseeds)
-  python scripts/setup-vm.py --no-wipe   # keep DB data, rebuild frontend + restart nginx
-  python scripts/setup-vm.py --rebuild   # frontend rebuild + nginx restart only (no DB touch)
+  python scripts/setup-vm.py --team 09             # fresh setup (wipes volumes + reseeds)
+  python scripts/setup-vm.py --team 09 --no-wipe   # keep DB data, rebuild frontend + restart nginx
+  python scripts/setup-vm.py --team 09 --rebuild   # frontend rebuild + nginx restart only (no DB touch)
 
 Requirements: Python 3.8+, Docker Engine (not Desktop), Node.js >= 20
 VirtualBox network: use Bridged Adapter so the VM gets a real LAN IP.
@@ -18,6 +19,7 @@ VirtualBox network: use Bridged Adapter so the VM gets a real LAN IP.
 
 import argparse
 import platform
+import re
 import secrets
 import shutil
 import socket
@@ -28,6 +30,9 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
+from typing import Optional
+
+SOFTLAB_HOST = "147.102.112.123"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 RED    = "\033[0;31m"
@@ -74,6 +79,23 @@ def get_lan_ip() -> str:
         return "<VM-IP>"
 
 
+def detect_team_from_repo(repo_name: str) -> Optional[str]:
+    """Detect team number from repo names such as saas26-09."""
+    match = re.search(r"saas26[-_]?(\d{1,2})$", repo_name, re.IGNORECASE)
+    return match.group(1).zfill(2) if match else None
+
+
+def normalize_team(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+
+    team = str(value).strip()
+    if not re.fullmatch(r"\d{1,2}", team):
+        die("--team must be one or two digits, e.g. --team 09")
+
+    return team.zfill(2)
+
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT       = SCRIPT_DIR.parent
@@ -88,11 +110,21 @@ parser.add_argument("--no-wipe", action="store_true",
                     help="Keep existing DB volumes; rebuild frontend and restart nginx only")
 parser.add_argument("--rebuild", action="store_true",
                     help="Only rebuild frontend + restart nginx; do not touch containers or DB at all")
+parser.add_argument("--team",
+                    help="Softlab team number. Defaults to repo suffix, e.g. saas26-09 -> 09")
 args = parser.parse_args()
 
 REBUILD_ONLY = args.rebuild
 NO_WIPE      = args.no_wipe or REBUILD_ONLY
 WIPE         = not NO_WIPE
+TEAM         = normalize_team(args.team) or detect_team_from_repo(ROOT.name)
+
+if TEAM is None:
+    die("Could not detect team number from repo name. Pass it explicitly, e.g. --team 09")
+
+PUBLIC_HTTP_PORT = int(f"33{TEAM}")
+PUBLIC_BASE_URL  = f"http://{SOFTLAB_HOST}:{PUBLIC_HTTP_PORT}"
+LOCAL_BASE_URL   = f"http://localhost:{PUBLIC_HTTP_PORT}"
 
 # ── 0. Prerequisites ──────────────────────────────────────────────────────────
 if not REBUILD_ONLY:
@@ -206,6 +238,7 @@ if not REBUILD_ONLY:
         info(f"Generated new JWT_SECRET: {jwt_secret[:8]}...  (saved to .env)")
 
     write_file(env_file, (
+        f"PUBLIC_HTTP_PORT={PUBLIC_HTTP_PORT}\n"
         f"JWT_SECRET={jwt_secret}\n"
         "PROVIDER_REGISTRATION_CODE=saasplug-provider-2024\n"
         "SEED_ADMIN_CREDENTIALS=admin@saas.com:123456,admin@saasplug.app:123456,agrinios@saasplug.app:123456\n"
@@ -293,7 +326,7 @@ if REBUILD_ONLY:
     info("--rebuild: restarting api-gateway to pick up new frontend...")
     run(["docker", "compose", "restart", "api-gateway"], cwd=ROOT)
     success("api-gateway restarted. New build is live.")
-    print(f"\n  {BOLD}http://{get_lan_ip()}{RESET}\n")
+    print(f"\n  {BOLD}{PUBLIC_BASE_URL}{RESET}\n")
     sys.exit(0)
 
 
@@ -320,14 +353,14 @@ success("Containers started.")
 
 
 # ── 9. Wait for the API gateway ───────────────────────────────────────────────
-info("Waiting for the API gateway at http://localhost ...")
+info(f"Waiting for the API gateway at {LOCAL_BASE_URL} ...")
 MAX_WAIT = 180
 INTERVAL = 5
 elapsed  = 0
 
 while True:
     try:
-        urllib.request.urlopen("http://localhost/api/auth/", timeout=3)
+        urllib.request.urlopen(f"{LOCAL_BASE_URL}/api/auth/", timeout=3)
         break
     except urllib.error.HTTPError:
         break
@@ -373,7 +406,7 @@ else:
 # ── 11. Final status check ────────────────────────────────────────────────────
 info("Verifying nginx serves the frontend...")
 try:
-    with urllib.request.urlopen("http://localhost/", timeout=5) as resp:
+    with urllib.request.urlopen(f"{LOCAL_BASE_URL}/", timeout=5) as resp:
         body = resp.read(200).decode("utf-8", errors="replace")
         if "<!doctype html>" in body.lower() or "<html" in body.lower():
             success("nginx is serving the React SPA at /.")
@@ -393,9 +426,10 @@ print(f"""
 
 {BOLD}  Open in any browser on your home network:{RESET}
 
-      {BOLD}{GREEN}http://{LAN_IP}{RESET}
+      {BOLD}{GREEN}{PUBLIC_BASE_URL}{RESET}
+      {BOLD}{GREEN}http://{LAN_IP}:{PUBLIC_HTTP_PORT}{RESET}
 
-  (Backend API also at http://{LAN_IP}/api — same nginx, no extra port)
+  (Backend API also at {PUBLIC_BASE_URL}/api — same nginx, no extra port)
 
 {BOLD}{CYAN}  ── Test Accounts  (all passwords: 123456) ────────────────{RESET}
 
@@ -431,7 +465,7 @@ print(f"""
       sudo systemctl enable docker && sudo systemctl start docker
 
 {BOLD}{CYAN}  ── To update the frontend without reseeding ────────────────{RESET}
-    python scripts/setup-vm.py --rebuild
+    python scripts/setup-vm.py --team {TEAM} --rebuild
 
 {BOLD}{GREEN}════════════════════════════════════════════════════════════{RESET}
 """)
