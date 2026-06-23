@@ -69,6 +69,31 @@ def write_file(path: Path, content: str):
     path.write_text(content, encoding="utf-8")
 
 
+def upsert_env_values(path: Path, values: dict):
+    existing_lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    seen = set()
+    output_lines = []
+
+    for line in existing_lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            output_lines.append(line)
+            continue
+
+        key = line.split("=", 1)[0].strip()
+        if key in values:
+            output_lines.append(f"{key}={values[key]}")
+            seen.add(key)
+        else:
+            output_lines.append(line)
+
+    for key, value in values.items():
+        if key not in seen:
+            output_lines.append(f"{key}={value}")
+
+    write_file(path, "\n".join(output_lines) + "\n")
+
+
 def get_lan_ip() -> str:
     """Best-effort: return the machine's LAN IP (not loopback)."""
     try:
@@ -126,6 +151,8 @@ PUBLIC_HTTP_PORT = int(f"33{TEAM}")
 PUBLIC_BASE_URL  = f"http://{SOFTLAB_HOST}:{PUBLIC_HTTP_PORT}"
 LOCAL_BASE_URL   = f"http://localhost:{PUBLIC_HTTP_PORT}"
 
+upsert_env_values(ROOT / ".env", {"PUBLIC_HTTP_PORT": str(PUBLIC_HTTP_PORT)})
+
 # ── 0. Prerequisites ──────────────────────────────────────────────────────────
 if not REBUILD_ONLY:
     info("Checking prerequisites...")
@@ -165,7 +192,7 @@ SPA_LOCATION = textwrap.dedent("""\
     }
 """)
 
-if "location /" in BASE_NGINX:
+if re.search(r"location\s+(?:=)?\s*/\s*\{", BASE_NGINX):
     warn("nginx.conf already has a 'location /' block — nginx.vm.conf unchanged.")
     vm_nginx = BASE_NGINX
 else:
@@ -321,11 +348,11 @@ if not DIST.exists() or not any(DIST.iterdir()):
 success(f"Frontend built → {DIST}")
 
 
-# ── 5. Rebuild only: restart nginx and exit ───────────────────────────────────
+# ── 5. Rebuild only: recreate nginx and exit ──────────────────────────────────
 if REBUILD_ONLY:
-    info("--rebuild: restarting api-gateway to pick up new frontend...")
-    run(["docker", "compose", "restart", "api-gateway"], cwd=ROOT)
-    success("api-gateway restarted. New build is live.")
+    info("--rebuild: recreating api-gateway to pick up frontend/config mounts...")
+    run(["docker", "compose", "up", "-d", "--no-deps", "--force-recreate", "api-gateway"], cwd=ROOT)
+    success("api-gateway recreated. New build is live.")
     print(f"\n  {BOLD}{PUBLIC_BASE_URL}{RESET}\n")
     sys.exit(0)
 
