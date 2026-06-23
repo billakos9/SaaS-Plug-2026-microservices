@@ -124,7 +124,7 @@ def normalize_team(value: Optional[str]) -> Optional[str]:
 # ── Paths ─────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT       = SCRIPT_DIR.parent
-SEEDS_DIR  = SCRIPT_DIR / "seeds"
+SEEDS_DIR  = SCRIPT_DIR / "seed_scripts"
 WEBAPP     = ROOT / "apps" / "web-app"
 GATEWAY    = ROOT / "apps" / "api-gateway"
 DIST       = WEBAPP / "dist"

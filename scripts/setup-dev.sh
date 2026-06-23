@@ -178,19 +178,19 @@ success "100 regular users seeded (e.g. giorgos.papadopoulos@gmail.com — see m
 
 # ── 7. Seed provider auth accounts + provider-db records ─────────────────────
 info "Seeding provider accounts..."
-docker cp "$SCRIPT_DIR/seeds/seed-providers.js" auth_service:/tmp/seed-providers.js
+docker cp "$SCRIPT_DIR/seed_scripts/seed-providers.js" auth_service:/tmp/seed-providers.js
 docker exec auth_service node /tmp/seed-providers.js
 success "Provider accounts seeded."
 
 # ── 8. Seed admin accounts ────────────────────────────────────────────────────
 info "Seeding admin accounts..."
-docker cp "$SCRIPT_DIR/seeds/seed-admins.js" admin_service:/tmp/seed-admins.js
+docker cp "$SCRIPT_DIR/seed_scripts/seed-admins.js" admin_service:/tmp/seed-admins.js
 docker exec admin_service node /tmp/seed-admins.js
 success "Admin accounts seeded."
 
 # ── 9. Seed reservation history + analytics stats ─────────────────────────────
 info "Seeding 100 completed reservations and analytics stats..."
-docker cp "$SCRIPT_DIR/seeds/seed-stats.js" reservation_service:/tmp/seed-stats.js
+docker cp "$SCRIPT_DIR/seed_scripts/seed-stats.js" reservation_service:/tmp/seed-stats.js
 docker exec reservation_service node /tmp/seed-stats.js
 success "Reservation and analytics data seeded."
 
