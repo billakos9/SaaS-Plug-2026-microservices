@@ -75,7 +75,7 @@ def write_file(path: Path, content: str):
 # ── Resolve paths ─────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT       = SCRIPT_DIR.parent
-SEEDS_DIR  = SCRIPT_DIR / "seeds"
+SEEDS_DIR  = SCRIPT_DIR / "seed_scripts"
 WEBAPP     = ROOT / "apps" / "web-app"
 
 
