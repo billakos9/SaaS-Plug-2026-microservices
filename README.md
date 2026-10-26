@@ -1,283 +1,128 @@
 # saasPlug
 
-**An EV charging platform built with event-driven microservices.**
+### EV charging, powered by event-driven microservices
 
-Find a charger, reserve a charging slot, follow an active session, and explore
-usage statistics. Providers manage their charging networks, analytics, and
-invoices through a dedicated dashboard.
+A full-stack platform for finding charging stations, reserving a charger,
+monitoring sessions, and managing provider networks, analytics, and billing.
+Built collaboratively for **NTUA ECE SaaS 2026 - Team 09**.
 
-Developed collaboratively for **NTUA ECE SaaS 2026, Team 09**. This personal
-repository preserves the team's original development history.
+![React](https://img.shields.io/badge/React-18-149ECA?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-333333?logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?logo=rabbitmq&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-[Application gallery](app_screenshots/README.md) ·
-[Architecture diagrams (PDF)](architecture/VPP_diagrams_architecture.pdf) ·
-[Architecture guide](architecture/README.md) ·
-[Run locally](#compose-modes) ·
-[Team and credits](#team-and-showcase-credits)
+[Technologies](#technologies-used) · [Screenshots](#application-preview) ·
+[Architecture](#architecture) · [Run locally](#run-locally) ·
+[Development guide](docs/DEVELOPMENT.md)
 
-## Product showcase
+## Technologies used
+
+| Area | Technologies | Role in the project |
+| --- | --- | --- |
+| Frontend | **React 18**, **Vite**, React Router | Component-based web app, development tooling, and role-specific navigation. |
+| Maps and dashboards | **Leaflet**, React Leaflet, **Recharts**, Framer Motion | Interactive charger maps, usage charts, and UI animation. |
+| API client | **Axios** | HTTP requests from the web app to the API Gateway. |
+| Backend | **Node.js**, **Express 5**, JavaScript ES modules | Independent REST services for authentication, users, charging, reservations, providers, analytics, administration, and billing. |
+| Persistence | **MongoDB**, **Mongoose** | Service-owned databases, schemas, and queries. |
+| Messaging | **RabbitMQ**, amqplib | Event-based communication and synchronization across services. |
+| Authentication | **JWT**, jsonwebtoken, bcrypt | Access tokens, role checks, and password hashing. |
+| API Gateway | **Nginx** | A single public entrypoint, request routing, rate limiting, and frontend serving. |
+| Containers | **Docker**, **Docker Compose** | Containerized services, private networking, and local/demo environments. |
+| Testing and tooling | **Node.js test runner**, **Python / pytest**, ESLint | Integration and scenario tests, setup automation, and JavaScript linting. |
+| Design documentation | **Visual Paradigm** | Editable UML architecture models and exported diagrams. |
+
+Explore the [frontend dependencies](apps/web-app/package.json),
+[backend dependencies](services/auth-service/package.json),
+[Compose configuration](docker-compose.yml), and
+[integration tests](tests/integration) for the implementation behind the stack.
+
+## What the platform does
+
+| Role | Main workflows |
+| --- | --- |
+| Driver | Find and filter charging stations on a map; reserve or cancel a charging slot; monitor a session; review usage statistics and manage a profile. |
+| Provider | Manage a charging network; inspect charger status, energy, revenue, and utilization; review invoices and session details. |
+| Administrator | Manage users and providers; monitor service health; inspect platform-wide analytics and billing. |
+
+## Application preview
 
 <table>
   <tr>
-    <th>Welcome to saasPlug</th>
-    <th>Find and reserve a charger</th>
+    <th>Charger discovery and reservations</th>
+    <th>Provider analytics</th>
   </tr>
   <tr>
-    <td><a href="app_screenshots/home_screen.png"><img src="app_screenshots/home_screen.png" alt="saasPlug landing page and charging workflow overview" width="390"></a></td>
-    <td><a href="app_screenshots/user_map_reserve.png"><img src="app_screenshots/user_map_reserve.png" alt="Interactive charger map with a selected station and reservation action" width="390"></a></td>
-  </tr>
-  <tr>
-    <th>Follow a charging session</th>
-    <th>Understand provider performance</th>
-  </tr>
-  <tr>
-    <td><a href="app_screenshots/user_session_page.png"><img src="app_screenshots/user_session_page.png" alt="Active charging session with a countdown, station details, and recent activity" width="390"></a></td>
-    <td><a href="app_screenshots/provider_analitics_page.png"><img src="app_screenshots/provider_analitics_page.png" alt="Provider analytics dashboard showing revenue, energy, sessions, and fleet status" width="390"></a></td>
+    <td><a href="app_screenshots/user_map_reserve.png"><img src="app_screenshots/user_map_reserve.png" alt="Charger map with station details and a reservation action" width="390"></a></td>
+    <td><a href="app_screenshots/provider_analitics_page.png"><img src="app_screenshots/provider_analitics_page.png" alt="Provider dashboard with revenue, energy, session, and fleet statistics" width="390"></a></td>
   </tr>
 </table>
 
-[Explore all 12 application screenshots →](app_screenshots/README.md)
+**[View the complete gallery: 12 application screenshots →](app_screenshots/README.md)**
 
-## Features
+The gallery covers the landing page, sign-in, maps, reservations, charging
+sessions, driver statistics, provider networks, and invoices.
 
-- **Drivers:** discover stations on a map, filter chargers, reserve a slot, and
-  monitor charging sessions, history, and personal statistics.
-- **Providers:** manage a charging network, inspect usage and revenue analytics,
-  and review invoices and their session details.
-- **Administrators:** manage users and providers, monitor system health, and
-  inspect platform-wide analytics.
-- **Integration:** normalize BluePlug, RedPlug, and GreenPlug through dedicated
-  adapters, with RabbitMQ events connecting the services.
+## Architecture
 
-## Technology and architecture
+The React web app sends `/api/*` requests through the **Nginx API Gateway**.
+Backend services own their data and coordinate through **RabbitMQ events**.
+Dedicated **BluePlug, RedPlug, and GreenPlug adapters** translate external
+charging-network APIs into a common platform model.
 
-| Layer | Technologies |
+| Services | Responsibility |
 | --- | --- |
-| Web app | React 18, Vite, React Router, Leaflet, Recharts, Framer Motion |
-| Services | Node.js, Express, Mongoose, JWT authentication |
-| Data and messaging | MongoDB, RabbitMQ |
-| Gateway and deployment | Nginx, Docker, Docker Compose |
-| Validation | Node.js integration tests, ESLint |
+| [Auth](services/auth-service) and [User](services/user-service) | Sign-in, registration, tokens, and user profiles. |
+| [Charger](services/charger-service) and [Reservation](services/reservation-service) | Station discovery and reservation/session lifecycle. |
+| [Provider](services/provider-service) and [Plug](services/plug-service) | Provider records, polling, and charger synchronization through [provider adapters](services/plug-adapters). |
+| [Analytics](services/analytics-service) and [Billing](services/billing-service) | Usage reporting, provider metrics, and invoices. |
+| [Admin](services/admin-service) | Administrative operations and system-health views. |
 
-The React application reaches the services through the Nginx API Gateway.
-Services keep separate data stores and use RabbitMQ for event-based
-communication. Provider adapters translate external charging-network APIs into
-the platform's shared model.
+Implementation details include role-based access, event consumers with
+dead-letter handling, and a default Compose configuration that exposes the
+API Gateway while keeping backend services and databases on internal networks.
 
-The [17-page architecture PDF](architecture/VPP_diagrams_architecture.pdf)
-covers use cases, service components, deployment, interfaces, data models,
-sequence diagrams, and activity diagrams. The
-[architecture guide](architecture/README.md) provides a page index and a preview;
-the editable Visual Paradigm project is included alongside the PDF.
+[**Explore the architecture guide and diagram index →**](architecture/README.md)
 
-## Repository Layout
+The guide links to the complete architecture PDF, a component-diagram preview,
+and the editable Visual Paradigm project. Diagrams document a design snapshot;
+the service code and Compose configuration describe the current implementation.
 
-```text
-apps/
-  api-gateway/          Nginx public entrypoint for frontend and /api/*
-  web-app/              Current React/Vite frontend
+## Run locally
 
-services/
-  auth-service/         Login, registration, JWT issuance, auth events
-  user-service/         User profile read/update and user mirror data
-  admin-service/        Admin management, system health, cross-service views
-  provider-service/     Provider network records
-  charger-service/      Charger/station catalog
-  reservation-service/  Reservation lifecycle and session events
-  analytics-service/    Provider/global analytics from reservation events
-  billing-service/      Provider invoices and billing snapshots
-  plug-service/         Polls provider adapters and publishes charger updates
-  plug-adapters/        bluePlug, redPlug, greenPlug provider adapters
-  dev-seeder/           Seeds auth/user data from mock_data/users.json
-
-app_screenshots/       Application gallery and original team screenshots
-mock_data/              Seed input data
-scripts/                Local dev and Softlab VM setup scripts
-architecture/           Diagram PDF, preview, and editable Visual Paradigm project
-tests/                  Node integration tests
-```
-
-## Public Entrypoint
-
-The canonical public entrypoint is the API Gateway:
-
-```text
-http://localhost:<public-port>
-```
-
-Public API paths are under `/api/*`, for example:
-
-```text
-/api/auth/login
-/api/chargers/
-/api/reservations
-/api/users/me
-/api/admin/system-health
-```
-
-Backend services communicate internally over the Docker network by service name,
-for example `auth-service:3000`.
-
-## Compose Modes
-
-### Production-like / VM mode
-
-The default compose file exposes only the API Gateway. Services, databases,
-RabbitMQ, and adapters are internal-only.
-
-For the Softlab Team 09 port:
+Requires **Docker with Docker Compose**, **Python 3**, and **Node.js with npm**.
 
 ```bash
-PUBLIC_HTTP_PORT=3309 docker compose up -d --build
-```
-
-The web app is available locally at:
-
-```text
-http://localhost:3309
-```
-
-The API is available at:
-
-```text
-http://localhost:3309/api
-```
-
-### Local dev/debug mode
-
-Use this only when you need direct host access to services, MongoDBs, RabbitMQ,
-or adapters:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-```
-
-Direct dev ports include:
-
-```text
-user-service        3001
-auth-service        3002
-reservation-service 3003
-charger-service     3004
-analytics-service   3005
-provider-service    3006
-admin-service       3007
-plug-service        3008
-adapters            3009-3011
-billing-service     3012
-RabbitMQ UI         15672
-MongoDBs            27011-27016, 27021-27022
-```
-
-## Softlab VM Setup
-
-On the Softlab VM:
-
-```bash
-git pull
+git clone https://github.com/billakos9/SaaS-Plug-2026-microservices.git
+cd SaaS-Plug-2026-microservices
 python3 scripts/setup-vm.py --team 09
 ```
 
-For a frontend/gateway rebuild without DB wipe/seed:
+Open **[http://localhost:3309](http://localhost:3309)** after setup completes.
+The script creates runtime configuration, builds the frontend and containers,
+and seeds the demo data.
 
-```bash
-python3 scripts/setup-vm.py --team 09 --rebuild
-```
+A fresh setup resets the project's Docker volumes. For an existing installation,
+use `--no-wipe` to keep its data, or `--rebuild` for a frontend/gateway rebuild.
 
-The app should be visible inside the Softlab network at:
+For development mode, test commands, demo accounts, and port configuration,
+see the [development guide](docs/DEVELOPMENT.md) and
+[setup-script documentation](scripts/README.md).
 
-```text
-http://147.102.112.123:3309
-```
+## Explore the repository
 
-`setup-vm.py` generates:
-
-```text
-docker-compose.override.yml
-apps/api-gateway/nginx.vm.conf
-apps/web-app/dist/
-```
-
-These files are generated locally and ignored by git.
-
-## Web App Development
-
-Install and run Vite:
-
-```bash
-cd apps/web-app
-npm install
-npm run dev
-```
-
-The Vite proxy reads `PUBLIC_HTTP_PORT` from the root `.env`. If the gateway is
-running on `3309`, `/api` requests from Vite are proxied to
-`http://localhost:3309` automatically.
-
-## Test Accounts
-
-All seeded passwords are `123456`.
-
-Users:
-
-```text
-giorgos.papadopoulos@gmail.com
-james.smith@gmail.com
-marco.rossi@gmail.com
-```
-
-Providers:
-
-```text
-blue@plug.com
-red@plug.com
-green@plug.com
-```
-
-Admins:
-
-```text
-admin@saas.com
-admin@saasplug.app
-agrinios@saasplug.app
-```
-
-## Tests
-
-Root integration tests:
-
-```bash
-npm test
-```
-
-Focused examples:
-
-```bash
-npm run test:admin
-npm run test:reservation
-npm run test:analytics
-```
-
-Web app build:
-
-```bash
-npm --prefix apps/web-app run build
-```
-
-Compose validation:
-
-```bash
-docker compose config -q
-docker compose -f docker-compose.yml -f docker-compose.dev.yml config -q
-```
-
-## Notes
-
-- `JWT_SECRET` must be set explicitly. Do not rely on backend default secrets.
-- Browser auth tokens are stored in `sessionStorage`.
-- Public registration creates normal users only.
-- Admin accounts are seeded or managed by admins, not public registration.
-- Provider self-registration is guarded by `PROVIDER_REGISTRATION_CODE`.
+| Directory | Contents |
+| --- | --- |
+| [`apps/`](apps) | React frontend and Nginx API Gateway. |
+| [`services/`](services) | Backend services, provider adapters, and demo seeder. |
+| [`tests/`](tests) | Integration tests and application scenarios. |
+| [`architecture/`](architecture) | UML project, architecture PDF, and diagram guide. |
+| [`app_screenshots/`](app_screenshots) | Full application gallery. |
+| [`scripts/`](scripts) | Environment setup and seed automation. |
+| [`docs/`](docs) | Development and deployment guide. |
 
 ## Team and showcase credits
 
